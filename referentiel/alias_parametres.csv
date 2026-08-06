@@ -1,0 +1,71 @@
+alias;libelle_cible;commentaire
+somme des 20 pfas;Somme de 20 substances perfluoroalkylees (PFAS);libelle court Hub'Eau
+somme pfas (20);Somme de 20 substances perfluoroalkylees (PFAS);variante
+somme des 20 substances perfluoroalkylees;Somme de 20 substances perfluoroalkylees (PFAS);variante sans le sigle
+somme des 4 pfas;Somme de 4 substances perfluoroalkylees (PFOA+PFNA+PFHXS+PFOS);libelle court
+pfoa;PFOA - acide perfluorooctanoique;sigle seul
+acide perfluorooctanoique;PFOA - acide perfluorooctanoique;libelle sans sigle
+pfos;PFOS - acide perfluorooctanesulfonique;sigle seul
+acide perfluorooctanesulfonique;PFOS - acide perfluorooctanesulfonique;libelle sans sigle
+pfhxs;PFHxS - acide perfluorohexanesulfonique;sigle seul
+pfna;PFNA - acide perfluorononanoique;sigle seul
+metolachlore esa;ESA metolachlore;ordre inverse
+esa-metolachlore;ESA metolachlore;tiret
+metolachlore-esa;ESA metolachlore;tiret ordre inverse
+metolachlore oxa;OXA metolachlore;ordre inverse
+oxa-metolachlore;OXA metolachlore;tiret
+metazachlore esa;ESA metazachlore;ordre inverse
+esa-metazachlore;ESA metazachlore;tiret
+chloridazone-desphenyl;Chloridazone desphenyl;tiret
+desphenyl-chloridazone;Chloridazone desphenyl;ordre inverse
+chloridazone desphenyl (b);Chloridazone desphenyl;variante annotee
+atrazine-desethyl;Atrazine desethyl;tiret
+chlorothalonil r471811;Chlorothalonil R471811;casse
+chlorothalonil metabolite r471811;Chlorothalonil R471811;variante longue
+chlorothalonil r417888;Chlorothalonil R417888;casse
+nitrates;Nitrates (en NO3);libelle court
+nitrates en no3;Nitrates (en NO3);sans parentheses
+nitrate;Nitrates (en NO3);singulier
+nitrites;Nitrites (en NO2);libelle court
+nitrites en no2;Nitrites (en NO2);sans parentheses
+chrome;Chrome total;libelle court - suppose chrome total
+chrome (vi);Chrome hexavalent;notation romaine
+chrome hexavalent (cr vi);Chrome hexavalent;variante
+aluminium;Aluminium total;libelle court
+plomb total;Plomb;variante
+fluor;Fluorures;forme elementaire
+fluorure;Fluorures;singulier
+sulfate;Sulfates;singulier
+chlorure;Chlorures;singulier
+cyanures;Cyanures totaux;libelle court
+cyanure total;Cyanures totaux;singulier
+bisphenol-a;Bisphenol A;tiret
+bisphenol a (bpa);Bisphenol A;avec sigle
+bpa;Bisphenol A;sigle seul
+somme des trihalomethanes;Trihalomethanes (4 substances);libelle long
+thm;Trihalomethanes (4 substances);sigle
+trihalomethanes;Trihalomethanes (4 substances);libelle court
+somme des 4 thm;Trihalomethanes (4 substances);variante
+chlorate;Chlorates;singulier
+bromate;Bromates;singulier
+somme des hap (4 substances);Hydrocarbures aromatiques polycycliques (somme 4);libelle court
+hap (somme de 4);Hydrocarbures aromatiques polycycliques (somme 4);variante
+somme des pesticides;Pesticides totaux;libelle court
+pesticides (somme);Pesticides totaux;variante
+total pesticides;Pesticides totaux;ordre inverse
+escherichia coli /100ml;Escherichia coli;avec unite dans le libelle
+e. coli;Escherichia coli;abreviation
+e coli;Escherichia coli;abreviation sans point
+enterocoques /100ml;Enterocoques;avec unite
+enterocoques intestinaux;Enterocoques;libelle long
+coliformes totaux;Bacteries coliformes;variante
+bacteries coliformes /100ml;Bacteries coliformes;avec unite
+conductivite;Conductivite a 25 C;libelle court
+conductivite a 25c;Conductivite a 25 C;sans espace
+ph;pH;casse
+ph in situ;pH;variante terrain
+uranium total;Uranium;variante
+tritium (activite);Tritium;variante
+radon;Radon 222;libelle court
+dose totale indicative;Dose indicative totale;ordre inverse
+dti;Dose indicative totale;sigle

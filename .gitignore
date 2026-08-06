@@ -1,0 +1,23 @@
+# La base est reconstructible : le dépôt versionne la méthode et le
+# référentiel, pas les données dérivées.
+data/*.duckdb
+data/*.duckdb.wal
+data/*.sqlite
+data/journal/
+
+# Sorties générées
+sortie/*.html
+!sortie/_template.html
+sortie/*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Système
+.DS_Store
+Thumbs.db
+*~
