@@ -23,6 +23,15 @@ SELECT
     MAX(date_prelevement)                              AS plus_recent
 FROM prelevements;
 
+-- 0.a bis Le dénominateur : sur combien de paramètres porte réellement chaque
+--     verdict ? Une conformité annoncée sans ce chiffre est une demi-vérité.
+SELECT commune, date_prelevement, nom_installation_amont,
+       nb_mesures_lues, nb_mesures_notees, pct_couverture,
+       nb_notees_referentiel, nb_notees_declare, nb_sans_seuil
+FROM v_prelevement_verdict
+WHERE est_complet
+ORDER BY pct_couverture;
+
 -- 0.b Paramètres mesurés qu'aucune règle n'a rattachés au référentiel.
 --     Chacun est une mesure INVISIBLE pour l'analyse : elle existe en base
 --     et ne pèse sur aucun verdict. Les lignes en tête (quantifiées, sur
@@ -33,6 +42,11 @@ SELECT * FROM v_parametres_non_apparies LIMIT 40;
 --     soit le paramètre n'est pas recherché par le contrôle sanitaire,
 --     soit son libellé diffère et il manque un alias.
 SELECT * FROM v_referentiel_jamais_mesure;
+
+-- 0.c bis Contrôles de qualité introduits avec la couche de couverture.
+SELECT * FROM v_regle_famille_appliquee LIMIT 40;   -- à relire : rattachements automatiques
+SELECT * FROM v_ecarts_referentiel_source;          -- notre seuil 2026 contre celui déclaré
+SELECT * FROM v_unites_incomparables;               -- aucun verdict produit, faute d'unité comparable
 
 -- 0.d Taux d'appariement par mode : plus la part 'code_parametre' est
 --     élevée, plus la base est robuste au passage à l'échelle.
@@ -181,3 +195,44 @@ FROM v_prelevement_verdict
 WHERE est_complet
 GROUP BY dept
 ORDER BY dept;
+
+
+-- -------------------------------------------------------------------------
+-- 8. LA SORTIE FIGÉE
+--    Ce que la base a arrêté, et contre quelle grille. Tout chiffre publié
+--    doit venir d'ici, pas d'une vue recalculée à la volée : une vue suit le
+--    référentiel du jour, une ligne figée dit contre quoi elle a été calculée.
+-- -------------------------------------------------------------------------
+SELECT commune, date_prelevement, nom_installation_amont,
+       nb_mesures_notees || '/' || nb_parametres AS notes_sur_mesures,
+       pct_couverture, nb_depasse_2026, nb_bascules, nb_indetermines,
+       nb_synthese_quantifiees, ROUND(charge_synthese_ug_l, 4) AS charge_ug_l,
+       ROUND(indice_danger, 2) AS indice_danger, indice_danger_n,
+       version_referentiel, calcule_le
+FROM analyses_figees
+ORDER BY calcule_le DESC, commune;
+
+
+-- 8.b CE QUE COLORIE LA CARTE. « non_documentee » n'est ni conforme ni non
+--     conforme : c'est une absence de donnée, et elle doit rester visible.
+SELECT statut, COUNT(*) AS nb_communes
+FROM couverture_communes
+GROUP BY 1 ORDER BY 2 DESC;
+
+SELECT commune, dept, lon, lat, statut, commune_prelevement,
+       date_prelevement, pct_couverture
+FROM couverture_communes
+ORDER BY statut, commune;
+
+
+-- 8.c LE DÉPLACEMENT DES SEUILS, VU PAR L'OUTIL LUI-MÊME.
+--     Deux versions du référentiel figées sur le même prélèvement : la
+--     différence est exactement ce que le projet cherche à rendre visible.
+SELECT a.code_prelevement, a.commune,
+       a.version_referentiel, a.calcule_le,
+       a.nb_depasse_2026, a.nb_bascules, a.nb_mesures_notees
+FROM analyses_figees a
+WHERE a.code_prelevement IN (
+    SELECT code_prelevement FROM analyses_figees
+    GROUP BY code_prelevement HAVING COUNT(DISTINCT version_referentiel) > 1)
+ORDER BY a.code_prelevement, a.calcule_le;

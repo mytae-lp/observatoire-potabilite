@@ -15,34 +15,46 @@ import sys
 
 import duckdb
 
-from common import DB_PATH, REF_CSV, ALIAS_CSV, norm, f, s
+from common import (DB_PATH, REF_CSV, ALIAS_CSV, RACINE,
+                    FACTEURS_MASSE_PAR_LITRE, norm, norm_unite, f, s)
+
+REGLES_CSV = os.path.join(RACINE, "referentiel", "regles_famille.csv")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS communes (
     code_insee        VARCHAR PRIMARY KEY,
     nom               VARCHAR,
-    code_departement  VARCHAR
+    code_departement  VARCHAR,
+    codes_postaux     VARCHAR,
+    lon               DOUBLE,
+    lat               DOUBLE
 );
 
 CREATE TABLE IF NOT EXISTS prelevements (
-    code_prelevement      VARCHAR PRIMARY KEY,
-    code_insee            VARCHAR,
-    nom_installation      VARCHAR,
-    nom_distributeur      VARCHAR,
-    date_prelevement      DATE,
-    nb_parametres         INTEGER,
-    est_complet           BOOLEAN,
-    conclusion_conformite VARCHAR,
-    conf_limites_bact     VARCHAR,
-    conf_limites_pc       VARCHAR,
-    conf_references_pc    VARCHAR,
-    source_url            VARCHAR
+    code_prelevement        VARCHAR PRIMARY KEY,
+    code_insee              VARCHAR,
+    code_installation_amont VARCHAR,
+    nom_installation_amont  VARCHAR,
+    nom_distributeur        VARCHAR,
+    nom_uge                 VARCHAR,
+    codes_reseaux           VARCHAR,
+    noms_reseaux            VARCHAR,
+    code_lieu_analyse       VARCHAR,
+    date_prelevement        DATE,
+    nb_parametres           INTEGER,
+    est_complet             BOOLEAN,
+    conclusion_conformite   VARCHAR,
+    conf_limites_bact       VARCHAR,
+    conf_limites_pc         VARCHAR,
+    conf_references_pc      VARCHAR,
+    source_url              VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS mesures (
     code_prelevement  VARCHAR,
     code_insee        VARCHAR,
     code_parametre    VARCHAR,
+    code_cas          VARCHAR,
     libelle_parametre VARCHAR,
     libelle_norm      VARCHAR,
     resultat_num      DOUBLE,
@@ -50,7 +62,11 @@ CREATE TABLE IF NOT EXISTS mesures (
     lq                DOUBLE,
     est_quantifie     BOOLEAN,
     unite             VARCHAR,
-    limite_qualite    VARCHAR,
+    unite_norm        VARCHAR,
+    limite_brute      VARCHAR,
+    limite_declaree   DOUBLE,
+    reference_brute   VARCHAR,
+    reference_declaree DOUBLE,
     PRIMARY KEY (code_prelevement, libelle_parametre)
 );
 
@@ -60,6 +76,7 @@ CREATE TABLE IF NOT EXISTS referentiel_seuils (
     libelle                  VARCHAR,
     famille                  VARCHAR,
     unite                    VARCHAR,
+    unite_norm               VARCHAR,
     seuil_2016               DOUBLE,
     seuil_2026               DOUBLE,
     statut_2026              VARCHAR,
@@ -70,13 +87,28 @@ CREATE TABLE IF NOT EXISTS referentiel_seuils (
     pe_reglementaire         VARCHAR,
     pe_scientifique          VARCHAR,
     sources                  VARCHAR,
-    fiabilite                VARCHAR
+    fiabilite                VARCHAR,
+    est_agregat              BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS alias_parametres (
     alias_norm   VARCHAR PRIMARY KEY,
     libelle_norm VARCHAR,
     commentaire  VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS unites_masse (
+    unite_norm VARCHAR PRIMARY KEY,
+    facteur    DOUBLE
+);
+
+CREATE TABLE IF NOT EXISTS regles_famille (
+    nom_regle       VARCHAR PRIMARY KEY,
+    limite_declaree DOUBLE,
+    unite_norm      VARCHAR,
+    libelle_norm    VARCHAR,
+    justification   VARCHAR,
+    sources         VARCHAR
 );
 """
 
@@ -85,21 +117,32 @@ CREATE TABLE IF NOT EXISTS alias_parametres (
 # ---------------------------------------------------------------------------
 
 # 1) Résolution du rapprochement mesure <-> référentiel.
-#    Priorité : code_parametre Hub'Eau (stable) > libellé normalisé > alias.
-#    C'est cette cascade qui permet le passage à l'échelle : au-delà de
-#    quelques communes, les variantes d'écriture rendent le seul libellé
-#    insuffisant.
+#    Cascade : code_parametre Hub'Eau (stable) > libellé normalisé > alias >
+#    règle de famille.
+#
+#    La règle de famille est ce qui rend le passage à l'échelle possible. Un
+#    bulletin complet porte ~300 pesticides nommés (Boscalid, Quinmérac,
+#    Imazamox…) qu'aucun référentiel saisi à la main ne couvrira jamais un par
+#    un. Ils partagent tous la même limite réglementaire, et l'administration
+#    la déclare avec chaque mesure. La règle rattache donc « toute mesure non
+#    encore appariée dont la limite déclarée vaut 0,1 µg/L » à la ligne
+#    « Pesticide - substance individuelle » du référentiel. La règle est
+#    écrite dans un fichier versionné et son effet est auditable
+#    (v_regle_famille_appliquee).
 VUE_REF = """
 CREATE OR REPLACE VIEW v_mesures_ref AS
 SELECT
     m.*,
-    COALESCE(r1.libelle_norm, r2.libelle_norm, r3.libelle_norm) AS ref_key,
+    COALESCE(r1.libelle_norm, r2.libelle_norm, r3.libelle_norm, r4.libelle_norm) AS ref_key,
     CASE
         WHEN r1.libelle_norm IS NOT NULL THEN 'code_parametre'
         WHEN r2.libelle_norm IS NOT NULL THEN 'libelle'
         WHEN r3.libelle_norm IS NOT NULL THEN 'alias'
+        WHEN r4.libelle_norm IS NOT NULL THEN 'regle_famille'
         ELSE NULL
-    END AS mode_appariement
+    END AS mode_appariement,
+    CASE WHEN COALESCE(r1.libelle_norm, r2.libelle_norm, r3.libelle_norm) IS NULL
+         THEN g.nom_regle END AS regle_appliquee
 FROM mesures m
 LEFT JOIN referentiel_seuils r1
        ON r1.code_parametre IS NOT NULL AND r1.code_parametre = m.code_parametre
@@ -108,58 +151,124 @@ LEFT JOIN referentiel_seuils r2
 LEFT JOIN alias_parametres a
        ON a.alias_norm = m.libelle_norm
 LEFT JOIN referentiel_seuils r3
-       ON r3.libelle_norm = a.libelle_norm;
+       ON r3.libelle_norm = a.libelle_norm
+LEFT JOIN regles_famille g
+       ON COALESCE(r1.libelle_norm, r2.libelle_norm, r3.libelle_norm) IS NULL
+      AND g.limite_declaree = m.limite_declaree
+      AND (g.unite_norm IS NULL OR g.unite_norm = m.unite_norm)
+LEFT JOIN referentiel_seuils r4
+       ON r4.libelle_norm = g.libelle_norm;
 """
 
 # 2) Le cœur du projet : la même mesure notée contre trois grilles.
-#    Un dépassement exige est_quantifie = TRUE (cf. CLAUDE.md §2.4).
-#    indetermine_strict : la LQ du laboratoire est au-dessus du seuil strict,
-#    on ne peut donc RIEN conclure — ce n'est pas une conformité.
+#
+#    Deux sources de seuil, jamais confondues :
+#      - le RÉFÉRENTIEL du projet : saisi à la main sur textes réglementaires,
+#        daté, sourcé. Seul lui porte 2016, le seuil strict et les seuils
+#        différés. Seul lui peut produire une bascule.
+#      - la LIMITE DÉCLARÉE avec la mesure par l'administration : la grille
+#        d'aujourd'hui, et rien d'autre. Elle sert de filet là où le
+#        référentiel est muet, pour qu'un bulletin ne soit pas déclaré sans
+#        dépassement après n'avoir été lu qu'au dixième.
+#
+#    Un dépassement exige est_quantifie = TRUE (CLAUDE.md §2.4).
 VUE_VERDICT = """
 CREATE OR REPLACE VIEW v_mesures_verdict AS
+WITH base AS (
+    SELECT
+        v.*,
+        r.libelle_norm AS r_key, r.famille, r.unite_norm AS unite_ref,
+        r.seuil_2016, r.seuil_2026, r.seuil_strict, r.seuil_futur,
+        r.base_seuil_strict, r.statut_2026, r.date_applicabilite_futur, r.est_agregat,
+        r.pe_reglementaire, r.pe_scientifique, r.fiabilite,
+        -- Facteur de conversion du seuil (exprimé dans l'unité du référentiel)
+        -- vers l'unité dans laquelle la mesure est exprimée.
+        --   NULL = les deux unités sont connues, différentes et non
+        --   convertibles : AUCUN verdict n'est produit, plutôt qu'un verdict
+        --   faux d'un facteur 1000.
+        CASE
+            WHEN r.unite_norm IS NULL OR v.unite_norm IS NULL THEN 1.0
+            WHEN r.unite_norm = v.unite_norm                  THEN 1.0
+            WHEN ur.facteur IS NOT NULL AND um.facteur IS NOT NULL
+                 THEN ur.facteur / um.facteur
+            ELSE NULL
+        END AS k
+    FROM v_mesures_ref v
+    LEFT JOIN referentiel_seuils r ON r.libelle_norm = v.ref_key
+    LEFT JOIN unites_masse ur ON ur.unite_norm = r.unite_norm
+    LEFT JOIN unites_masse um ON um.unite_norm = v.unite_norm
+)
 SELECT
     v.code_insee,
     v.code_prelevement,
     v.libelle_parametre,
     v.code_parametre,
+    v.code_cas,
     v.mode_appariement,
-    r.famille,
+    v.regle_appliquee,
+    v.famille,
     v.resultat_num,
     v.lq,
     v.est_quantifie,
     v.unite,
-    r.seuil_2016,
-    r.seuil_2026,
-    r.seuil_strict,
-    r.base_seuil_strict,
-    r.statut_2026,
-    r.seuil_futur,
-    r.date_applicabilite_futur,
-    r.pe_reglementaire,
-    r.pe_scientifique,
-    r.fiabilite,
 
-    (v.est_quantifie AND r.seuil_2016   IS NOT NULL AND v.resultat_num > r.seuil_2016)   AS depasse_2016,
-    (v.est_quantifie AND r.seuil_2026   IS NOT NULL AND v.resultat_num > r.seuil_2026)   AS depasse_2026,
-    (v.est_quantifie AND r.seuil_strict IS NOT NULL AND v.resultat_num > r.seuil_strict) AS depasse_strict,
-    (v.est_quantifie AND r.seuil_futur  IS NOT NULL AND v.resultat_num > r.seuil_futur)  AS depasse_futur,
+    -- Tous les seuils sont RAMENÉS À L'UNITÉ DE LA MESURE (facteur k), donc
+    -- directement comparables au résultat et affichables tels quels.
+    v.seuil_2016   * v.k AS seuil_2016,
+    v.seuil_2026   * v.k AS seuil_2026,
+    v.seuil_strict * v.k AS seuil_strict,
+    v.seuil_futur  * v.k AS seuil_futur,
+    v.limite_declaree,
+    COALESCE(v.seuil_2026 * v.k, v.limite_declaree) AS seuil_2026_effectif,
+    CASE
+        WHEN v.seuil_2026 * v.k IS NOT NULL THEN 'referentiel'
+        WHEN v.limite_declaree  IS NOT NULL THEN 'declare'
+        ELSE 'absent'
+    END AS origine_seuil_2026,
+    (v.k IS NULL) AS unite_incomparable,
+    v.base_seuil_strict,
+    v.statut_2026,
+    COALESCE(v.est_agregat, FALSE) AS est_agregat,
+    v.date_applicabilite_futur,
+    v.pe_reglementaire,
+    v.pe_scientifique,
+    v.fiabilite,
+
+    -- Une mesure est « notée » si elle a un seuil de comparaison actuel.
+    -- C'est le dénominateur honnête de toute affirmation de conformité.
+    (COALESCE(v.seuil_2026 * v.k, v.limite_declaree) IS NOT NULL) AS notee,
+
+    -- 2016 et strict ne viennent QUE du référentiel : on n'invente pas de
+    -- passé réglementaire à partir de la grille d'aujourd'hui.
+    (v.est_quantifie AND v.seuil_2016   * v.k IS NOT NULL AND v.resultat_num > v.seuil_2016   * v.k) AS depasse_2016,
+    (v.est_quantifie AND v.seuil_strict * v.k IS NOT NULL AND v.resultat_num > v.seuil_strict * v.k) AS depasse_strict,
+    (v.est_quantifie AND v.seuil_futur  * v.k IS NOT NULL AND v.resultat_num > v.seuil_futur  * v.k) AS depasse_futur,
+    (v.est_quantifie AND COALESCE(v.seuil_2026 * v.k, v.limite_declaree) IS NOT NULL
+       AND v.resultat_num > COALESCE(v.seuil_2026 * v.k, v.limite_declaree))                         AS depasse_2026,
 
     -- LA BASCULE : dépassait la limite de 2016, ne dépasse pas celle de 2026.
-    -- Ce n'est pas l'eau qui a changé, c'est la limite.
+    -- Ce n'est pas l'eau qui a changé, c'est la limite. Référentiel seul.
     (v.est_quantifie
-       AND r.seuil_2016 IS NOT NULL AND r.seuil_2026 IS NOT NULL
-       AND v.resultat_num >  r.seuil_2016
-       AND v.resultat_num <= r.seuil_2026) AS bascule_2016_2026,
+       AND v.seuil_2016 * v.k IS NOT NULL AND v.seuil_2026 * v.k IS NOT NULL
+       AND v.resultat_num >  v.seuil_2016 * v.k
+       AND v.resultat_num <= v.seuil_2026 * v.k) AS bascule_2016_2026,
 
     -- Troisième état de verdict : ni conforme ni dépassement, indéterminé.
     (NOT v.est_quantifie AND v.lq IS NOT NULL
-       AND r.seuil_strict IS NOT NULL AND v.lq > r.seuil_strict) AS indetermine_strict
-FROM v_mesures_ref v
-JOIN referentiel_seuils r ON r.libelle_norm = v.ref_key;
+       AND v.seuil_strict * v.k IS NOT NULL AND v.lq > v.seuil_strict * v.k) AS indetermine_strict,
+
+    -- Contrôle croisé : notre seuil 2026 contredit-il celui que
+    -- l'administration déclare avec la mesure ? Comparaison faite après
+    -- conversion, sinon une simple différence d'unité passerait pour un
+    -- désaccord réglementaire.
+    (v.seuil_2026 * v.k IS NOT NULL AND v.limite_declaree IS NOT NULL
+       AND abs(v.seuil_2026 * v.k - v.limite_declaree) > 1e-9) AS ecart_referentiel_declare
+FROM base v;
 """
 
 # 3) Agrégat par prélèvement. est_complet reste porté ici : toute requête de
-#    thèse doit filtrer dessus.
+#    thèse doit filtrer dessus. Le taux de couverture est porté ici aussi :
+#    une conformité annoncée sans son dénominateur est une demi-vérité.
 VUE_PRELEVEMENT = """
 CREATE OR REPLACE VIEW v_prelevement_verdict AS
 SELECT
@@ -167,50 +276,63 @@ SELECT
     p.code_insee,
     c.nom               AS commune,
     c.code_departement  AS dept,
+    c.codes_postaux,
+    c.lon,
+    c.lat,
     p.date_prelevement,
-    p.nom_installation,
+    p.code_installation_amont,
+    p.nom_installation_amont,
+    p.nom_uge,
+    p.noms_reseaux,
     p.nom_distributeur,
     p.nb_parametres,
     p.est_complet,
     p.conclusion_conformite,
-    COUNT(v.libelle_parametre)                                    AS nb_mesures_notees,
+    COUNT(v.libelle_parametre)                                    AS nb_mesures_lues,
+    COUNT(*) FILTER (WHERE v.notee)                               AS nb_mesures_notees,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE v.notee)
+          / NULLIF(COUNT(v.libelle_parametre), 0), 1)             AS pct_couverture,
+    COUNT(*) FILTER (WHERE v.origine_seuil_2026 = 'referentiel')  AS nb_notees_referentiel,
+    COUNT(*) FILTER (WHERE v.origine_seuil_2026 = 'declare')      AS nb_notees_declare,
+    COUNT(*) FILTER (WHERE v.origine_seuil_2026 = 'absent')       AS nb_sans_seuil,
     COUNT(*) FILTER (WHERE v.depasse_2016)                        AS nb_depasse_2016,
     COUNT(*) FILTER (WHERE v.depasse_2026)                        AS nb_depasse_2026,
     COUNT(*) FILTER (WHERE v.depasse_strict)                      AS nb_depasse_strict,
     COUNT(*) FILTER (WHERE v.depasse_futur)                       AS nb_depasse_futur,
     COUNT(*) FILTER (WHERE v.bascule_2016_2026)                   AS nb_bascules,
     COUNT(*) FILTER (WHERE v.indetermine_strict)                  AS nb_indetermines,
+    COUNT(*) FILTER (WHERE v.ecart_referentiel_declare)           AS nb_ecarts_seuil,
     COUNT(*) FILTER (WHERE v.est_quantifie
                      AND v.famille IN ('metabolite', 'PFAS', 'pesticide')) AS nb_polluants_synthese
 FROM prelevements p
 JOIN communes c ON c.code_insee = p.code_insee
 LEFT JOIN v_mesures_verdict v ON v.code_prelevement = p.code_prelevement
-GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16;
 """
 
 # 4) Diagnostic de couverture — à consulter après CHAQUE collecte.
-#    Un paramètre non apparié est une mesure invisible pour l'analyse : elle
-#    existe dans la base et ne pèse sur aucun verdict. À l'échelle d'un
-#    département, c'est le premier endroit où regarder.
+#    Un paramètre sans aucun seuil de comparaison est une mesure invisible :
+#    elle existe en base et ne pèse sur aucun verdict.
 VUE_NON_APPARIES = """
 CREATE OR REPLACE VIEW v_parametres_non_apparies AS
 SELECT
     libelle_parametre,
     libelle_norm,
     ANY_VALUE(code_parametre)          AS code_parametre_observe,
+    ANY_VALUE(code_cas)                AS code_cas,
     ANY_VALUE(unite)                   AS unite,
+    ANY_VALUE(limite_brute)            AS limite_declaree_brute,
     COUNT(*)                           AS nb_mesures,
     COUNT(DISTINCT code_insee)         AS nb_communes,
     COUNT(*) FILTER (WHERE est_quantifie) AS nb_quantifiees,
     MAX(resultat_num) FILTER (WHERE est_quantifie) AS max_quantifie
 FROM v_mesures_ref
-WHERE ref_key IS NULL
+WHERE ref_key IS NULL AND limite_declaree IS NULL
 GROUP BY 1, 2
 ORDER BY nb_quantifiees DESC, nb_mesures DESC;
 """
 
-# 5) Couverture du référentiel : quelles lignes du référentiel ne sont
-#    jamais mesurées ? (l'inverse du diagnostic précédent)
+# 5) Couverture du référentiel : quelles lignes ne sont jamais mesurées ?
 VUE_COUVERTURE_REF = """
 CREATE OR REPLACE VIEW v_referentiel_jamais_mesure AS
 SELECT r.libelle, r.famille, r.fiabilite, r.sources
@@ -221,7 +343,59 @@ WHERE u.ref_key IS NULL
 ORDER BY r.famille, r.libelle;
 """
 
-VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES, VUE_COUVERTURE_REF]
+# 6) Audit de la règle de famille : QUOI, exactement, a été rattaché
+#    automatiquement ? Cette liste doit être relue : une substance qui n'est
+#    pas un pesticide et qui porte la même limite y apparaîtrait à tort.
+VUE_REGLE_FAMILLE = """
+CREATE OR REPLACE VIEW v_regle_famille_appliquee AS
+SELECT
+    regle_appliquee                    AS regle,
+    libelle_parametre,
+    ANY_VALUE(code_parametre)          AS code_parametre,
+    ANY_VALUE(unite)                   AS unite,
+    ANY_VALUE(limite_declaree)         AS limite_declaree,
+    COUNT(*)                           AS nb_mesures,
+    COUNT(*) FILTER (WHERE est_quantifie) AS nb_quantifiees
+FROM v_mesures_ref
+WHERE mode_appariement = 'regle_famille'
+GROUP BY 1, 2
+ORDER BY nb_quantifiees DESC, libelle_parametre;
+"""
+
+# 7) Contrôle croisé du référentiel contre la source.
+#    Chaque ligne est soit une erreur de notre référentiel, soit un écart
+#    réel entre le texte et la pratique déclarée : dans les deux cas, à
+#    regarder. C'est le contrôle qualité que le projet n'avait pas.
+VUE_ECARTS = """
+CREATE OR REPLACE VIEW v_ecarts_referentiel_source AS
+SELECT
+    libelle_parametre,
+    ANY_VALUE(seuil_2026)      AS seuil_2026_referentiel,
+    ANY_VALUE(limite_declaree) AS limite_declaree_source,
+    ANY_VALUE(unite)           AS unite,
+    ANY_VALUE(fiabilite)       AS fiabilite,
+    COUNT(*)                   AS nb_mesures,
+    COUNT(DISTINCT code_insee) AS nb_communes
+FROM v_mesures_verdict
+WHERE ecart_referentiel_declare
+GROUP BY 1
+ORDER BY nb_mesures DESC;
+"""
+
+VUE_UNITES = """
+CREATE OR REPLACE VIEW v_unites_incomparables AS
+SELECT libelle_parametre,
+       ANY_VALUE(unite)     AS unite_mesure,
+       COUNT(*)             AS nb_mesures,
+       COUNT(DISTINCT code_insee) AS nb_communes
+FROM v_mesures_verdict
+WHERE unite_incomparable
+GROUP BY 1
+ORDER BY nb_mesures DESC;
+"""
+
+VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES,
+        VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES]
 
 
 def charger_referentiel(con, chemin=REF_CSV):
@@ -230,7 +404,7 @@ def charger_referentiel(con, chemin=REF_CSV):
     n, doublons = 0, []
     vus = set()
     with open(chemin, encoding="utf-8") as fh:
-        for ligne in csv.DictReader(fh, delimiter=";"):
+        for ligne in csv.DictReader(_sans_commentaires(fh), delimiter=";"):
             libelle = s(ligne.get("libelle"))
             if not libelle:
                 continue
@@ -240,13 +414,14 @@ def charger_referentiel(con, chemin=REF_CSV):
                 continue
             vus.add(cle)
             con.execute(
-                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [
                     cle,
                     s(ligne.get("code_parametre")),
                     libelle,
                     s(ligne.get("famille")),
                     s(ligne.get("unite")),
+                    norm_unite(ligne.get("unite")),
                     f(ligne.get("seuil_2016")),
                     f(ligne.get("seuil_2026")),
                     s(ligne.get("statut_2026")),
@@ -258,6 +433,7 @@ def charger_referentiel(con, chemin=REF_CSV):
                     s(ligne.get("pe_scientifique")),
                     s(ligne.get("sources")),
                     s(ligne.get("fiabilite")),
+                    (s(ligne.get("est_agregat")) or "non").lower() == "oui",
                 ],
             )
             n += 1
@@ -273,7 +449,7 @@ def charger_alias(con, chemin=ALIAS_CSV):
     cibles = {r[0] for r in con.execute("SELECT libelle_norm FROM referentiel_seuils").fetchall()}
     n, orphelins = 0, []
     with open(chemin, encoding="utf-8") as fh:
-        for ligne in csv.DictReader(fh, delimiter=";"):
+        for ligne in csv.DictReader(_sans_commentaires(fh), delimiter=";"):
             alias = norm(ligne.get("alias"))
             cible = norm(ligne.get("libelle_cible"))
             if not alias or not cible:
@@ -296,6 +472,59 @@ def charger_alias(con, chemin=ALIAS_CSV):
     return n
 
 
+def charger_regles(con, chemin=REGLES_CSV):
+    """Charge regles_famille.csv : rattachement automatique par limite déclarée."""
+    con.execute("DELETE FROM regles_famille")
+    if not os.path.exists(chemin):
+        return 0
+    cibles = {r[0] for r in con.execute("SELECT libelle_norm FROM referentiel_seuils").fetchall()}
+    n, refusees, signatures = 0, [], set()
+    with open(chemin, encoding="utf-8") as fh:
+        for ligne in csv.DictReader(_sans_commentaires(fh), delimiter=";"):
+            nom = s(ligne.get("nom_regle"))
+            cible = norm(ligne.get("libelle_cible"))
+            limite = f(ligne.get("limite_declaree"))
+            unite = s(ligne.get("unite"))
+            if not nom or not cible or limite is None:
+                continue
+            if cible not in cibles:
+                refusees.append(f"{nom} -> {cible} (cible absente du référentiel)")
+                continue
+            signature = (limite, norm_unite(unite))
+            if signature in signatures:
+                refusees.append(f"{nom} (signature {signature} déjà prise : "
+                                "deux règles ne peuvent pas capter la même mesure)")
+                continue
+            signatures.add(signature)
+            con.execute(
+                "INSERT INTO regles_famille VALUES (?,?,?,?,?,?)",
+                [nom, limite, norm_unite(unite), cible,
+                 s(ligne.get("justification")), s(ligne.get("sources"))],
+            )
+            n += 1
+    if refusees:
+        print(f"  ! {len(refusees)} règle(s) de famille refusée(s) :")
+        for r in refusees:
+            print(f"      {r}")
+    return n
+
+
+def charger_unites(con):
+    """Facteurs de conversion des unités de masse par litre (physique, pas
+    réglementation) : ils ne sont donc pas dans un CSV versionné."""
+    con.execute("DELETE FROM unites_masse")
+    for u, k in FACTEURS_MASSE_PAR_LITRE.items():
+        con.execute("INSERT INTO unites_masse VALUES (?,?)", [u, k])
+    return len(FACTEURS_MASSE_PAR_LITRE)
+
+
+def _sans_commentaires(fh):
+    """Laisse passer le CSV en ignorant les lignes de commentaire « # »."""
+    for ligne in fh:
+        if not ligne.lstrip().startswith("#"):
+            yield ligne
+
+
 def build(db=DB_PATH, reset=False):
     os.makedirs(os.path.dirname(db), exist_ok=True)
     if reset and os.path.exists(db):
@@ -310,6 +539,10 @@ def build(db=DB_PATH, reset=False):
     print(f"référentiel   : {nref} paramètres chargés depuis referentiel_seuils.csv")
     nalias = charger_alias(con)
     print(f"alias         : {nalias} variantes d'écriture chargées")
+    nunites = charger_unites(con)
+    print(f"unités        : {nunites} facteurs de conversion masse/litre")
+    nregles = charger_regles(con)
+    print(f"règles famille: {nregles} règle(s) de rattachement par limite déclarée")
 
     for v in VUES:
         con.execute(v)
@@ -339,11 +572,22 @@ def build(db=DB_PATH, reset=False):
     print(f"contenu       : {npre} prélèvement(s), {nmes} mesure(s)")
 
     if nmes:
-        non_app = con.execute(
-            "SELECT COUNT(*) FROM v_parametres_non_apparies"
-        ).fetchone()[0]
-        print(f"  → {non_app} libellé(s) mesuré(s) non apparié(s) au référentiel")
+        cov = con.execute("""
+            SELECT COUNT(*), COUNT(*) FILTER (WHERE notee),
+                   COUNT(*) FILTER (WHERE origine_seuil_2026 = 'referentiel'),
+                   COUNT(*) FILTER (WHERE origine_seuil_2026 = 'declare')
+            FROM v_mesures_verdict
+        """).fetchone()
+        pct = 100.0 * cov[1] / cov[0] if cov[0] else 0
+        print(f"couverture    : {cov[1]}/{cov[0]} mesures notées ({pct:.1f} %) "
+              f"— référentiel {cov[2]}, limite déclarée {cov[3]}")
+        non_app = con.execute("SELECT COUNT(*) FROM v_parametres_non_apparies").fetchone()[0]
+        print(f"  → {non_app} libellé(s) sans aucun seuil de comparaison")
         print("    (SELECT * FROM v_parametres_non_apparies LIMIT 40)")
+        ecarts = con.execute("SELECT COUNT(*) FROM v_ecarts_referentiel_source").fetchone()[0]
+        if ecarts:
+            print(f"  ! {ecarts} paramètre(s) où notre seuil_2026 contredit la limite déclarée")
+            print("    (SELECT * FROM v_ecarts_referentiel_source)")
 
     con.close()
     print(f"\nbase prête : {db}")

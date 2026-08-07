@@ -2,10 +2,12 @@
 """
 Fonctions partagées de l'Observatoire de la potabilité réglementaire.
 
-Deux règles du projet vivent ici, et nulle part ailleurs :
-  - norm()      : la normalisation des libellés (rapprochement mesure <-> référentiel) ;
-  - parse_val() : la lecture d'un résultat, qui distingue une valeur QUANTIFIÉE
-                  d'une limite de quantification (« 0 » n'est pas zéro).
+Trois règles du projet vivent ici, et nulle part ailleurs :
+  - norm()         : la normalisation des libellés (rapprochement mesure <-> référentiel) ;
+  - parse_val()    : la lecture d'un résultat, qui distingue une valeur QUANTIFIÉE
+                     d'une limite de quantification (« 0 » n'est pas zéro) ;
+  - parse_limite() : la lecture d'une limite de qualité telle que déclarée par
+                     la source (« <=0,1 µg/L »).
 Toute modification ici change la sémantique de toute la base : commit dédié.
 """
 import os
@@ -17,12 +19,17 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(RACINE, "data", "eau.duckdb")
 REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 ALIAS_CSV = os.path.join(RACINE, "referentiel", "alias_parametres.csv")
+CATALOGUE_CSV = os.path.join(RACINE, "referentiel", "catalogue_parametres_hubeau.csv")
 JOURNAL_DIR = os.path.join(RACINE, "data", "journal")
 
 # --- Constantes de méthode -------------------------------------------------
 # Un prélèvement n'est retenu comme "complet" qu'au-delà de ce nombre de
 # paramètres. Voir CLAUDE.md §2.3 : sans ce filtre, les analyses de routine
 # noient les analyses complètes et la conclusion est toujours "tout va bien".
+#
+# Vérifié sur données réelles (département 31, 2026) : les bulletins se
+# répartissent en deux blocs nets, routine à 22-24 paramètres et complets à
+# 376-378. Il n'y a rien entre les deux ; la coupure à 250 n'arbitre rien.
 SEUIL_COMPLET = 250
 
 USER_AGENT = (
@@ -30,13 +37,83 @@ USER_AGENT = (
     "(projet citoyen open data ; contact: Editions Mytae)"
 )
 
+# Suffixe d'unité collé au libellé par certains laboratoires : « Aluminium
+# total µg/l », « Uranium en µg/l », « Escherichia coli /100mL ». Le même
+# paramètre existe ailleurs sans ce suffixe ; sans ce nettoyage il compte
+# pour deux et l'un des deux n'est apparié à rien.
+#
+# Attention : norm() translittère en ASCII et « µ » disparaît, donc « µg/l »
+# est déjà devenu « g/l » quand ce motif s'applique.
+_SUFFIXE_UNITE = re.compile(
+    r"\s*\(?\s*(?:en\s+)?(?:"
+    r"[mnpu]?g\s*/\s*l"          # g/L, mg/L, ng/L (µg/L arrive ici en « g/l »)
+    r"|n?\s*/\s*100\s*ml"        # /100mL, n/100mL
+    r"|bq\s*/\s*l"               # Bq/L (radiologique)
+    r"|m?s\s*/\s*cm"             # µS/cm -> « s/cm » (conductivité)
+    r"|unite\s*ph"
+    r")\s*\)?$"
+)
+
 
 def norm(x):
-    """Libellé -> clé de rapprochement : sans accent, minuscule, espaces réduits."""
+    """
+    Libellé -> clé de rapprochement : sans accent, minuscule, espaces réduits,
+    et sans le suffixe d'unité que certains laboratoires collent au libellé.
+
+    'Aluminium total µg/l'    -> 'aluminium total'
+    'Uranium en µg/l'         -> 'uranium'
+    'Escherichia coli /100mL' -> 'escherichia coli'
+    'Nitrates (en NO3)'       -> 'nitrates (en no3)'   (intact : ce n'est pas une unité)
+    """
     if x is None:
         return ""
     x = unicodedata.normalize("NFKD", str(x)).encode("ascii", "ignore").decode().lower()
-    return re.sub(r"\s+", " ", x).strip()
+    x = re.sub(r"\s+", " ", x).strip()
+    # « uranium en µg/l » demande deux passes : « en g/l » puis rien.
+    for _ in range(2):
+        nouveau = _SUFFIXE_UNITE.sub("", x).strip()
+        if nouveau == x or not nouveau:
+            break
+        x = nouveau
+    return x
+
+
+def norm_unite(u):
+    """
+    Unité -> clé de comparaison. N'utilise PAS norm() : la translittération
+    ASCII y mange le « µ », et « µg/L » deviendrait « g/L », soit un facteur
+    un million.
+
+    L'espèce chimique entre parenthèses est retirée : « µg(CN)/L » est une
+    quantité de cyanure en µg par litre, donc dimensionnellement des µg/L.
+    De même « mg(Cl2)/L », « mg(C)/L », « µg(Se)/L ». Sans ce nettoyage, ces
+    mesures sont déclarées non comparables à leur propre seuil et disparaissent
+    de l'analyse.
+
+    'µg/L' -> 'ug/l'   'µg(CN)/L' -> 'ug/l'   'unité pH' -> 'uniteph'
+    """
+    if u is None:
+        return None
+    t = str(u).replace("µ", "u").replace("μ", "u")
+    t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
+    t = re.sub(r"\([^)]*\)", "", t)   # espèce chimique : µg(CN)/L -> µg/L
+    t = re.sub(r"\s+", "", t)
+    return t or None
+
+
+# Unités de masse par litre, ramenées à µg/L. Sert à convertir un seuil du
+# référentiel vers l'unité dans laquelle la mesure est exprimée.
+#
+# Sans cette conversion, un chlorate mesuré en µg/L était comparé au seuil de
+# 0,25 mg/L du référentiel : un facteur 1000, et un faux dépassement massif.
+# Erreur réellement présente et détectée par v_ecarts_referentiel_source.
+FACTEURS_MASSE_PAR_LITRE = {
+    "g/l": 1_000_000.0,
+    "mg/l": 1_000.0,
+    "ug/l": 1.0,
+    "ng/l": 0.001,
+    "pg/l": 0.000001,
+}
 
 
 def parse_val(v):
@@ -54,7 +131,7 @@ def parse_val(v):
     if v is None or str(v).strip() == "":
         return (None, None, None, False)
     s = str(v).strip()
-    m = re.match(r"^(<\s*)?(-?[0-9]+(?:[.,][0-9]+)?)\s*(.*)$", s)
+    m = re.match(r"^(<\s*=?\s*)?(-?[0-9]+(?:[.,][0-9]+)?)\s*(.*)$", s)
     if not m:
         return (None, None, (s or None), False)  # qualitatif
     inferieur = bool(m.group(1))
@@ -63,6 +140,33 @@ def parse_val(v):
     if inferieur:
         return (None, num, unite, False)
     return (num, None, unite, True)
+
+
+def parse_limite(v):
+    """
+    Limite de qualité telle que déclarée par la source -> (valeur, unite).
+
+    '<=0,1 µg/L'   -> (0.1,  'µg/L')
+    '<= 50 mg/L'   -> (50.0, 'mg/L')
+    '>=6,5 unité pH' -> (None, None)   borne basse : le modèle ne sait pas
+                                       l'exprimer, on ne fabrique pas un seuil faux
+    'absence'      -> (None, None)     qualitatif
+
+    Cette valeur est la grille D'AUJOURD'HUI, déclarée par l'administration
+    avec la mesure. Elle ne remplace jamais le référentiel daté du projet :
+    elle ne dit rien de 2016 ni du seuil le plus strict au monde
+    (cf. CLAUDE.md §2.5 — un seuil sans sa date d'applicabilité est faux).
+    """
+    if v is None or str(v).strip() == "":
+        return (None, None)
+    s = str(v).strip()
+    if s.startswith(">"):
+        # borne inférieure (pH, TAC…) : hors du modèle « dépassement par le haut »
+        return (None, None)
+    m = re.match(r"^(?:<\s*=?|=|≤)?\s*(-?[0-9]+(?:[.,][0-9]+)?)\s*(.*)$", s)
+    if not m:
+        return (None, None)
+    return (float(m.group(1).replace(",", ".")), (m.group(2).strip() or None))
 
 
 def f(x):

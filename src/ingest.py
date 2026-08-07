@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Ingestion d'un bulletin (un prélèvement, une date, l'intégralité de ses paramètres).
+Ingestion d'UN bulletin : un prélèvement, une date, un point d'eau,
+l'intégralité de ses paramètres.
 
 Idempotent : réingérer un prélèvement déjà présent le REMPLACE (DELETE puis
 INSERT sur code_prelevement). On peut donc relancer une collecte interrompue
@@ -8,12 +9,24 @@ sans précaution et sans doublon.
 
 Ce module ne fait aucune requête réseau : il reçoit les lignes déjà obtenues.
 """
-from common import norm, parse_val, SEUIL_COMPLET
+from common import norm, norm_unite, parse_val, parse_limite, SEUIL_COMPLET
+
+
+class BulletinHeterogene(ValueError):
+    """Plusieurs prélèvements dans le même lot de lignes.
+
+    C'est le défaut que cette version corrige : regrouper par date fusionnait
+    l'analyse complète d'un point avec l'analyse de routine d'un autre point
+    prélevé le même jour. Le nombre de paramètres s'en trouvait gonflé et les
+    valeurs des paramètres communs (pH, chlore, nitrates) étaient prises au
+    hasard sur l'un ou l'autre point. Une analyse porte sur UN prélèvement
+    (CLAUDE.md §2.3).
+    """
 
 
 def _valeur(row):
     """
-    Lignes Hub'Eau -> (resultat_num, lq, unite, est_quantifie).
+    Ligne Hub'Eau -> (resultat_num, lq, unite, est_quantifie).
 
     Hub'Eau expose deux champs :
       - resultat_numerique      : valeur numérique, souvent 0 pour un résultat
@@ -57,16 +70,15 @@ def _valeur(row):
     return (num, None, unite, True)
 
 
-def code_prelevement(meta, rows):
-    """Identifiant du prélèvement : celui d'Hub'Eau si présent, sinon reconstruit."""
-    for r in rows:
-        cp = r.get("code_prelevement")
-        if cp:
-            return str(cp)
-    insee = meta.get("code_insee", "")
-    date = (meta.get("date_prelevement") or "ND")[:10]
-    inst = norm(meta.get("nom_installation", ""))[:20]
-    return f"{insee}_{date}_{inst}"
+def verifier_homogeneite(rows):
+    """Un lot de lignes doit porter un seul code_prelevement."""
+    codes = {str(r.get("code_prelevement")) for r in rows if r.get("code_prelevement")}
+    if len(codes) > 1:
+        raise BulletinHeterogene(
+            f"{len(codes)} prélèvements dans le même lot ({', '.join(sorted(codes)[:4])}…) : "
+            "un bulletin doit être ingéré prélèvement par prélèvement"
+        )
+    return codes.pop() if codes else None
 
 
 def ingest_bulletin(con, meta, rows):
@@ -77,11 +89,14 @@ def ingest_bulletin(con, meta, rows):
     prélèvement est complet, donc s'il entre dans les analyses (CLAUDE.md §2.3).
     """
     insee = meta["code_insee"]
-    code_prel = code_prelevement(meta, rows)
+    code_prel = verifier_homogeneite(rows) or meta.get("code_prelevement")
+    if not code_prel:
+        raise ValueError("aucun code_prelevement : bulletin non identifiable")
 
     con.execute(
-        "INSERT OR REPLACE INTO communes VALUES (?,?,?)",
-        [insee, meta.get("nom"), meta.get("code_departement")],
+        "INSERT OR REPLACE INTO communes VALUES (?,?,?,?,?,?)",
+        [insee, meta.get("nom"), meta.get("code_departement"),
+         meta.get("codes_postaux"), meta.get("lon"), meta.get("lat")],
     )
 
     # Déduplication par libellé : la PK de mesures est (code_prelevement, libelle_parametre)
@@ -99,12 +114,17 @@ def ingest_bulletin(con, meta, rows):
     con.execute("DELETE FROM prelevements WHERE code_prelevement = ?", [code_prel])
 
     con.execute(
-        "INSERT INTO prelevements VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO prelevements VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             code_prel,
             insee,
-            meta.get("nom_installation"),
+            meta.get("code_installation_amont"),
+            meta.get("nom_installation_amont"),
             meta.get("nom_distributeur"),
+            meta.get("nom_uge"),
+            meta.get("codes_reseaux"),
+            meta.get("noms_reseaux"),
+            meta.get("code_lieu_analyse"),
             (meta.get("date_prelevement") or None),
             nb,
             est_complet,
@@ -120,10 +140,18 @@ def ingest_bulletin(con, meta, rows):
     for lib, r in par_libelle.items():
         num, lq, unite, quantifie = _valeur(r)
         code_param = r.get("code_parametre")
+        brut_limite = r.get("limite_qualite_parametre")
+        brut_reference = r.get("reference_qualite_parametre")
+        # La limite déclarée avec la mesure est la grille d'AUJOURD'HUI. Elle
+        # ne remplace pas le référentiel daté : elle le complète là où il est
+        # muet, et permet de le contrôler là où il parle (cf. build_db.py).
+        limite_num, _ = parse_limite(brut_limite)
+        reference_num, _ = parse_limite(brut_reference)
         lignes.append([
             code_prel,
             insee,
             str(code_param) if code_param not in (None, "") else None,
+            (r.get("code_parametre_cas") or None),
             lib,
             norm(lib),
             num,
@@ -131,11 +159,15 @@ def ingest_bulletin(con, meta, rows):
             lq,
             quantifie,
             unite,
-            (r.get("limite_qualite_parametre") or r.get("reference_qualite_parametre") or None),
+            norm_unite(unite),
+            (brut_limite or None),
+            limite_num,
+            (brut_reference or None),
+            reference_num,
         ])
     if lignes:
         con.executemany(
-            "INSERT INTO mesures VALUES (?,?,?,?,?,?,?,?,?,?,?)", lignes
+            "INSERT INTO mesures VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", lignes
         )
 
     return code_prel, nb, est_complet
