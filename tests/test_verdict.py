@@ -451,6 +451,26 @@ def main():
         verifie(r471[0] == 0.9 and r471[2] is True,
                 "seul le référentiel daté du projet voit ce dépassement (1,662 > 0,9)")
 
+        print("\n16. l'effort de recherche")
+        eff = con.execute("""
+            SELECT classe_effort, nb_parametres, nb_synthese_recherchees,
+                   nb_mesures_notees, depassements_pour_mille
+            FROM v_prelevement_verdict WHERE code_prelevement = ?
+        """, [PREL]).fetchone()
+        verifie(eff[0] == 'standard',
+                f"{eff[1]} paramètres cherchés -> classe '{eff[0]}'")
+        verifie(eff[2] >= 3,
+                f"{eff[2]} substances de synthèse recherchées, quantifiées ou non")
+        verifie(eff[4] is not None and eff[4] > 0,
+                f"taux comparable calculé : {eff[4]} dépassements pour mille notés")
+        from common import classe_effort as ce
+        verifie((ce(150), ce(234), ce(359), ce(660))
+                == ('restreinte', 'standard', 'approfondie', 'exhaustive'),
+                "les quatre classes de profondeur d'analyse")
+        verifie(con.execute(
+            "SELECT COUNT(*) FROM v_effort_recherche").fetchone()[0] >= 1,
+            "v_effort_recherche expose le bulletin, trié par effort décroissant")
+
         con.close()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

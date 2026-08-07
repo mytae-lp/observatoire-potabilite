@@ -146,17 +146,22 @@ def _restituer(con, version, insees):
     rows = con.execute(f"""
         SELECT commune, date_prelevement, nom_installation_amont,
                nb_parametres, nb_mesures_notees, pct_couverture,
-               nb_depasse_2026, nb_bascules, nb_indetermines,
+               nb_depasse_applicable, nb_bascules, nb_indetermines,
                nb_synthese_quantifiees, ROUND(charge_synthese_ug_l, 4),
-               ROUND(indice_danger, 2)
+               ROUND(indice_danger, 2), classe_effort,
+               nb_synthese_recherchees, depassements_pour_mille
         FROM analyses_figees
         WHERE version_referentiel = ? AND code_insee IN ({marques})
         ORDER BY commune, date_prelevement DESC
     """, [version] + insees).fetchall()
     for r in rows:
         print(f"\n  {r[0]} — {r[1]} — {r[2] or 'installation non renseignée'}")
-        print(f"    {r[4]} paramètres notés sur {r[3]} mesurés ({r[5]} % de couverture)")
-        print(f"    dépassements 2026 : {r[6]}   bascules : {r[7]}   indéterminés : {r[8]}")
+        print(f"    effort de recherche : {r[3]} paramètres cherchés ({r[12]}), "
+              f"dont {r[13]} substances de synthèse")
+        print(f"    {r[4]} notés ({r[5]} % de couverture)")
+        print(f"    dépassements à la date du prélèvement : {r[6]}   "
+              f"bascules : {r[7]}   indéterminés : {r[8]}")
+        print(f"    taux comparable : {r[14]} dépassements pour mille paramètres notés")
         print(f"    substances de synthèse quantifiées : {r[9]}"
               + (f"   charge cumulée ≥ {r[10]} µg/L" if r[10] is not None else ""))
         if r[11] is not None:

@@ -103,8 +103,17 @@ milliers de mesures de routine, toutes conformes, noient les rares
 mesures qui portent l'information. **La moyenne d'un corpus dominé par
 la routine dit toujours « tout va bien ».**
 
-Constante : `SEUIL_COMPLET = 250`. Un prélèvement est retenu comme complet
-si `nb_parametres > 250`.
+Constante : `SEUIL_COMPLET = 200`. Un prélèvement est retenu comme complet
+si `nb_parametres > 200`.
+
+Valeur fixée sur la distribution réelle, mesurée le 7 août 2026 sur 964
+prélèvements des départements 17, 28 et 31 : la routine s'éteint vers 100,
+les analyses complètes commencent à 236, et **la tranche 150-199 est
+totalement vide**. La coupure n'arbitre donc rien. Elle était auparavant à
+250, ce qui amputait le bas du groupe des complètes : le bulletin de Challet
+du 10/03/2026 (234 paramètres), sur lequel l'ARS a prononcé une
+non-conformité pour le chlorothalonil R417888, en était exclu — la règle
+faisait manquer le bulletin le plus probant du projet.
 
 Corollaire : **ne jamais composer un profil synthétique** en prenant, pour
 chaque paramètre, la dernière valeur connue sur douze mois. Cet objet
@@ -127,6 +136,41 @@ refuse désormais un lot portant plusieurs `code_prelevement`
 (`code_installation_amont`). Une commune alimentée par trois installations
 donne trois bulletins, analysés séparément. C'est aussi ce qui permettra de
 voir si un mélange conforme masque une ressource qui ne l'est pas — cf. §7bis.
+
+### 2.11 L'effort de recherche est un indicateur, et il se déclare
+
+On ne trouve que ce qu'on cherche. Une commune qui fait analyser 700
+paramètres a mécaniquement plus de chances d'en voir un dépasser qu'une
+commune qui en fait analyser 200. Comparer leurs nombres bruts de
+dépassements est un contresens, et il pénalise la transparence.
+
+**Le nombre de paramètres recherchés n'est pas un indicateur de qualité de
+l'eau. C'est un indicateur de l'effort de recherche, et il se lit dans
+l'autre sens :** une eau « correcte » sur 200 paramètres est une information
+plus faible qu'une eau « moyenne » sur 700. La première n'a pas été beaucoup
+interrogée.
+
+Conséquences dans le modèle :
+
+- `nb_parametres` et `nb_synthese_recherchees` — ce qui a été cherché ;
+- `classe_effort` — `restreinte` (<200), `standard` (200-299),
+  `approfondie` (300-449), `exhaustive` (≥450) ;
+- `depassements_pour_mille` et `synthese_quantifiees_pour_mille` — des
+  **taux**, seuls comparables d'un bulletin à l'autre. Les comptes bruts ne
+  le sont pas ;
+- `v_effort_recherche` — la vue qui met en tête les communes les plus
+  interrogées, donc les plus transparentes.
+
+Cas d'école, Challet : 660 paramètres en 2018 et aucun dépassement ; 234 en
+2026 et quatre. L'effort a baissé et les dépassements ont augmenté : la
+dégradation est réelle, et même sous-estimée. Sans l'effort affiché, on ne
+pourrait pas l'affirmer.
+
+Règle de sortie : **aucune comparaison entre deux communes, ni aucun
+classement, sans afficher l'effort de recherche de chacune.** Cette règle
+vaut aussi pour les indicateurs de cumul, dont le dénombrement dépend
+directement de ce que le laboratoire a cherché
+(cf. `docs/METHODE_EFFET_COCKTAIL.md`, indicateur A).
 
 ### 2.4 Zéro n'est pas zéro
 

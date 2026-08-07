@@ -27,10 +27,42 @@ JOURNAL_DIR = os.path.join(RACINE, "data", "journal")
 # paramètres. Voir CLAUDE.md §2.3 : sans ce filtre, les analyses de routine
 # noient les analyses complètes et la conclusion est toujours "tout va bien".
 #
-# Vérifié sur données réelles (département 31, 2026) : les bulletins se
-# répartissent en deux blocs nets, routine à 22-24 paramètres et complets à
-# 376-378. Il n'y a rien entre les deux ; la coupure à 250 n'arbitre rien.
-SEUIL_COMPLET = 250
+# Valeur fixée sur la distribution réelle, mesurée le 7 août 2026 sur 964
+# prélèvements des départements 17, 28 et 31 depuis 2022 :
+#
+#      1-9    :  38          200-249  :   6
+#     10-29   : 772          250-299  :  46
+#     30-49   :  75          300-399  :  16
+#     50-99   :  10
+#    100-149  :   1
+#    150-199  :   0   <-- aucun prélèvement : le trou est net
+#
+# La routine s'éteint vers 100, les analyses complètes commencent à 236.
+# Toute valeur entre 150 et 200 sépare les deux populations sans en amputer
+# aucune. 250 coupait dans le bas du groupe des complètes : le bulletin de
+# Challet du 10/03/2026 (234 paramètres), sur lequel l'ARS a prononcé une
+# non-conformité pour le chlorothalonil R417888, en était exclu.
+SEUIL_COMPLET = 200
+
+# Profondeur de l'analyse. Ce n'est PAS un indicateur de qualité de l'eau :
+# c'est un indicateur de l'effort de recherche, et il se lit dans l'autre
+# sens (cf. CLAUDE.md §2.11). On ne trouve que ce qu'on cherche.
+CLASSES_EFFORT = (
+    (200, "restreinte"),
+    (300, "standard"),
+    (450, "approfondie"),
+    (10 ** 9, "exhaustive"),
+)
+
+
+def classe_effort(nb_parametres):
+    """Nombre de paramètres recherchés -> classe de profondeur d'analyse."""
+    if nb_parametres is None:
+        return None
+    for plafond, nom in CLASSES_EFFORT:
+        if nb_parametres < plafond:
+            return nom
+    return CLASSES_EFFORT[-1][1]
 
 USER_AGENT = (
     "Observatoire-potabilite-reglementaire/1.0 "

@@ -113,8 +113,18 @@ Elles sont détaillées dans `CLAUDE.md`. En résumé :
 
 **1. Seuls les bulletins complets comptent.** Le contrôle sanitaire produit
 beaucoup d'analyses de routine (20 à 30 paramètres) et très peu d'analyses
-complètes (300 à 400). Mélanger les deux noie l'information dans le volume
-et conduit toujours à « tout va bien ». Constante : `SEUIL_COMPLET = 250`.
+complètes (200 à 700). Mélanger les deux noie l'information dans le volume
+et conduit toujours à « tout va bien ». Constante : `SEUIL_COMPLET = 200`,
+fixée sur la distribution réelle — sur 964 prélèvements mesurés, la tranche
+150-199 est totalement vide.
+
+**1 bis. L'effort de recherche se déclare.** On ne trouve que ce qu'on
+cherche. Une eau « correcte » sur 200 paramètres est une information plus
+faible qu'une eau « moyenne » sur 700 : la première n'a pas été beaucoup
+interrogée. Le nombre de paramètres recherchés n'est donc pas un indicateur
+de qualité de l'eau mais de transparence, et toute comparaison entre communes
+passe par des **taux** (`depassements_pour_mille`), jamais par des comptes
+bruts. Voir `v_effort_recherche`.
 
 **2. Zéro n'est pas zéro.** Un `0` ou un `< 0,01` signifie « inférieur au
 seuil de quantification du laboratoire », pas « absent ». D'où trois états

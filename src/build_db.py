@@ -356,7 +356,28 @@ SELECT
     COUNT(*) FILTER (WHERE v.indetermine_strict)                  AS nb_indetermines,
     COUNT(*) FILTER (WHERE v.ecart_referentiel_declare)           AS nb_ecarts_seuil,
     COUNT(*) FILTER (WHERE v.est_quantifie
-                     AND v.famille IN ('metabolite', 'PFAS', 'pesticide')) AS nb_polluants_synthese
+                     AND v.famille IN ('metabolite', 'PFAS', 'pesticide')) AS nb_polluants_synthese,
+
+    -- EFFORT DE RECHERCHE. Ce n'est pas un indicateur de qualité de l'eau,
+    -- c'est un indicateur de ce qu'on a bien voulu chercher. Une commune qui
+    -- recherche 700 paramètres a mécaniquement plus de chances d'en voir un
+    -- dépasser qu'une commune qui en recherche 200 : comparer leurs nombres
+    -- bruts de dépassements est un contresens (CLAUDE.md §2.11).
+    COUNT(*) FILTER (WHERE v.famille IN ('pesticide','metabolite','PFAS','organique'))
+                                                                  AS nb_synthese_recherchees,
+    CASE WHEN p.nb_parametres < 200 THEN 'restreinte'
+         WHEN p.nb_parametres < 300 THEN 'standard'
+         WHEN p.nb_parametres < 450 THEN 'approfondie'
+         ELSE 'exhaustive' END                                    AS classe_effort,
+    -- Les TAUX sont comparables d'un bulletin à l'autre ; les comptes ne le
+    -- sont pas. Toute comparaison entre communes passe par eux.
+    ROUND(1000.0 * COUNT(*) FILTER (WHERE v.depasse_applicable)
+          / NULLIF(COUNT(*) FILTER (WHERE v.notee), 0), 2)         AS depassements_pour_mille,
+    ROUND(1000.0 * COUNT(*) FILTER (WHERE v.est_quantifie
+              AND v.famille IN ('pesticide','metabolite','PFAS','organique'))
+          / NULLIF(COUNT(*) FILTER (WHERE
+              v.famille IN ('pesticide','metabolite','PFAS','organique')), 0), 2)
+                                                                  AS synthese_quantifiees_pour_mille
 FROM prelevements p
 JOIN communes c ON c.code_insee = p.code_insee
 LEFT JOIN v_mesures_verdict v ON v.code_prelevement = p.code_prelevement
@@ -435,6 +456,28 @@ GROUP BY 1
 ORDER BY nb_mesures DESC;
 """
 
+# L'effort de recherche, lisible d'un coup d'œil.
+#
+# À lire dans ce sens : une eau « correcte » sur 200 paramètres est une
+# information plus faible qu'une eau « moyenne » sur 700. La première n'a pas
+# été beaucoup interrogée. Trier par parametres_recherches décroissant met en
+# tête les communes les plus transparentes, pas les plus polluées.
+VUE_EFFORT = """
+CREATE OR REPLACE VIEW v_effort_recherche AS
+SELECT
+    commune, dept, date_prelevement, nom_installation_amont,
+    nb_parametres AS parametres_recherches,
+    classe_effort,
+    nb_synthese_recherchees,
+    nb_mesures_notees,
+    nb_depasse_applicable,
+    depassements_pour_mille,
+    synthese_quantifiees_pour_mille
+FROM v_prelevement_verdict
+WHERE est_complet
+ORDER BY parametres_recherches DESC;
+"""
+
 VUE_SEUILS_SANS_DATE = """
 CREATE OR REPLACE VIEW v_seuils_sans_date AS
 SELECT libelle, famille, seuil_2016, seuil_2026, statut_2026, sources, fiabilite
@@ -459,7 +502,7 @@ ORDER BY nb_mesures DESC;
 
 VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES,
         VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES,
-        VUE_SEUILS_SANS_DATE]
+        VUE_SEUILS_SANS_DATE, VUE_EFFORT]
 
 
 def charger_referentiel(con, chemin=REF_CSV):

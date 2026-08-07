@@ -236,3 +236,22 @@ WHERE a.code_prelevement IN (
     SELECT code_prelevement FROM analyses_figees
     GROUP BY code_prelevement HAVING COUNT(DISTINCT version_referentiel) > 1)
 ORDER BY a.code_prelevement, a.calcule_le;
+
+
+-- -------------------------------------------------------------------------
+-- 9. L'EFFORT DE RECHERCHE
+--    On ne trouve que ce qu'on cherche. Cette requête met en tête les
+--    communes les plus interrogées — donc les plus transparentes, pas les
+--    plus polluées. Aucun classement entre communes ne doit être publié sans
+--    ces colonnes (CLAUDE.md §2.11).
+-- -------------------------------------------------------------------------
+SELECT * FROM v_effort_recherche;
+
+
+-- 9.b Le piège que cette règle évite : comparer deux bulletins de
+--     profondeur différente. À Challet, 660 paramètres en 2018 sans aucun
+--     dépassement, 234 en 2026 avec quatre.
+SELECT commune, date_prelevement, parametres_recherches, classe_effort,
+       nb_synthese_recherchees, nb_depasse_applicable, depassements_pour_mille
+FROM v_effort_recherche
+ORDER BY commune, date_prelevement;
