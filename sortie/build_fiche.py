@@ -147,10 +147,57 @@ def parametres(con, code_prel, version):
     """, [version, code_prel]).fetchall()
 
 
-def bloc_commune(con, ligne, cols, redaction, version):
+def rattachements(con, version, insees=None):
+    """
+    Les communes qui n'ont pas de bulletin propre mais boivent l'eau d'un
+    réseau analysé ailleurs.
+
+    Sans cette table, la fiche affiche le nom de la commune où le
+    prélèvement a eu lieu, et l'habitant qui a demandé SA commune reçoit une
+    fiche au nom d'une autre. C'est la moitié citoyenne de la règle de repli
+    (CLAUDE.md §2.3) : elle doit aller jusqu'à la sortie.
+    """
+    where = "WHERE version_referentiel = ? AND statut = 'rattachee_reseau'"
+    args = [version]
+    if insees:
+        where += f" AND code_insee IN ({','.join('?' * len(insees))})"
+        args += list(insees)
+    return {r[0]: {"code_insee": r[0], "commune": r[1], "dept": r[2],
+                   "codes_postaux": r[3], "lon": r[4], "lat": r[5],
+                   "commune_prelevement": r[6], "code_prelevement": r[7]}
+            for r in con.execute(f"""
+                SELECT code_insee, commune, dept, codes_postaux, lon, lat,
+                       commune_prelevement, code_prelevement
+                FROM couverture_communes {where}
+            """, args).fetchall()}
+
+
+def non_documentees(con, version, insees=None):
+    where = "WHERE version_referentiel = ? AND statut = 'non_documentee'"
+    args = [version]
+    if insees:
+        where += f" AND code_insee IN ({','.join('?' * len(insees))})"
+        args += list(insees)
+    return con.execute(f"SELECT commune, code_insee FROM couverture_communes {where}",
+                       args).fetchall()
+
+
+def bloc_commune(con, ligne, cols, redaction, version, rattachement=None):
     """Une ligne de `analyses_figees` -> le dictionnaire attendu par le gabarit."""
     a = dict(zip(cols, ligne))
     r = redaction or {}
+
+    # Rattachement : c'est la commune ÉTUDIÉE qui donne son nom à la fiche,
+    # et le lieu réel du prélèvement est dit, jamais tu.
+    emprunt = None
+    if rattachement:
+        emprunt = rattachement["commune_prelevement"]
+        a = dict(a, commune=rattachement["commune"],
+                 code_insee=rattachement["code_insee"],
+                 dept=rattachement["dept"] or a["dept"],
+                 codes_postaux=rattachement["codes_postaux"],
+                 lon=rattachement["lon"], lat=rattachement["lat"])
+        r = redaction or {}
 
     niv = niveau(a["nb_depasse_applicable"], a["nb_bascules"], a["nb_indetermines"])
     panel = (f"{a['nb_parametres']} paramètres · {a['classe_effort']}"
@@ -190,13 +237,17 @@ def bloc_commune(con, ligne, cols, redaction, version):
     return {
         "name": a["commune"],
         "insee": a["code_insee"],
-        "sub": r.get("sous_titre") or f"{a['dept']} · {a['nom_uge'] or a['noms_reseaux'] or ''}",
+        "sub": ((f"{a['dept']} · eau du réseau {a['nom_uge'] or ''}, "
+                 f"analyse prélevée à {emprunt}") if emprunt
+                else (r.get("sous_titre")
+                      or f"{a['dept']} · {a['nom_uge'] or a['noms_reseaux'] or ''}")),
         "dot": niv,
         "kpi": kpi,
         "meta": [
             ["Distributeur", a["nom_distributeur"] or "—"],
             ["Ressource", a["nom_installation_amont"] or "—"],
-            ["Prélèvement", str(a["date_prelevement"])],
+            ["Prélèvement", str(a["date_prelevement"])
+             + (f" · prélevé à {emprunt}" if emprunt else "")],
             ["Panel", panel],
         ],
         "hubeau": f"?code_commune={a['code_insee']}&size=5000",
@@ -212,6 +263,8 @@ def bloc_commune(con, ligne, cols, redaction, version):
         "analyse": r.get("analyse") or [],
         "verdict": {"level": niv, "t": r.get("verdict") or manque},
         "redige": bool(r.get("analyse")),
+        "rattachee": bool(emprunt),
+        "commune_prelevement": emprunt,
         "version_referentiel": a["version_referentiel"],
         "calcule_le": str(a["calcule_le"]),
     }
@@ -257,14 +310,40 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             print(f"aucune analyse figée pour cette sélection (version {version})")
             sys.exit(1)
 
+        rattachees = rattachements(con, version, insees)
+        empruntes = {r["code_prelevement"] for r in rattachees.values()}
+
         C, PARAMS, ORDER = {}, {}, []
         for ligne in lignes:
             a = dict(zip(cols, ligne))
+            # Un bulletin emprunté par une commune voisine n'apparaît pas
+            # deux fois : il porte le nom de la commune qui l'a demandé.
+            if a["code_prelevement"] in empruntes and a["code_insee"] not in (insees or []):
+                continue
             cle = f"{a['code_insee']}-{a['date_prelevement']}"
             C[cle] = bloc_commune(con, ligne, cols,
                                   redactions.get(a["code_insee"]), version)
             PARAMS[cle] = bloc_parametres(con, a["code_prelevement"], version)
             ORDER.append(cle)
+
+        for insee, rat in rattachees.items():
+            ligne = con.execute(f"""
+                SELECT a.*, p.conf_limites_bact, p.conf_limites_pc,
+                       p.conf_references_pc, p.nom_distributeur,
+                       a.nb_mesures_lues - a.nb_mesures_notees AS nb_sans_seuil
+                FROM analyses_figees a
+                JOIN prelevements p ON p.code_prelevement = a.code_prelevement
+                WHERE a.version_referentiel = ? AND a.code_prelevement = ?
+            """, [version, rat["code_prelevement"]]).fetchone()
+            if not ligne:
+                continue
+            cle = f"{insee}-rattachee"
+            C[cle] = bloc_commune(con, ligne, cols, redactions.get(insee),
+                                  version, rattachement=rat)
+            PARAMS[cle] = bloc_parametres(con, rat["code_prelevement"], version)
+            ORDER.append(cle)
+
+        sans_bulletin = non_documentees(con, version, insees)
     finally:
         con.close()
 
@@ -284,7 +363,16 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
     print(f"  {len(C)} bulletin(s), référentiel version {version}")
     for cle, c in C.items():
         print(f"    {c['name']:<24} {PARAMS[cle]['count']:>4} paramètres"
-              f"   {'rédigée' if c['redige'] else 'FACTUELLE SEULE'}")
+              f"   {'rédigée' if c['redige'] else 'FACTUELLE SEULE'}"
+              + (f"   (réseau, prélevé à {c['commune_prelevement']})"
+                 if c["rattachee"] else ""))
+    if sans_bulletin:
+        print(f"  i {len(sans_bulletin)} commune(s) NON DOCUMENTÉE(S), absentes de la fiche :")
+        for nom, insee in sans_bulletin:
+            print(f"      {nom or insee} — aucun bulletin complet, ni pour la commune "
+                  "ni pour son réseau")
+        print("    ce n'est ni conforme ni non conforme : c'est une absence de donnée,")
+        print("    et elle reste visible dans couverture_communes (ce que colorie la carte).")
     if non_rediges:
         print(f"  i {len(non_rediges)} commune(s) sans rédaction : "
               f"{', '.join(non_rediges)}")
