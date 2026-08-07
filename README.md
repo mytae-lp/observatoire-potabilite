@@ -82,7 +82,8 @@ data/
   eau.duckdb                     base (non versionnée, reconstructible)
   journal/                       journaux de reprise par département
 sortie/
-  build_fiche.py                 génération d'une fiche citoyenne
+  build_fiche.py                 fiche citoyenne, dérivée de la base
+  redactions.json                les textes d'analyse, écrits à la main
   _template.html                 gabarit de fiche
 docs/
   Plan_Projet_...md              plan d'ensemble du projet
@@ -195,6 +196,11 @@ grilles, appariement par `code_parametre` avec repli libellé, alias puis règle
 de famille, conversion d'unités, collecte par point d'eau (`code_prelevement`),
 entrée par code postal, contrôle croisé contre la limite déclarée, collecte
 départementale avec reprise, fiche citoyenne.
+
+Fiche : `python3 sortie/build_fiche.py` construit la fiche depuis
+`analyses_figees` et `verdicts_figes`. Le factuel est calculé et estampillé ;
+la prose vient de `sortie/redactions.json` et n'est jamais générée — une
+commune non rédigée donne une fiche factuelle qui l'indique.
 
 À faire : effet cocktail (méthode à écrire avant tout chiffre — indice de
 danger, MAF, CAG/MOET de l'EFSA), volet radiologique, corpus des eaux

@@ -421,6 +421,22 @@ Vues :
 - `v_unites_incomparables` — mesures dont l'unité ne peut pas être ramenée à
   celle du seuil : aucun verdict n'est produit.
 
+### La fiche sépare le factuel de la prose
+
+`sortie/build_fiche.py` dérive de la base **tout ce qui est factuel** :
+mesures, seuils, verdicts, couverture, effort de recherche, conclusion de
+l'ARS. Chaque fiche porte la version de référentiel et la date de calcul qui
+l'ont produite.
+
+**La prose est ailleurs et n'est jamais générée.** Sous-titre territorial,
+lecture citoyenne, sections d'analyse, verdict rédigé : tout cela est de la
+main de Yannick et vit dans `sortie/redactions.json`, clé = code INSEE. Une
+commune sans rédaction produit une fiche factuelle complète qui **le dit**,
+plutôt que de combler le vide par un commentaire fabriqué.
+
+C'était la dernière partie non traçable du dépôt : les chiffres y étaient
+écrits en dur à côté des textes.
+
 ### La sortie est figée, mais toujours estampillée
 
 La mesure ne change jamais : c'est un fait. Le verdict, lui, dépend du
@@ -603,9 +619,8 @@ jamais comme un fait**.
   conforme. Non implémenté ;
 - **cartographie** : les coordonnées et le statut de couverture sont en base
   (`couverture_communes`), la carte elle-même reste à faire ;
-- **fiche citoyenne** : `sortie/build_fiche.py` ne lit PAS la base, il lit
-  `data/communes_params.json`. À rebrancher sur `analyses_figees` et
-  `verdicts_figes` ;
+- **cartographie** : `couverture_communes` porte le statut et les
+  coordonnées de chaque commune ; la carte elle-même reste à faire ;
 - **eau brute et dilution** : cf. §7bis.
 
 ---

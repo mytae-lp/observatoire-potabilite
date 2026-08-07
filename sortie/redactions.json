@@ -1,0 +1,191 @@
+{
+ "69268": {
+  "cle": "vourles",
+  "nom": "Vourles",
+  "sous_titre": "Rhône (69) · couloir chimique sud de Lyon",
+  "delta": "Derrière ce « conforme », le profil le plus chargé de la série : des <b>PFAS bien réels</b>, pas « sous le seuil ».",
+  "lecture_administrative": "Non conforme aux références (eau agressive), mais toutes les limites sanitaires sont « respectées ».",
+  "lecture_citoyenne": "Somme des 20 PFAS à 62 ng/L (62 % de la limite UE) ; somme des 4 à 15 ng/L, soit 7,5× le seuil danois (2 ng/L). Profil dominé par des PFAS à chaîne courte, les plus difficiles à retenir.",
+  "analyse": [
+   {
+    "t": "Inventaire — des PFAS mesurés, pas « sous le seuil »",
+    "x": "Contrairement à d'autres communes où les PFAS restent masqués par un « &lt;… », ils sont ici quantifiés : somme des 20 = 0,062 µg/L, somme des 4 = 15 ng/L. Le profil est dominé par des chaînes courtes (PFHxA, PFPeA, PFBA) — précisément celles que le charbon actif retient mal."
+   },
+   {
+    "t": "Écart légal ↔ sanitaire",
+    "x": "La somme des 4 PFAS à 15 ng/L est 7,5× le seuil danois et à rapprocher de la dose hebdomadaire très basse fixée par l'EFSA en 2020 (4,4 ng/kg, effets immunitaires chez l'enfant). S'ajoutent deux métabolites de pesticides (chloridazone desphényl 0,047, « pertinent » ; chlorothalonil R471811 0,064) et une trace de solvant industriel (tétrachloroéthylène 0,16 µg/L)."
+   },
+   {
+    "t": "Effet cocktail",
+    "x": "On cumule PFAS + deux métabolites + solvant + sous-produits de chloration (THM 15 µg/L) : chacun « conforme », le mélange jamais évalué. Des effets de mélange à faibles doses ont pourtant été documentés (Kortenkamp ; EDC-MixRisk)."
+   },
+   {
+    "t": "Lecture territoriale",
+    "x": "PFAS industriels + métabolites agricoles + solvant : une signature péri-urbaine mixte, cohérente avec le sud lyonnais. Le cas où l'on est exposé aux deux grandes familles de menaces à la fois."
+   }
+  ],
+  "verdict": "« Conforme aux limites de qualité » — mais des PFAS réels à 62 % de la limite (et 7,5× le seuil danois sur la somme des 4), dominés par des chaînes courtes ; deux métabolites de pesticides ; une trace de solvant industriel ; une eau agressive. Le profil le plus chargé de la série."
+ },
+ "82125": {
+  "cle": "montech",
+  "nom": "Montech",
+  "sous_titre": "Tarn-et-Garonne (82) · plaine céréalière de la Garonne",
+  "delta": "Le cas emblématique du projet : <b>la même eau était non conforme en 2015 et « conforme » en 2026 — parce que la règle a changé, pas l'eau.</b>",
+  "lecture_administrative": "Non conforme aux références (eau agressive) ; toutes les limites sanitaires « respectées ».",
+  "lecture_citoyenne": "Deux métabolites au-dessus de l'ancienne limite de 0,1 (métolachlore ESA 0,14 ; chlorothalonil R471811 0,12), désormais tolérés jusqu'à 0,9 depuis leur reclassement « non pertinents » (ANSES, 29/04/2024). Huit pesticides coexistent.",
+  "analyse": [
+   {
+    "t": "Inventaire — et les silences",
+    "x": "Huit pesticides/métabolites présents simultanément ; deux familles de sous-produits de chloration (THM 18,3 ; acides haloacétiques 7,1). Le silence décisif : « Somme des 20 PFAS &lt; 0,044 µg/L » ne veut pas dire zéro, mais « sous 44 ng/L, on ne sait pas » — soit 22× le seuil danois."
+   },
+   {
+    "t": "Écart légal ↔ sanitaire — le changement de norme en direct",
+    "x": "Métolachlore ESA 0,14 et chlorothalonil R471811 0,12 dépassent l'ancienne limite de 0,1 µg/L. Depuis leur reclassement en métabolites « non pertinents » (ANSES, 29 avril 2024), ils sont jugés sur 0,9, plus sur 0,1. En 2015, cette eau aurait été déclarée non conforme sur les pesticides ; en 2026, la même eau est « conforme »."
+   },
+   {
+    "t": "Effet cocktail",
+    "x": "Huit molécules agricoles co-présentes, chacune « conforme » isolément. La réglementation les évalue une à une ; les effets de mélange à faibles doses ne sont jamais mesurés."
+   },
+   {
+    "t": "Lecture territoriale",
+    "x": "Nitrates 14, métabolites de métolachlore (maïs), chlorothalonil (fongicide) : la signature d'un bassin de grande culture. Les molécules-mères interdites ont disparu, leurs métabolites persistent et racontent l'usage passé."
+   }
+  ],
+  "verdict": "Une eau « conforme aux limites » qui cache deux métabolites hors-normes d'il y a dix ans, un cocktail de huit pesticides, deux familles de sous-produits de chloration, des nitrates marquant une empreinte agricole, une eau corrosive, et des PFAS simplement sous le radar de la mesure. Conforme en 2026, non conforme en 2016 : la règle a changé, pas l'eau."
+ },
+ "28068": {
+  "cle": "challet",
+  "nom": "Challet",
+  "sous_titre": "Eure-et-Loir (28) · pleine Beauce céréalière",
+  "delta": "Ici les deux lectures <b>convergent</b> : même l'administration dit non. Un chlorothalonil à ~18× l'ancienne norme.",
+  "lecture_administrative": "L'administration elle-même déclare l'eau non conforme sur le plan chimique. Le mot « conforme » tombe.",
+  "lecture_citoyenne": "Cinq métabolites simultanés, plusieurs au-dessus des seuils : chlorothalonil R471811 à 1,662 µg/L (~18× l'ancienne limite de 0,1, ~2× la vigilance 0,9). Un métabolite d'herbicide interdit depuis 2003 toujours présent.",
+  "analyse": [
+   {
+    "t": "Inventaire — un cocktail de métabolites en dépassement",
+    "x": "Cinq métabolites/pesticides présents simultanément, plusieurs au-dessus des seuils : chlorothalonil R471811 1,662 ; atrazine déséthyl 0,110 ; chlorothalonil R417888 0,136 ; chloridazone desphényl 0,107 ; ESA métazachlore 0,105. Total pesticides 0,493, à la limite de la somme."
+   },
+   {
+    "t": "Écart légal ↔ sanitaire",
+    "x": "Ici l'écart n'est même plus à démontrer : plusieurs paramètres franchissent la limite légale elle-même. L'atrazine déséthyl est le métabolite d'un herbicide interdit depuis 2003, toujours présent plus de vingt ans après."
+   },
+   {
+    "t": "Effet cocktail",
+    "x": "Cinq molécules agricoles en mélange (fongicides, herbicides maïs et betterave). La réglementation les additionne à peine (« total » sous 0,5) ; elle n'évalue jamais leur action combinée."
+   },
+   {
+    "t": "Lecture territoriale",
+    "x": "Pleine Beauce céréalière : l'aboutissement de la logique agricole, poussée jusqu'au dépassement. Un historique de perchlorates (> 4 µg/L, 2022-2023) avait conduit à déconseiller cette eau pour les biberons des nourrissons de moins de 6 mois."
+   }
+  ],
+  "verdict": "Une eau officiellement non conforme : cocktail de cinq métabolites, un chlorothalonil à dix-huit fois l'ancienne norme, un métabolite d'herbicide interdit depuis vingt ans, et un historique de perchlorates ayant motivé une restriction pour les biberons. Le contrepoint parfait d'une eau propre."
+ },
+ "15003": {
+  "cle": "ally",
+  "nom": "Ally",
+  "sous_titre": "Cantal (15) · ressource de montagne, Massif central",
+  "delta": "Paradoxe inverse : <b>le meilleur résultat PFAS de la série</b> (1,5 ng/L, sous le seuil danois), sur analyse complète — mais une eau agressive et déjà marquée par un métabolite.",
+  "lecture_administrative": "L'ARS déclare la qualité sanitaire « non satisfaisante » — en raison de l'agressivité de l'eau, non d'un polluant.",
+  "lecture_citoyenne": "PFAS quasi absents (1,5 ng/L, sous le seuil danois de 2) : rare et réel. Mais eau très douce donc agressive (corrosive pour le réseau), et un métabolite (ESA métolachlore) déjà présent, signalé par l'ARS comme marqueur de vulnérabilité.",
+  "analyse": [
+   {
+    "t": "La bonne nouvelle (rare et réelle)",
+    "x": "Somme des 20 PFAS = 1,5 ng/L, pratiquement le bruit de fond analytique, sous le seuil danois. Ici les PFAS ont été cherchés et sont quasi absents : l'avantage d'une ressource d'altitude, loin des sources industrielles."
+   },
+   {
+    "t": "Pourquoi l'ARS conclut « non satisfaisante »",
+    "x": "Eau très douce et peu minéralisée (conductivité 100, TH 3,6, calcium 8,5), typique des sols granitiques/volcaniques : corrosive, elle dissout les matériaux à son contact (aluminium 96 µg/L). Elle attaque le réseau."
+   },
+   {
+    "t": "Un métabolite déjà présent",
+    "x": "ESA métolachlore détecté (sous le seuil), mais signalé explicitement par l'ARS comme marqueur de « vulnérabilité de la ressource ». Trouver ce métabolite jusque dans un captage du Cantal en dit long sur l'ubiquité de ces molécules."
+   },
+   {
+    "t": "Lecture territoriale",
+    "x": "Ressource de montagne : peu de pression agricole, éloignée de l'industrie — d'où l'absence de PFAS. Mais l'agressivité et l'ubiquité des métabolites, les deux obstacles récurrents d'une « bonne » eau, sont déjà là."
+   }
+  ],
+  "verdict": "Le meilleur résultat PFAS de la série (1,5 ng/L), sur un panel complet — et pourtant l'eau reste agressive et déjà marquée par un métabolite. Une ressource d'altitude presque irréprochable, que sa corrosivité disqualifie comme « satisfaisante »."
+ },
+ "46040": {
+  "cle": "cabrerets",
+  "nom": "Cabrerets",
+  "sous_titre": "Lot (46) · Causses calcaires du Quercy",
+  "delta": "Ici les deux lectures <b>se rejoignent</b> : une eau vraiment bonne, confirmée par l'analyse complète.",
+  "lecture_administrative": "Conforme y compris aux références. Sans le moindre « cependant ».",
+  "lecture_citoyenne": "PFAS cherchés et absents (somme 20 < 29 ng/L, somme 4 < 4 ng/L), zéro pesticide sur panel large, nitrates les plus bas de la série, minéralisation calcaire à l'équilibre. Le contre-exemple positif.",
+  "analyse": [
+   {
+    "t": "Inventaire — aucun silence gênant",
+    "x": "PFAS : somme des 20 non détectée (&lt; 0,029 µg/L), somme des 4 non détectée (&lt; 0,004). Cette fois les PFAS ont été cherchés et sont absents. Aucun pesticide détecté sur un panel large (métolachlore, chlorothalonil, chloridazone, atrazine, glyphosate…)."
+   },
+   {
+    "t": "Écart légal ↔ sanitaire — favorable",
+    "x": "Nitrates 4,6 mg/L : les plus bas de la série. THM 0,40 µg/L : quasi nuls. Eau calcaire à l'équilibre (calcium 118, pH 7,3), non agressive : une eau minéralisée par le calcaire n'attaque pas les canalisations."
+   },
+   {
+    "t": "Effet cocktail",
+    "x": "Sans objet : aucune substance de synthèse détectée. À l'échelle de cette enquête, c'est l'exception plutôt que la règle."
+   },
+   {
+    "t": "Lecture territoriale",
+    "x": "Source karstique des Causses du Quercy, en zone de faible agriculture intensive, naturellement filtrée par le calcaire et éloignée des sources industrielles de PFAS. Le profil-type d'une eau protégée."
+   }
+  ],
+  "verdict": "Une eau vraiment propre sur analyse complète : PFAS cherchés et absents, zéro pesticide, nitrates les plus bas de la série, minéralisation calcaire à l'équilibre. Le contre-exemple positif — celui qui tient la route quand on cherche vraiment tout."
+ },
+ "22266": {
+  "cle": "rostrenen",
+  "nom": "Rostrenen",
+  "sous_titre": "Côtes-d'Armor (22) · Bretagne granitique",
+  "delta": "Mais l'analyse est <b>incomplète</b> : ni panel pesticides complet, ni ligne PFAS. Tout est dans le mot « mesurés ».",
+  "lecture_administrative": "Conforme, y compris aux références. En apparence, le bon élève.",
+  "lecture_citoyenne": "115 paramètres seulement, sans PFAS ni panel pesticides complet. Or l'autre source de la commune (Coadernault) était contaminée aux PFAS depuis 2017 — 359 ng/L en moyenne, pic à 837, fermée en urgence à l'été 2024. Un « conforme » ne dit rien de ce qui n'a pas été cherché.",
+  "analyse": [
+   {
+    "t": "Ce que le bulletin montre",
+    "x": "Nitrates 1,4 mg/L (très bas), aucun pesticide détecté, eau douce équilibrée, bactériologie parfaite. Seul signal : THM 23,2 µg/L, qui signent une eau de surface chlorée. Sur le papier : très bonne eau."
+   },
+   {
+    "t": "Ce que le bulletin NE montre pas — décisif",
+    "x": "Ce prélèvement ne comporte ni panel pesticides complet, ni ligne PFAS : ces familles n'ont pas été recherchées. « Conforme pour l'ensemble des paramètres mesurés » : tout est dans le mot « mesurés »."
+   },
+   {
+    "t": "Le contexte que le bulletin tait",
+    "x": "L'enquête du média Splann! (mars 2025) a révélé que l'autre source de Rostrenen — le captage de Coadernault, qui alimentait les deux tiers de la commune — était contaminée aux PFAS depuis 2017 : 359 ng/L en moyenne, pic à 837 ng/L, 312 ng/L dans l'eau distribuée en juillet 2024. Fermée en urgence à l'été 2024."
+   },
+   {
+    "t": "La leçon",
+    "x": "Cette eau paraît irréprochable en grande partie parce qu'on n'a pas cherché ce qui posait problème juste à côté. Un « conforme » n'est pas une garantie d'innocuité : c'est le reflet d'un panel de mesure — et de ses angles morts."
+   }
+  ],
+  "verdict": "Un bulletin propre… surtout parce que l'essentiel n'y a pas été cherché — sur une commune dont l'autre source cachait trois fois la limite de PFAS pendant des années, sans que la population en soit informée. L'illustration parfaite qu'un « conforme » ne dit rien de ce qui n'a pas été mesuré."
+ },
+ "17415": {
+  "cle": "saintes",
+  "nom": "Saintes",
+  "sous_titre": "Charente-Maritime (17) · bassin de la Charente",
+  "delta": "Derrière ce « conforme » complet : des <b>nitrates à 41 mg/L</b> (82 % de la limite) et un métabolite de fongicide à 92 % de l'ancienne norme — mais, pour une fois, des PFAS réellement absents.",
+  "lecture_administrative": "Conforme pour l'ensemble des paramètres mesurés, sans réserve.",
+  "lecture_citoyenne": "PFAS réellement absents (analyse fine, LQ ~1 ng/L). Mais nitrates à 41 mg/L — environ 10× le repère sanitaire le plus strict — et chlorothalonil R471811 à 0,092 µg/L, soit 92 % de l'ancienne limite de 0,1 (aujourd'hui tolérée jusqu'à 0,9).",
+  "analyse": [
+   {
+    "t": "Inventaire — et, pour une fois, peu de silences",
+    "x": "Sur 370 paramètres, les PFAS ont été cherchés à très fine résolution (LQ ~1 ng/L) et ne sont pas détectés : l'absence est ici réellement démontrée, y compris face au seuil danois (2 ng/L). Une seule molécule de synthèse quantifiée : le chlorothalonil R471811 à 0,092 µg/L."
+   },
+   {
+    "t": "Écart légal ↔ sanitaire",
+    "x": "Deux écarts. Les nitrates à 41 mg/L sont conformes (limite 50) mais atteignent environ 10× le repère sanitaire émergent (cohorte danoise, ~3,9 mg/L) et 4× le repère nourrissons (10 mg/L). Le chlorothalonil R471811 à 0,092 est à 92 % de l'ancienne limite de 0,1 — aujourd'hui jugé sur 0,9, il dispose de 10× de marge : une bascule réglementaire en germe."
+   },
+   {
+    "t": "Effet cocktail",
+    "x": "Quasi sans objet : une seule molécule de synthèse détectée, pas de mélange. C'est la différence nette avec les eaux de grande culture chargées de métabolites."
+   },
+   {
+    "t": "Lecture territoriale",
+    "x": "Eau de la Charente traitée à l'usine de Diconche (AGUR, eau de surface). Le chlorothalonil (fongicide céréalier) et les nitrates signent l'empreinte agricole du bassin ; le traitement livre néanmoins une eau à l'équilibre et exempte de PFAS."
+   }
+  ],
+  "verdict": "Une eau officiellement « conforme pour l'ensemble des paramètres » — et réellement sans PFAS, ce qui est rare et à souligner. Mais des nitrates à 41 mg/L (82 % de la limite, ~10× le repère sanitaire strict) et un métabolite de fongicide à 92 % de l'ancienne norme trahissent une empreinte agricole nette. Bonne nouvelle sur les PFAS, vigilance sur les nitrates et le chlorothalonil."
+ }
+}
