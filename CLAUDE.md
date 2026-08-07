@@ -666,6 +666,58 @@ jamais comme un fait**.
 
 ---
 
+## 8bis. Ce que l'interface doit porter
+
+Section écrite le 7 août 2026, à l'ouverture du chantier web. Les règles de
+méthode ne servent à rien si elles s'arrêtent à la base : ce sont des
+obligations d'affichage.
+
+### La surface à consommer
+
+Trois tables, et elles suffisent. Ne jamais recalculer un verdict à la volée
+dans l'interface : une vue suit le référentiel du jour, une ligne figée dit
+contre quelle grille elle a été calculée.
+
+| Table | Ce qu'elle porte |
+|---|---|
+| `analyses_figees` | une ligne par bulletin : verdicts, couverture, effort, sommes |
+| `verdicts_figes` | le détail paramètre par paramètre |
+| `couverture_communes` | statut et coordonnées de chaque commune — **ce que colorie la carte** |
+
+### Obligations d'affichage
+
+1. **Jamais un « conforme » sans son dénominateur.** « 214 paramètres notés
+   sur 234 mesurés » accompagne tout verdict (§2.8).
+2. **L'effort de recherche à côté de toute comparaison ou de tout
+   classement.** Une eau correcte sur 200 paramètres n'est pas comparable à
+   une eau moyenne sur 700 (§2.11). Utiliser les taux, jamais les comptes.
+3. **Trois états, pas deux.** Conforme / dépassement / **indéterminé**. Un
+   indéterminé n'est pas un conforme et doit avoir sa propre couleur (§2.4).
+4. **« Non documentée » est une catégorie visible**, ni verte ni rouge. Une
+   commune sans bulletin ne disparaît pas de la carte (§2.3).
+5. **Quand l'analyse est empruntée au réseau, dire où elle a été prélevée.**
+   Sans cela, l'habitant croit que l'analyse a eu lieu chez lui.
+6. **Le verdict s'affiche à la date du prélèvement**, pas contre la grille du
+   jour (§2.10). C'est `depasse_applicable`, pas `depasse_2026`.
+7. **L'indice de danger n'est jamais nommé « risque »**, jamais publié sans le
+   nombre de substances qui le composent, jamais présenté comme un verdict de
+   potabilité (§7 et docs/METHODE_EFFET_COCKTAIL.md).
+8. **Une valeur en `fiabilite = a_verifier` est signalée comme telle** (§2.7).
+9. **Chaque écran porte sa traçabilité** : version de référentiel, date de
+   calcul, lien vers l'appel Hub'Eau d'origine (`source_url`).
+10. **Aucune recommandation de produit, d'équipement ou de filtration, nulle
+    part, jamais** — pas même en note de bas de page (§2.2). Et on interroge
+    la norme, jamais les acteurs qui l'appliquent (§2.1).
+
+### Le parcours minimal
+
+`code postal → commune(s) → point(s) d'eau → dernier bulletin complet → fiche`
+
+C'est ce que fait déjà `src/observer.py` en ligne de commande. L'interface
+n'a pas à réinventer cette chaîne : elle l'expose.
+
+---
+
 ## 9. Licence et posture
 
 Données et référentiel sous **ODbL 1.0** (partage à l'identique, mention
