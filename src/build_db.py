@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS referentiel_seuils (
     seuil_2016               DOUBLE,
     seuil_2026               DOUBLE,
     date_applicabilite_2026  DATE,
+    seuil_conditionnel       DOUBLE,
+    condition_seuil          VARCHAR,
     statut_2026              VARCHAR,
     seuil_futur              DOUBLE,
     date_applicabilite_futur DATE,
@@ -90,7 +92,8 @@ CREATE TABLE IF NOT EXISTS referentiel_seuils (
     pe_scientifique          VARCHAR,
     sources                  VARCHAR,
     fiabilite                VARCHAR,
-    est_agregat              BOOLEAN
+    est_agregat              BOOLEAN,
+    cancerogenicite_circ     VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS alias_parametres (
@@ -196,6 +199,7 @@ WITH base AS (
         r.seuil_2016, r.seuil_2026, r.seuil_strict, r.seuil_futur,
         r.base_seuil_strict, r.statut_2026, r.date_applicabilite_futur, r.est_agregat,
         r.date_applicabilite_2026, p.date_prelevement,
+        r.seuil_conditionnel, r.condition_seuil, r.cancerogenicite_circ,
         r.pe_reglementaire, r.pe_scientifique, r.fiabilite,
         -- Facteur de conversion du seuil (exprimé dans l'unité du référentiel)
         -- vers l'unité dans laquelle la mesure est exprimée.
@@ -244,6 +248,9 @@ SELECT
     END AS origine_seuil_2026,
     (v.k IS NULL) AS unite_incomparable,
     v.date_applicabilite_2026,
+    v.seuil_conditionnel * v.k AS seuil_conditionnel,
+    v.condition_seuil,
+    v.cancerogenicite_circ,
 
     -- LE SEUIL QUI S'APPLIQUAIT LE JOUR DU PRÉLÈVEMENT.
     -- Un reclassement n'est pas rétroactif : la note d'information de la
@@ -291,13 +298,33 @@ SELECT
 
     -- LE VERDICT TEL QU'IL DEVAIT ÊTRE RENDU CE JOUR-LÀ.
     -- C'est celui-ci qui est comparable à la conclusion de l'ARS.
-    (v.est_quantifie AND v.resultat_num > CASE
+    --
+    -- Un seuil peut dépendre du PROCÉDÉ ou de la RESSOURCE, pas seulement de
+    -- la date : chlorates et chlorites passent à 0,70 mg/L quand la
+    -- désinfection en génère, le sélénium à 30 µg/L et le bore à 2,4 mg/L par
+    -- exception géologique. Rien dans les données ne dit si la condition est
+    -- remplie. On ne prononce donc un dépassement que si la mesure franchit
+    -- AUSSI la valeur la plus permissive ; entre les deux, c'est un
+    -- indéterminé, pas une non-conformité. Un faux positif coûte plus cher au
+    -- projet qu'un faux négatif (CLAUDE.md §2.13).
+    (v.est_quantifie AND v.resultat_num > COALESCE(v.seuil_conditionnel * v.k, CASE
         WHEN v.date_applicabilite_2026 IS NOT NULL
              AND v.date_prelevement IS NOT NULL
              AND v.date_prelevement < v.date_applicabilite_2026
         THEN v.seuil_2016 * v.k
         ELSE COALESCE(v.seuil_2026 * v.k, v.limite_declaree)
-     END) AS depasse_applicable,
+     END)) AS depasse_applicable,
+
+    -- Au-dessus du seuil de base, sous le seuil conditionnel : le verdict
+    -- dépend d'une information que la base n'a pas.
+    (v.est_quantifie AND v.seuil_conditionnel IS NOT NULL
+       AND v.resultat_num >  CASE
+             WHEN v.date_applicabilite_2026 IS NOT NULL
+                  AND v.date_prelevement IS NOT NULL
+                  AND v.date_prelevement < v.date_applicabilite_2026
+             THEN v.seuil_2016 * v.k
+             ELSE COALESCE(v.seuil_2026 * v.k, v.limite_declaree) END
+       AND v.resultat_num <= v.seuil_conditionnel * v.k) AS indetermine_condition,
 
     -- LA BASCULE : dépassait la limite de 2016, ne dépasse pas celle de 2026.
     -- Ce n'est pas l'eau qui a changé, c'est la limite. Référentiel seul.
@@ -363,6 +390,7 @@ SELECT
     COUNT(*) FILTER (WHERE v.depasse_2016)                        AS nb_depasse_2016,
     COUNT(*) FILTER (WHERE v.depasse_2026)                        AS nb_depasse_2026,
     COUNT(*) FILTER (WHERE v.depasse_applicable)                  AS nb_depasse_applicable,
+    COUNT(*) FILTER (WHERE v.indetermine_condition)               AS nb_indetermines_condition,
     COUNT(*) FILTER (WHERE v.depasse_strict)                      AS nb_depasse_strict,
     COUNT(*) FILTER (WHERE v.depasse_futur)                       AS nb_depasse_futur,
     COUNT(*) FILTER (WHERE v.bascule_2016_2026)                   AS nb_bascules,
@@ -476,6 +504,21 @@ ORDER BY nb_mesures DESC;
 # information plus faible qu'une eau « moyenne » sur 700. La première n'a pas
 # été beaucoup interrogée. Trier par parametres_recherches décroissant met en
 # tête les communes les plus transparentes, pas les plus polluées.
+# Les mesures dont le verdict dépend d'une condition que la base ne connaît
+# pas : procédé de désinfection, nature géologique de la ressource. Elles ne
+# sont PAS des dépassements — elles sont à vérifier à la main avant toute
+# publication.
+VUE_CONDITIONS = """
+CREATE OR REPLACE VIEW v_verdicts_sous_condition AS
+SELECT
+    code_insee, code_prelevement, libelle_parametre,
+    resultat_num, unite, seuil_2026 AS seuil_de_base,
+    seuil_conditionnel, condition_seuil
+FROM v_mesures_verdict
+WHERE indetermine_condition
+ORDER BY libelle_parametre;
+"""
+
 VUE_EFFORT = """
 CREATE OR REPLACE VIEW v_effort_recherche AS
 SELECT
@@ -516,11 +559,37 @@ ORDER BY nb_mesures DESC;
 
 VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES,
         VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES,
-        VUE_SEUILS_SANS_DATE, VUE_EFFORT]
+        VUE_SEUILS_SANS_DATE, VUE_EFFORT, VUE_CONDITIONS]
+
+
+def controler_forme(chemin):
+    """
+    Refuse un CSV dont une ligne n'a pas le bon nombre de colonnes.
+
+    Un point-virgule oublié à l'intérieur d'une cellule décale toute la ligne
+    SANS erreur visible : `fiabilite` se retrouve dans `sources`, un seuil
+    dans un libellé. C'est arrivé deux fois dans ce projet — la première sur
+    14 lignes, la seconde le 7 août 2026 sur quatre. Les deux fois, rien ne
+    l'a signalé. Ce contrôle existe pour qu'il n'y ait pas de troisième fois
+    (cf. CLAUDE.md §5).
+    """
+    with open(chemin, encoding="utf-8") as fh:
+        lignes = [l.rstrip("\n") for l in fh if not l.lstrip().startswith("#") and l.strip()]
+    attendu = len(lignes[0].split(";"))
+    mauvaises = [(n, l) for n, l in enumerate(lignes[1:], 2)
+                 if len(l.split(";")) != attendu]
+    if mauvaises:
+        print(f"  ! {os.path.basename(chemin)} : {len(mauvaises)} ligne(s) au mauvais "
+              f"nombre de colonnes ({attendu} attendues) — point-virgule dans une cellule ?")
+        for n, l in mauvaises[:5]:
+            print(f"      ligne {n} : {len(l.split(';'))} colonnes — {l[:70]}")
+        raise ValueError(f"{chemin} : {len(mauvaises)} ligne(s) mal formée(s)")
+    return len(lignes) - 1
 
 
 def charger_referentiel(con, chemin=REF_CSV):
     """Charge referentiel_seuils.csv. Remplace intégralement la table."""
+    controler_forme(chemin)
     con.execute("DELETE FROM referentiel_seuils")
     n, doublons = 0, []
     vus = set()
@@ -535,7 +604,7 @@ def charger_referentiel(con, chemin=REF_CSV):
                 continue
             vus.add(cle)
             con.execute(
-                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [
                     cle,
                     s(ligne.get("code_parametre")),
@@ -547,6 +616,8 @@ def charger_referentiel(con, chemin=REF_CSV):
                     f(ligne.get("seuil_2016")),
                     f(ligne.get("seuil_2026")),
                     s(ligne.get("date_applicabilite_2026")),
+                    f(ligne.get("seuil_conditionnel")),
+                    s(ligne.get("condition_seuil")),
                     s(ligne.get("statut_2026")),
                     f(ligne.get("seuil_futur")),
                     s(ligne.get("date_applicabilite_futur")),
@@ -557,6 +628,7 @@ def charger_referentiel(con, chemin=REF_CSV):
                     s(ligne.get("sources")),
                     s(ligne.get("fiabilite")),
                     (s(ligne.get("est_agregat")) or "non").lower() == "oui",
+                    s(ligne.get("cancerogenicite_circ")),
                 ],
             )
             n += 1

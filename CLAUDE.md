@@ -217,6 +217,49 @@ Règle générale : **toute valeur de seuil doit être accompagnée de la date
 à laquelle elle s'applique effectivement.** Quand une source annonce un
 durcissement, vérifier systématiquement s'il est immédiat ou différé.
 
+### 2.14 « Le plus strict identifié », jamais « le plus strict au monde »
+
+La colonne `seuil_strict` a longtemps été présentée comme « la norme la plus
+protectrice au monde ». C'est une prétention à l'exhaustivité que le projet ne
+peut pas soutenir : un balayage mondial n'a été fait que pour les PFAS.
+Partout ailleurs, la valeur est le plus strict **que nous ayons identifié**,
+et c'est ce qu'il faut écrire.
+
+La différence n'est pas rhétorique. Sur la somme des 20 PFAS, le référentiel
+affichait 0,020 µg/L comme « le plus strict au monde » — c'était en réalité le
+seuil allemand portant sur la somme de **4** substances, et applicable
+seulement au 12 janvier 2028. La valeur juste est 0,100 µg/L, et à ce niveau
+**personne n'est plus strict que l'Union européenne** : Danemark 0,100 (sur 22
+substances), Suède 0,100 (sur 21), Allemagne 0,100. L'axe international ne
+mord pas sur ce paramètre, et prétendre le contraire était un argument faux.
+
+Il mord en revanche sur la somme des 4, où la hiérarchie est réelle :
+Danemark 2 ng/L, Suède 4 ng/L, Allemagne 20 ng/L en 2028.
+
+### 2.15 Trois registres, jamais fusionnés
+
+Le §2.6 en distinguait deux. Il y en a trois, et le référentiel a désormais
+une colonne par registre :
+
+| Registre | Colonne | Autorité |
+|---|---|---|
+| réglementaire | `pe_reglementaire` | UE — le seul PE avéré dans l'EDCH est le bisphénol A |
+| scientifique | `pe_scientifique` | littérature, agences |
+| cancérogénicité | `cancerogenicite_circ` | CIRC, référence mondiale |
+
+L'atrazine l'illustre : classée **2A par le CIRC en novembre 2025**, elle n'a
+**aucun statut PE réglementaire** — jamais évaluée au titre des critères de
+2018/605, parce qu'interdite depuis 2004 et donc jamais soumise à
+renouvellement. Et son interdiction elle-même (décision 2004/248/CE) est
+motivée par les eaux souterraines, pas par la perturbation endocrinienne.
+Trois faits vrais, trois registres différents, aucun ne se déduit des autres.
+
+L'ANSES en donne la formulation exacte pour l'atrazine déséthyl : son avis
+2015-SA-0084 retient « une suppression du pic de l'hormone lutéinisante
+entraînant une perturbation du cycle œstral » comme effet critique — et
+n'emploie jamais le mot « perturbateur endocrinien ». Le fait toxicologique
+est reconnu, la qualification réglementaire ne l'est pas.
+
 ### 2.6 Distinguer statut réglementaire et statut scientifique
 
 Deux colonnes distinctes, jamais fusionnées : `pe_reglementaire` et
@@ -343,19 +386,35 @@ C'est exactement le glissement qui a produit l'erreur sur le R417888 : une
 source réelle, une inférence par-dessus, et un résultat qui prend l'apparence
 du sourcé. La différence est qu'ici l'inférence est écrite.
 
-### 2.13 Un seuil peut dépendre de la ressource, pas seulement de la date
+### 2.13 Un seuil peut dépendre du procédé ou de la ressource, pas seulement de la date
 
-Découvert le 7 août 2026, **non implémenté**. L'arrêté prévoit des exceptions
-d'origine géologique :
+Quatre cas connus, et c'est assez pour être structurel :
 
-- **sélénium** : 30 µg/L au lieu de 20 pour certaines ressources ;
-- **bore** : 2,4 mg/L au lieu de 1,5.
+| Paramètre | Seuil de base | Seuil conditionnel | Condition |
+|---|---|---|---|
+| chlorates | 0,25 mg/L | 0,70 mg/L | désinfection générant des chlorates |
+| chlorites | 0,25 mg/L | 0,70 mg/L | désinfection générant des chlorites |
+| sélénium | 20 µg/L | 30 µg/L | exception géologique |
+| bore | 1,5 mg/L | 2,4 mg/L | exception géologique |
 
-Une valeur unique par paramètre produit donc de **faux dépassements** dans ces
-zones. Le modèle de données ne sait pas exprimer cela : `referentiel_seuils`
-est indexé par paramètre, jamais par ressource. Tant que ce n'est pas traité,
-tout dépassement de sélénium ou de bore doit être vérifié à la main avant
-publication.
+Deux colonnes le portent : `seuil_conditionnel` et `condition_seuil`.
+
+**Rien dans les données ne dit si la condition est remplie.** On ne connaît ni
+le procédé de désinfection de l'usine, ni la nature géologique de la
+ressource. La règle est donc : **un dépassement n'est prononcé que si la
+mesure franchit AUSSI la valeur la plus permissive.** Entre le seuil de base
+et le seuil conditionnel, c'est un `indetermine_condition` — pas une
+non-conformité. `v_verdicts_sous_condition` les liste, et ils doivent être
+vérifiés à la main avant toute publication.
+
+Ce choix est asymétrique et assumé : **un faux positif coûte plus cher au
+projet qu'un faux négatif.** Une non-conformité annoncée à tort se retourne
+contre l'Observatoire ; une non-conformité manquée reste à trouver.
+
+Le modèle ne sait toujours pas exprimer une date de **fin** d'applicabilité :
+la référence de qualité des chlorites, 0,20 mg/L, a expiré le 31 décembre 2025
+sans remplacement connu. Elle est documentée dans `statut_2026`, pas
+calculée.
 
 ### 2.9 Un seuil et une mesure dans deux unités différentes ne se comparent pas
 
@@ -511,8 +570,14 @@ Fichiers de source : `CODE_Organisme_description_annee.ext`
 Quand une ligne du référentiel s'appuie sur plusieurs sources, les codes sont
 séparés par une **barre verticale** : `REG-01|REG-03`. Ne jamais utiliser le
 point-virgule à l'intérieur d'une cellule : c'est le séparateur de colonnes du
-CSV, et il décale silencieusement toute la ligne (erreur réellement commise et
-corrigée ici — elle avait déplacé `fiabilite` sur 14 lignes).
+CSV, et il décale silencieusement toute la ligne.
+
+L'erreur a été commise **deux fois** : d'abord sur 14 lignes, où elle avait
+déplacé `fiabilite` ; puis le 7 août 2026 sur quatre lignes, en rédigeant les
+corrections elles-mêmes. Les deux fois, rien ne l'a signalée. `build_db.py`
+refuse désormais un CSV dont une ligne n'a pas le bon nombre de colonnes
+(`controler_forme`), et le chargement échoue au lieu de charger des données
+décalées.
 
 ---
 
