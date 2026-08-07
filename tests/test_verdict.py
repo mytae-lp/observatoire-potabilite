@@ -100,28 +100,33 @@ def bulletin_fictif():
          "libelle_unite": "µg/L", "limite_qualite_parametre": "<=200 µg/L"},
 
         # --- 5. RÈGLE DE FAMILLE (les ~300 pesticides nommés) ----------------
+        # Codes 999xx volontairement hors de la plage Hub'Eau réelle : le
+        # référentiel grandit, et un code inventé au hasard finit par exister
+        # pour de bon. « Boscalid » portait 1907, qui est le code de l'AMPA :
+        # le faux paramètre s'appariait à une vraie ligne et faussait l'indice
+        # de danger. Les tests l'ont vu.
         # Pesticide inconnu du référentiel, limite déclarée 0,1 µg/L :
         # rattaché à « Pesticide - substance individuelle ». Conforme.
-        {"code_parametre": "1907", "libelle_parametre": "Boscalid",
+        {"code_parametre": "99901", "libelle_parametre": "Boscalid",
          "resultat_alphanumerique": "0,05", "resultat_numerique": 0.05,
          "libelle_unite": "µg/L", "limite_qualite_parametre": "<=0,1 µg/L"},
 
         # Même règle, mais au-dessus : dépassement 2016 ET 2026 (la limite
         # pesticide n'a pas bougé) -> surtout PAS une bascule.
-        {"code_parametre": "1264", "libelle_parametre": "Quinmerac",
+        {"code_parametre": "99902", "libelle_parametre": "Quinmerac",
          "resultat_alphanumerique": "0,25", "resultat_numerique": 0.25,
          "libelle_unite": "µg/L", "limite_qualite_parametre": "<=0,1 µg/L"},
 
         # --- 6. LIMITE DÉCLARÉE SEULE (hors référentiel) --------------------
         # Absent du référentiel : la limite déclarée donne la grille 2026 et
         # rien d'autre. Dépassement aujourd'hui, aucun verdict 2016.
-        {"code_parametre": "1394", "libelle_parametre": "Manganese total",
+        {"code_parametre": "99903", "libelle_parametre": "Manganese total",
          "resultat_alphanumerique": "60", "resultat_numerique": 60.0,
          "libelle_unite": "µg/L", "limite_qualite_parametre": "<=50 µg/L"},
 
         # --- 7. AUCUN SEUIL DU TOUT -----------------------------------------
         # Ni référentiel, ni limite déclarée : mesure invisible, à signaler.
-        {"code_parametre": "1374", "libelle_parametre": "Calcium",
+        {"code_parametre": "99904", "libelle_parametre": "Calcium",
          "resultat_alphanumerique": "80", "resultat_numerique": 80.0,
          "libelle_unite": "mg/L"},
 

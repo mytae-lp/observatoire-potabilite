@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS mesures (
 CREATE TABLE IF NOT EXISTS referentiel_seuils (
     libelle_norm             VARCHAR PRIMARY KEY,
     code_parametre           VARCHAR,
+    code_cas                 VARCHAR,
     libelle                  VARCHAR,
     famille                  VARCHAR,
     unite                    VARCHAR,
@@ -118,8 +119,15 @@ CREATE TABLE IF NOT EXISTS regles_famille (
 # ---------------------------------------------------------------------------
 
 # 1) Résolution du rapprochement mesure <-> référentiel.
-#    Cascade : code_parametre Hub'Eau (stable) > libellé normalisé > alias >
-#    règle de famille.
+#    Cascade : code_parametre Hub'Eau > numéro CAS > libellé normalisé >
+#    alias > règle de famille.
+#
+#    Le numéro CAS est l'identifiant chimique international : il ne dépend ni
+#    du laboratoire ni de l'orthographe. Il est renseigné sur 93 % des mesures
+#    et c'est lui qui a permis de rattacher les 19 métabolites du tableau
+#    ANSES à leur libellé Hub'Eau, dont « Terbuméton-désethyl » pour
+#    « déséthyl-terbuméton » — qu'aucun rapprochement par libellé n'aurait
+#    trouvé.
 #
 #    La règle de famille est ce qui rend le passage à l'échelle possible. Un
 #    bulletin complet porte ~300 pesticides nommés (Boscalid, Quinmérac,
@@ -134,19 +142,24 @@ VUE_REF = """
 CREATE OR REPLACE VIEW v_mesures_ref AS
 SELECT
     m.*,
-    COALESCE(r1.libelle_norm, r2.libelle_norm, r3.libelle_norm, r4.libelle_norm) AS ref_key,
+    COALESCE(r1.libelle_norm, rc.libelle_norm, r2.libelle_norm,
+             r3.libelle_norm, r4.libelle_norm) AS ref_key,
     CASE
         WHEN r1.libelle_norm IS NOT NULL THEN 'code_parametre'
+        WHEN rc.libelle_norm IS NOT NULL THEN 'code_cas'
         WHEN r2.libelle_norm IS NOT NULL THEN 'libelle'
         WHEN r3.libelle_norm IS NOT NULL THEN 'alias'
         WHEN r4.libelle_norm IS NOT NULL THEN 'regle_famille'
         ELSE NULL
     END AS mode_appariement,
-    CASE WHEN COALESCE(r1.libelle_norm, r2.libelle_norm, r3.libelle_norm) IS NULL
+    CASE WHEN COALESCE(r1.libelle_norm, rc.libelle_norm, r2.libelle_norm,
+                       r3.libelle_norm) IS NULL
          THEN g.nom_regle END AS regle_appliquee
 FROM mesures m
 LEFT JOIN referentiel_seuils r1
        ON r1.code_parametre IS NOT NULL AND r1.code_parametre = m.code_parametre
+LEFT JOIN referentiel_seuils rc
+       ON rc.code_cas IS NOT NULL AND rc.code_cas = m.code_cas
 LEFT JOIN referentiel_seuils r2
        ON r2.libelle_norm = m.libelle_norm
 LEFT JOIN alias_parametres a
@@ -154,7 +167,8 @@ LEFT JOIN alias_parametres a
 LEFT JOIN referentiel_seuils r3
        ON r3.libelle_norm = a.libelle_norm
 LEFT JOIN regles_famille g
-       ON COALESCE(r1.libelle_norm, r2.libelle_norm, r3.libelle_norm) IS NULL
+       ON COALESCE(r1.libelle_norm, rc.libelle_norm, r2.libelle_norm,
+                   r3.libelle_norm) IS NULL
       AND g.limite_declaree = m.limite_declaree
       AND (g.unite_norm IS NULL OR g.unite_norm = m.unite_norm)
 LEFT JOIN referentiel_seuils r4
@@ -521,10 +535,11 @@ def charger_referentiel(con, chemin=REF_CSV):
                 continue
             vus.add(cle)
             con.execute(
-                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [
                     cle,
                     s(ligne.get("code_parametre")),
+                    s(ligne.get("code_cas")),
                     libelle,
                     s(ligne.get("famille")),
                     s(ligne.get("unite")),

@@ -324,6 +324,39 @@ anachronique : `v_seuils_sans_date` les liste, et `build_db.py` les signale à
 chaque construction. Six lignes y figurent aujourd'hui — ESA/OXA métolachlore,
 ESA métazachlore, antimoine, sélénium, bore.
 
+### 2.12 Le seuil de 2016 des métabolites est une extrapolation, et il se dit
+
+La colonne `seuil_2016` vaut 0,1 µg/L sur les 24 lignes de la famille
+métabolite. Le fondement est l'**instruction n° DGS/EA4/2020/177 du
+18 décembre 2020** : « en l'absence d'éléments permettant d'écarter le
+potentiel d'activité pesticide ou le risque de génotoxicité, le métabolite est
+caractérisé comme pertinent » — donc noté à 0,1 µg/L tant qu'il n'est pas
+reclassé.
+
+**Mais cette instruction date de décembre 2020 et remplace celle de 2010.**
+Appliquer 0,1 µg/L à un prélèvement de 2016 est un raisonnement raisonnable,
+pas la lecture d'un texte de 2016. C'est une **extrapolation assumée**, et
+elle doit être présentée comme telle partout où la grille de 2016 est
+invoquée sur un métabolite.
+
+C'est exactement le glissement qui a produit l'erreur sur le R417888 : une
+source réelle, une inférence par-dessus, et un résultat qui prend l'apparence
+du sourcé. La différence est qu'ici l'inférence est écrite.
+
+### 2.13 Un seuil peut dépendre de la ressource, pas seulement de la date
+
+Découvert le 7 août 2026, **non implémenté**. L'arrêté prévoit des exceptions
+d'origine géologique :
+
+- **sélénium** : 30 µg/L au lieu de 20 pour certaines ressources ;
+- **bore** : 2,4 mg/L au lieu de 1,5.
+
+Une valeur unique par paramètre produit donc de **faux dépassements** dans ces
+zones. Le modèle de données ne sait pas exprimer cela : `referentiel_seuils`
+est indexé par paramètre, jamais par ressource. Tant que ce n'est pas traité,
+tout dépassement de sélénium ou de bore doit être vérifié à la main avant
+publication.
+
 ### 2.9 Un seuil et une mesure dans deux unités différentes ne se comparent pas
 
 Erreur réellement présente et détectée par le contrôle croisé : le chlorate
@@ -621,7 +654,15 @@ jamais comme un fait**.
   (`couverture_communes`), la carte elle-même reste à faire ;
 - **cartographie** : `couverture_communes` porte le statut et les
   coordonnées de chaque commune ; la carte elle-même reste à faire ;
-- **eau brute et dilution** : cf. §7bis.
+- **eau brute et dilution** : cf. §7bis ;
+- **seuils dépendant de la ressource** : cf. §2.13 — sélénium et bore ;
+- **chlorites** : référence de qualité de 0,20 mg/L « applicable jusqu'au
+  31 décembre 2025 », donc expirée, et on ignore ce qui la remplace. Le
+  référentiel ne porte pas cette ligne. C'est un cas de seuil daté **par le
+  haut**, que le modèle ne sait pas non plus exprimer : il connaît
+  `date_applicabilite_2026` (à partir de quand), pas de date de fin ;
+- **famille métabolite** : 24 lignes issues de MET-05. Le tableau ANSES est
+  mis à jour périodiquement — le resynchroniser fait partie de l'entretien.
 
 ---
 
