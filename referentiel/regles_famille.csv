@@ -1,0 +1,31 @@
+# Règles de rattachement automatique par limite déclarée.
+#
+# POURQUOI CE FICHIER EXISTE
+# Un bulletin complet porte environ 300 pesticides nommés (Boscalid, Quinmérac,
+# Imazamox, Fluvalinate-tau…). Aucun référentiel saisi à la main ne les couvrira
+# un par un, et sans eux 90 % d'une analyse ne pèse sur aucun verdict : la base
+# conclurait « aucun dépassement » après n'avoir lu qu'un dixième du bulletin.
+#
+# Ces substances partagent une même limite réglementaire, que l'administration
+# déclare avec chaque mesure (champ limite_qualite_parametre). Une règle
+# rattache donc toute mesure NON ENCORE APPARIÉE dont la limite déclarée vaut
+# la valeur indiquée à une ligne du référentiel.
+#
+# ORDRE D'APPLICATION : la règle n'intervient qu'en dernier recours, après
+# l'appariement par code_parametre, par libellé et par alias. Une substance
+# nommée au référentiel (acrylamide, HAP, métabolites reclassés…) n'est donc
+# jamais captée par une règle, même si sa limite coïncide.
+#
+# LIMITE DE CETTE MÉTHODE, À CONNAÎTRE : la règle attribue un SEUIL, pas une
+# identité chimique. Une substance qui ne serait pas un pesticide et qui
+# porterait la même limite serait rattachée à tort, et compterait dans la
+# famille « pesticide ». C'est pourquoi son effet doit être relu :
+#     SELECT * FROM v_regle_famille_appliquee;
+# Toute substance qui n'a rien à y faire doit être ajoutée nommément au
+# référentiel, ce qui la sort automatiquement du champ de la règle.
+#
+# Deux règles ne peuvent pas porter la même signature (limite, unité) :
+# le chargement refuse la seconde.
+nom_regle;limite_declaree;unite;libelle_cible;justification;sources
+pesticide_individuel_0_1;0.1;µg/L;Pesticide - substance individuelle;Limite UE par substance active individuelle, inchangée de la directive 98/83/CE a la directive 2020/2184 : seuil_2016 = seuil_2026 = 0,1 µg/L, donc aucune bascule ne peut naitre de cette regle.;REG-01|REG-03
+pesticide_organochlore_0_03;0.03;µg/L;Pesticide - aldrine dieldrine heptachlore;Limite specifique UE pour aldrine, dieldrine, heptachlore et heptachlore epoxyde, inchangee entre 2016 et 2026.;REG-01|REG-03
