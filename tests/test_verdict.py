@@ -373,6 +373,84 @@ def main():
         verifie(len(these2) == 1,
                 "le bulletin ressort bien quand on ne filtre que sur les bascules")
 
+        print("\n14. le verdict se rend à la DATE du prélèvement")
+        # Un reclassement n'est pas rétroactif. Note d'information de la
+        # délégation départementale de Charente-Maritime, 10/06/2024 :
+        # « il n'y a pas de rétroactivité possible ; l'expression des
+        # non-conformités mises en évidence avant le 29/04/2024 est maintenue ».
+        for date, code in (("2023-06-01", "AVANT-0001"), ("2025-06-01", "APRES-0001")):
+            r471 = {"code_parametre": None, "libelle_parametre": "Chlorothalonil R471811",
+                    "resultat_alphanumerique": "0,5", "resultat_numerique": 0.5,
+                    "libelle_unite": "µg/L", "code_prelevement": code,
+                    "date_prelevement": date}
+            ingest.ingest_bulletin(
+                con, dict(META, code_prelevement=code, date_prelevement=date), [r471])
+        avant = con.execute("""
+            SELECT seuil_applicable, grille_applicable, depasse_applicable,
+                   depasse_2026, bascule_2016_2026, bascule_datee
+            FROM v_mesures_verdict WHERE code_prelevement = 'AVANT-0001'
+        """).fetchone()
+        apres = con.execute("""
+            SELECT seuil_applicable, grille_applicable, depasse_applicable,
+                   depasse_2026, bascule_2016_2026, bascule_datee
+            FROM v_mesures_verdict WHERE code_prelevement = 'APRES-0001'
+        """).fetchone()
+        verifie(avant[0] == 0.1 and avant[1] == '2016',
+                f"prélevé en 2023 : la grille de 2016 s'applique (seuil {avant[0]})")
+        verifie(avant[2] is True,
+                "R471811 à 0,5 µg/L en 2023 : NON-CONFORMITÉ, et elle le reste")
+        verifie(apres[0] == 0.9 and apres[1] == '2026',
+                f"prélevé en 2025 : la grille de 2026 s'applique (seuil {apres[0]})")
+        verifie(apres[2] is False,
+                "la MÊME valeur en 2025 : conforme — la limite a bougé, pas l'eau")
+        verifie(avant[4] is True and apres[4] is True,
+                "les deux sont des bascules au sens contrefactuel")
+        verifie(avant[5] is False and apres[5] is True,
+                "seule celle d'après le 29/04/2024 est une bascule DATÉE")
+
+        print("\n15. cas réel Challet — le moteur contre l'ARS")
+        # Bulletin 02800129116 du 10/03/2026. L'ARS conclut au dépassement
+        # pour Atrazine déséthyl, Chloridazone desphényl, R417888, et à celui
+        # de la valeur indicative 0,9 pour R471811. Valeurs authentiques.
+        challet = [
+            ("Chlorothalonil R417888", 0.136, "<=0,1 µg/L", True),
+            ("Chlorothalonil R471811", 1.662, None, True),
+            ("Atrazine desethyl", 0.11, "<=0,1 µg/L", True),
+            ("Chloridazone desphenyl", 0.107, "<=0,1 µg/L", True),
+            ("Chlorothalonil", None, "<=0,1 µg/L", False),
+        ]
+        lignes = [{"code_parametre": None, "libelle_parametre": lib,
+                   "resultat_alphanumerique": (str(val).replace(".", ",") if val else "<0,005"),
+                   "resultat_numerique": val or 0.0, "libelle_unite": "µg/L",
+                   "limite_qualite_parametre": lim,
+                   "code_prelevement": "CHALLET-2026", "date_prelevement": "2026-03-10"}
+                  for lib, val, lim, _ in challet]
+        ingest.ingest_bulletin(con, dict(META, code_prelevement="CHALLET-2026",
+                                         date_prelevement="2026-03-10"), lignes)
+        trouves = {r[0] for r in con.execute("""
+            SELECT libelle_parametre FROM v_mesures_verdict
+            WHERE code_prelevement = 'CHALLET-2026' AND depasse_applicable
+        """).fetchall()}
+        attendus = {lib for lib, _v, _l, dep in challet if dep}
+        verifie(trouves == attendus,
+                f"les 4 dépassements de l'ARS, ni plus ni moins ({len(trouves)} trouvé(s))")
+        r417 = con.execute("""
+            SELECT seuil_applicable, depasse_applicable FROM v_mesures_verdict
+            WHERE code_prelevement = 'CHALLET-2026'
+              AND libelle_parametre = 'Chlorothalonil R417888'
+        """).fetchone()
+        verifie(r417[0] == 0.1 and r417[1] is True,
+                "R417888 à 0,136 µg/L dépasse 0,1 — pertinent, génotoxicité non exclue")
+        r471 = con.execute("""
+            SELECT seuil_applicable, limite_declaree, depasse_applicable
+            FROM v_mesures_verdict WHERE code_prelevement = 'CHALLET-2026'
+              AND libelle_parametre = 'Chlorothalonil R471811'
+        """).fetchone()
+        verifie(r471[1] is None,
+                "la source ne déclare AUCUNE limite pour R471811 (valeur de vigilance)")
+        verifie(r471[0] == 0.9 and r471[2] is True,
+                "seul le référentiel daté du projet voit ce dépassement (1,662 > 0,9)")
+
         con.close()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

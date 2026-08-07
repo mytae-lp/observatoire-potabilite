@@ -198,6 +198,31 @@ Chaque ligne du référentiel porte une colonne `sources` (codes du fichier
 Ne jamais « arrondir » un `a_verifier` en `verifie` par confort. Le projet
 tire sa force de sa vérifiabilité, pas de son volume.
 
+**La source doit couvrir CE paramètre précisément.** Ajout du 7 août 2026,
+après une erreur réelle. Le référentiel portait le chlorothalonil R417888 à
+0,9 µg/L, sourcé `MET-01`, marqué `verifie`. La source existait bel et bien —
+l'avis ANSES du 29 avril 2024, saisines 2023-SA-0041-a et 2023-SA-0142-a —
+mais elle ne disait pas cela. Un seul avis, deux métabolites, **deux
+conclusions opposées** :
+
+- **R471811** → *non pertinent*, valeur indicative 0,9 µg/L. Il ne partage
+  très probablement pas le mode d'action néphrotoxique de la substance mère ;
+- **R417888** → *pertinent*, limite de qualité 0,1 µg/L. « Il n'est pas
+  possible d'exclure l'existence d'un potentiel génotoxique ». S'y ajoute une
+  valeur sanitaire transitoire de 3 µg/L reprise de l'UBA allemande, qui est
+  le seuil de **restriction de consommation** — à ne jamais confondre avec la
+  limite de conformité.
+
+L'entrée d'index s'intitulait `avis-chlorothalonil-R471811.pdf` et la valeur
+0,9 avait été étendue à R417888 **par analogie de famille**. C'est le même
+mécanisme que l'erreur sur le plomb : une source réelle, une extrapolation
+vers un paramètre voisin, et une valeur fausse qui prend l'apparence du
+sourcé. Une source qui porte sur la substance d'à côté n'est pas une source.
+
+Corollaire opérationnel : le nom de fichier d'une source doit énumérer les
+paramètres qu'elle couvre, et un `⚠️ à confirmer dans le PDF` dans l'index
+interdit de s'appuyer sur la ligne.
+
 ### 2.8 Une conformité sans son dénominateur est une demi-vérité
 
 Un bulletin complet porte 350 à 400 paramètres ; le référentiel saisi à la
@@ -223,6 +248,37 @@ référentiel, soit un écart réel entre le texte et la pratique déclarée.
 
 Toute sortie publique affiche le dénominateur : « 323 paramètres notés sur
 383 ». `pct_couverture` est porté par `v_prelevement_verdict`.
+
+### 2.10 Un verdict se rend à la date du prélèvement
+
+Un reclassement n'est pas rétroactif. La note d'information de la délégation
+départementale de Charente-Maritime du 10 juin 2024 est formelle :
+
+> « Il n'y a pas de rétroactivité possible. C'est pourquoi l'expression des
+> non-conformités mises en évidence avant le 29/04/2024 est maintenue. »
+
+Une mesure de R471811 à 0,5 µg/L prélevée en 2023 **est** une non-conformité,
+et elle le reste. La même valeur prélevée en 2025 est conforme. C'est la thèse
+du projet, écrite noir sur blanc par l'administration elle-même.
+
+Le moteur comparait toujours à `seuil_2026`, sans regarder la date du
+prélèvement : il aurait déclaré « conforme » une mesure de 2023 que l'ARS
+avait déclarée non conforme. C'est l'erreur **symétrique** de celle du plomb,
+où un seuil futur était appliqué trop tôt.
+
+D'où la colonne `date_applicabilite_2026` et, dans `v_mesures_verdict` :
+
+| Colonne | Ce qu'elle dit |
+|---|---|
+| `seuil_applicable` / `grille_applicable` | le seuil en vigueur **le jour du prélèvement** |
+| `depasse_applicable` | le verdict tel qu'il devait être rendu ce jour-là — le seul comparable à la conclusion de l'ARS |
+| `depasse_2016` / `depasse_2026` | les deux contrefactuels, inchangés |
+| `bascule_datee` | la bascule **datable au jour près** : ce prélèvement est conforme parce qu'il a été fait après le déplacement |
+
+Une ligne dont le seuil a bougé sans qu'on sache quand produit un verdict
+anachronique : `v_seuils_sans_date` les liste, et `build_db.py` les signale à
+chaque construction. Six lignes y figurent aujourd'hui — ESA/OXA métolachlore,
+ESA métazachlore, antimoine, sélénium, bore.
 
 ### 2.9 Un seuil et une mesure dans deux unités différentes ne se comparent pas
 
@@ -291,6 +347,8 @@ mesures             code_prelevement, code_parametre, code_cas,
                     limite_brute, limite_declaree, reference_brute,
                     reference_declaree
 referentiel_seuils  chargé depuis referentiel/referentiel_seuils.csv
+                    (dont date_applicabilite_2026 : à partir de quand la
+                     grille 2026 s'applique — cf. §2.10)
 alias_parametres    alias_norm -> libelle_norm
 regles_famille      chargé depuis referentiel/regles_famille.csv
 unites_masse        facteurs de conversion g/L, mg/L, µg/L, ng/L

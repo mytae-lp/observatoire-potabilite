@@ -1,56 +1,56 @@
-code_parametre;libelle;famille;unite;seuil_2016;seuil_2026;statut_2026;seuil_futur;date_applicabilite_futur;seuil_strict;base_seuil_strict;pe_reglementaire;pe_scientifique;sources;fiabilite;est_agregat
-8847;Somme de 20 substances perfluoroalkylees (PFAS);PFAS;µg/L;;0.10;limite;;;0.020;Allemagne TrinkwV somme 4 a 0.020 µg/L au 01/2028;non;suspecte (litterature);REG-03|PFAS-06;a_verifier;oui
-9268;Somme de 4 substances perfluoroalkylees (PFOA+PFNA+PFHXS+PFOS);PFAS;µg/L;;;vigilance;;;0.002;Danemark 2 ng/L;non;suspecte (litterature);PFAS-05;a_verifier;oui
-5347;PFOA - acide perfluorooctanoique;PFAS;µg/L;;;dans somme;;;0.004;US EPA MCL 4 ng/L (2024);non;suspecte (litterature);PFAS-03;verifie;non
-6561;PFOS - acide perfluorooctanesulfonique;PFAS;µg/L;;;dans somme;;;0.004;US EPA MCL 4 ng/L (2024);non;suspecte (litterature);PFAS-03;verifie;non
-6830;PFHxS - acide perfluorohexanesulfonique;PFAS;µg/L;;;dans somme;;;0.010;US EPA MCL 10 ng/L (2024);non;suspecte (litterature);PFAS-03;a_verifier;non
-6508;PFNA - acide perfluorononanoique;PFAS;µg/L;;;dans somme;;;0.010;US EPA MCL 10 ng/L (2024);non;suspecte (litterature);PFAS-03;a_verifier;non
-;Chlorothalonil R471811;metabolite;µg/L;0.10;0.90;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
-;Chlorothalonil R417888;metabolite;µg/L;0.10;0.90;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
-6854;ESA metolachlore;metabolite;µg/L;0.10;0.90;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
-;OXA metolachlore;metabolite;µg/L;0.10;0.90;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
-;ESA metazachlore;metabolite;µg/L;0.10;0.90;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
-;Chloridazone desphenyl;metabolite;µg/L;0.10;0.10;limite (pertinent);;;0.10;Limite UE pesticide;non;a_documenter;REG-01;verifie;non
-;Atrazine desethyl;metabolite;µg/L;0.10;0.10;limite (pertinent);;;0.10;Limite UE pesticide;non;substance mere PE suspecte;REG-01;a_verifier;non
-;Pesticide - substance individuelle;pesticide;µg/L;0.10;0.10;limite;;;0.10;Limite UE pesticide (zero de substitution);non;a_documenter;REG-01;verifie;non
-;Pesticide - aldrine dieldrine heptachlore;pesticide;µg/L;0.030;0.030;limite;;;0.030;Limite UE specifique organochlores;non;a_documenter;REG-01|REG-03;a_verifier;non
-;Pesticides totaux;pesticide;µg/L;0.50;0.50;limite;;;0.50;Limite UE pesticides totaux;non;a_documenter;REG-01;verifie;oui
-1340;Nitrates (en NO3);nitrates;mg/L;50.0;50.0;limite;;;10.0;Repere nourrisson FR - eaux embouteillees mention nourrissons (arrete 14/03/2007);non;non;REG-01|REG-03;verifie;non
-;Nitrites (en NO2);nitrites;mg/L;0.50;0.50;limite;;;0.05;Repere nourrisson FR - eaux embouteillees;non;non;REG-01;verifie;non
-;Plomb;metal;µg/L;10.0;10.0;limite;5.0;2036-01-01;0.2;Californie OEHHA PHG;non;non;REG-03|REG-04;a_verifier;non
-;Antimoine;metal;µg/L;5.0;10.0;limite;;;5.0;Ancienne limite UE (avant 2023);non;a_documenter;REG-02|REG-03;verifie;non
-;Selenium;metal;µg/L;10.0;20.0;limite;;;10.0;Ancienne limite UE (avant 2023);non;a_documenter;REG-02|REG-03;verifie;non
-;Bore;metalloide;mg/L;1.0;1.5;limite;;;1.0;Ancienne limite UE (avant 2023);non;a_documenter;REG-02|REG-03;verifie;non
-;Chrome total;metal;µg/L;50.0;50.0;limite;25.0;2036-01-01;25.0;Valeur cible UE 2036;non;a_documenter;REG-03;verifie;non
-;Chrome hexavalent;metal;µg/L;;6.0;limite;;;6.0;Limite UE depuis 2023;non;a_documenter;REG-03;verifie;non
-;Uranium;metal;µg/L;;30.0;limite;;;30.0;Limite UE / OMS;non;a_documenter;REG-03|REG-04;verifie;non
-;Arsenic;metal;µg/L;10.0;10.0;limite;;;10.0;Limite UE / OMS;non;a_documenter;REG-01|REG-03;verifie;non
-;Nickel;metal;µg/L;20.0;20.0;limite;;;20.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
-;Mercure;metal;µg/L;1.0;1.0;limite;;;1.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
-;Cadmium;metal;µg/L;5.0;5.0;limite;;;5.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
-;Cyanures totaux;mineral;µg/L;50.0;50.0;limite;;;50.0;Limite UE;non;non;REG-01;verifie;non
-;Baryum;metal;mg/L;0.7;0.7;limite;;;0.7;Limite FR;non;non;REG-01;a_verifier;non
-;Cuivre;metal;mg/L;2.0;2.0;limite;;;2.0;Limite UE;non;non;REG-01;verifie;non
-;Aluminium total;metal;µg/L;200.0;200.0;reference;;;200.0;Reference de qualite FR;non;a_documenter;REG-01;verifie;non
-;Fluorures;mineral;mg/L;1.5;1.5;limite;;;0.5;Repere nourrisson FR - eaux embouteillees;non;non;REG-01;verifie;non
-;Sulfates;mineral;mg/L;250.0;250.0;reference;;;140.0;Repere nourrisson FR - eaux embouteillees;non;non;REG-01;verifie;non
-;Sodium;mineral;mg/L;200.0;200.0;reference;;;200.0;Reference de qualite FR;non;non;REG-01;verifie;non
-;Chlorures;mineral;mg/L;250.0;250.0;reference;;;250.0;Reference de qualite FR;non;non;REG-01;verifie;non
-;Potassium;mineral;mg/L;12.0;12.0;reference;;;12.0;Reference de qualite FR;non;non;REG-01;a_verifier;non
-;Magnesium;mineral;mg/L;;;pas de limite reglementaire;;;50.0;Repere nourrisson FR - eaux embouteillees (pas une limite au robinet);non;non;REG-01;verifie;non
-;Bisphenol A;organique;µg/L;;2.5;limite;;;2.5;Limite UE depuis 2023;PE avere (reglementation UE);PE avere;REG-03|PE-04;verifie;non
-;Trihalomethanes (4 substances);sous-produit desinfection;µg/L;100.0;100.0;limite;;;50.0;Allemagne TrinkwV;non;a_documenter;REG-03|PFAS-06;a_verifier;oui
-;Chlorates;sous-produit desinfection;mg/L;;0.25;limite;;;0.25;Limite UE depuis 2023;non;a_documenter;REG-03;verifie;non
-;Bromates;sous-produit desinfection;µg/L;10.0;10.0;limite;;;10.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
-;Benzene;organique;µg/L;1.0;1.0;limite;;;1.0;Limite UE;non;a_documenter;REG-01;verifie;non
-;Chlorure de vinyle;organique;µg/L;0.50;0.50;limite;;;0.50;Limite UE;non;a_documenter;REG-01;verifie;non
-;Acrylamide;organique;µg/L;0.10;0.10;limite;;;0.10;Limite UE;non;a_documenter;REG-01;verifie;non
-;Hydrocarbures aromatiques polycycliques (somme 4);organique;µg/L;0.10;0.10;limite;;;0.10;Limite UE;non;a_documenter;REG-01;verifie;oui
-;Tritium;radiologique;Bq/L;100.0;100.0;reference;;;100.0;Reference UE directive 2013/51;non;non;REG-01;a_verifier;non
-;Radon 222;radiologique;Bq/L;;100.0;reference;;;100.0;Reference UE directive 2013/51;non;non;REG-01;a_verifier;non
-;Dose indicative totale;radiologique;mSv/an;0.10;0.10;reference;;;0.10;Reference UE directive 2013/51;non;non;REG-01;a_verifier;non
-1302;pH;equilibre;unite pH;;;reference (plage 6.5 a 9);;;;Plage de reference FR - pas un seuil unique;non;non;REG-01;verifie;non
-1303;Conductivite a 25 C;equilibre;µS/cm;;;reference (plage 200 a 1100);;;;Plage de reference FR - pas un seuil unique;non;non;REG-01;verifie;non
-;Escherichia coli;microbiologique;n/100mL;0.0;0.0;limite;;;0.0;Absence exigee;non;non;REG-01;verifie;non
-;Enterocoques;microbiologique;n/100mL;0.0;0.0;limite;;;0.0;Absence exigee;non;non;REG-01;verifie;non
-;Bacteries coliformes;microbiologique;n/100mL;0.0;0.0;reference;;;0.0;Absence exigee (reference);non;non;REG-01;verifie;non
+code_parametre;libelle;famille;unite;seuil_2016;seuil_2026;date_applicabilite_2026;statut_2026;seuil_futur;date_applicabilite_futur;seuil_strict;base_seuil_strict;pe_reglementaire;pe_scientifique;sources;fiabilite;est_agregat
+8847;Somme de 20 substances perfluoroalkylees (PFAS);PFAS;µg/L;;0.10;;limite;;;0.020;Allemagne TrinkwV somme 4 a 0.020 µg/L au 01/2028;non;suspecte (litterature);REG-03|PFAS-06;a_verifier;oui
+9268;Somme de 4 substances perfluoroalkylees (PFOA+PFNA+PFHXS+PFOS);PFAS;µg/L;;;;vigilance;;;0.002;Danemark 2 ng/L;non;suspecte (litterature);PFAS-05;a_verifier;oui
+5347;PFOA - acide perfluorooctanoique;PFAS;µg/L;;;;dans somme;;;0.004;US EPA MCL 4 ng/L (2024);non;suspecte (litterature);PFAS-03;verifie;non
+6561;PFOS - acide perfluorooctanesulfonique;PFAS;µg/L;;;;dans somme;;;0.004;US EPA MCL 4 ng/L (2024);non;suspecte (litterature);PFAS-03;verifie;non
+6830;PFHxS - acide perfluorohexanesulfonique;PFAS;µg/L;;;;dans somme;;;0.010;US EPA MCL 10 ng/L (2024);non;suspecte (litterature);PFAS-03;a_verifier;non
+6508;PFNA - acide perfluorononanoique;PFAS;µg/L;;;;dans somme;;;0.010;US EPA MCL 10 ng/L (2024);non;suspecte (litterature);PFAS-03;a_verifier;non
+;Chlorothalonil R471811;metabolite;µg/L;0.10;0.90;2024-04-29;vigilance (non pertinent depuis le 29/04/2024);;;0.10;Limite pertinent 0.1 µg/L applicable avant le 29/04/2024 - pas de retroactivite;non;a_documenter;MET-01;verifie;non
+;Chlorothalonil R417888;metabolite;µg/L;0.10;0.10;;limite (pertinent - genotoxicite non exclue);;;0.10;Limite de qualite pesticide - VST 3 µg/L (UBA) pour la restriction de consommation;non;a_documenter;MET-01;verifie;non
+6854;ESA metolachlore;metabolite;µg/L;0.10;0.90;;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
+;OXA metolachlore;metabolite;µg/L;0.10;0.90;;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
+;ESA metazachlore;metabolite;µg/L;0.10;0.90;;vigilance (non pertinent);;;0.10;Ancien seuil pertinent 0.1 µg/L;non;a_documenter;MET-01;verifie;non
+;Chloridazone desphenyl;metabolite;µg/L;0.10;0.10;;limite (pertinent);;;0.10;Limite UE pesticide;non;a_documenter;REG-01;verifie;non
+;Atrazine desethyl;metabolite;µg/L;0.10;0.10;;limite (pertinent);;;0.10;Limite UE pesticide;non;substance mere PE suspecte;REG-01;a_verifier;non
+;Pesticide - substance individuelle;pesticide;µg/L;0.10;0.10;;limite;;;0.10;Limite UE pesticide (zero de substitution);non;a_documenter;REG-01;verifie;non
+;Pesticide - aldrine dieldrine heptachlore;pesticide;µg/L;0.030;0.030;;limite;;;0.030;Limite UE specifique organochlores;non;a_documenter;REG-01|REG-03;a_verifier;non
+;Pesticides totaux;pesticide;µg/L;0.50;0.50;;limite;;;0.50;Limite UE pesticides totaux;non;a_documenter;REG-01;verifie;oui
+1340;Nitrates (en NO3);nitrates;mg/L;50.0;50.0;;limite;;;10.0;Repere nourrisson FR - eaux embouteillees mention nourrissons (arrete 14/03/2007);non;non;REG-01|REG-03;verifie;non
+;Nitrites (en NO2);nitrites;mg/L;0.50;0.50;;limite;;;0.05;Repere nourrisson FR - eaux embouteillees;non;non;REG-01;verifie;non
+;Plomb;metal;µg/L;10.0;10.0;;limite;5.0;2036-01-01;0.2;Californie OEHHA PHG;non;non;REG-03|REG-04;a_verifier;non
+;Antimoine;metal;µg/L;5.0;10.0;;limite;;;5.0;Ancienne limite UE (avant 2023);non;a_documenter;REG-02|REG-03;verifie;non
+;Selenium;metal;µg/L;10.0;20.0;;limite;;;10.0;Ancienne limite UE (avant 2023);non;a_documenter;REG-02|REG-03;verifie;non
+;Bore;metalloide;mg/L;1.0;1.5;;limite;;;1.0;Ancienne limite UE (avant 2023);non;a_documenter;REG-02|REG-03;verifie;non
+;Chrome total;metal;µg/L;50.0;50.0;;limite;25.0;2036-01-01;25.0;Valeur cible UE 2036;non;a_documenter;REG-03;verifie;non
+;Chrome hexavalent;metal;µg/L;;6.0;;limite;;;6.0;Limite UE depuis 2023;non;a_documenter;REG-03;verifie;non
+;Uranium;metal;µg/L;;30.0;;limite;;;30.0;Limite UE / OMS;non;a_documenter;REG-03|REG-04;verifie;non
+;Arsenic;metal;µg/L;10.0;10.0;;limite;;;10.0;Limite UE / OMS;non;a_documenter;REG-01|REG-03;verifie;non
+;Nickel;metal;µg/L;20.0;20.0;;limite;;;20.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
+;Mercure;metal;µg/L;1.0;1.0;;limite;;;1.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
+;Cadmium;metal;µg/L;5.0;5.0;;limite;;;5.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
+;Cyanures totaux;mineral;µg/L;50.0;50.0;;limite;;;50.0;Limite UE;non;non;REG-01;verifie;non
+;Baryum;metal;mg/L;0.7;0.7;;limite;;;0.7;Limite FR;non;non;REG-01;a_verifier;non
+;Cuivre;metal;mg/L;2.0;2.0;;limite;;;2.0;Limite UE;non;non;REG-01;verifie;non
+;Aluminium total;metal;µg/L;200.0;200.0;;reference;;;200.0;Reference de qualite FR;non;a_documenter;REG-01;verifie;non
+;Fluorures;mineral;mg/L;1.5;1.5;;limite;;;0.5;Repere nourrisson FR - eaux embouteillees;non;non;REG-01;verifie;non
+;Sulfates;mineral;mg/L;250.0;250.0;;reference;;;140.0;Repere nourrisson FR - eaux embouteillees;non;non;REG-01;verifie;non
+;Sodium;mineral;mg/L;200.0;200.0;;reference;;;200.0;Reference de qualite FR;non;non;REG-01;verifie;non
+;Chlorures;mineral;mg/L;250.0;250.0;;reference;;;250.0;Reference de qualite FR;non;non;REG-01;verifie;non
+;Potassium;mineral;mg/L;12.0;12.0;;reference;;;12.0;Reference de qualite FR;non;non;REG-01;a_verifier;non
+;Magnesium;mineral;mg/L;;;;pas de limite reglementaire;;;50.0;Repere nourrisson FR - eaux embouteillees (pas une limite au robinet);non;non;REG-01;verifie;non
+;Bisphenol A;organique;µg/L;;2.5;;limite;;;2.5;Limite UE depuis 2023;PE avere (reglementation UE);PE avere;REG-03|PE-04;verifie;non
+;Trihalomethanes (4 substances);sous-produit desinfection;µg/L;100.0;100.0;;limite;;;50.0;Allemagne TrinkwV;non;a_documenter;REG-03|PFAS-06;a_verifier;oui
+;Chlorates;sous-produit desinfection;mg/L;;0.25;;limite;;;0.25;Limite UE depuis 2023;non;a_documenter;REG-03;verifie;non
+;Bromates;sous-produit desinfection;µg/L;10.0;10.0;;limite;;;10.0;Limite UE;non;a_documenter;REG-01|REG-03;verifie;non
+;Benzene;organique;µg/L;1.0;1.0;;limite;;;1.0;Limite UE;non;a_documenter;REG-01;verifie;non
+;Chlorure de vinyle;organique;µg/L;0.50;0.50;;limite;;;0.50;Limite UE;non;a_documenter;REG-01;verifie;non
+;Acrylamide;organique;µg/L;0.10;0.10;;limite;;;0.10;Limite UE;non;a_documenter;REG-01;verifie;non
+;Hydrocarbures aromatiques polycycliques (somme 4);organique;µg/L;0.10;0.10;;limite;;;0.10;Limite UE;non;a_documenter;REG-01;verifie;oui
+;Tritium;radiologique;Bq/L;100.0;100.0;;reference;;;100.0;Reference UE directive 2013/51;non;non;REG-01;a_verifier;non
+;Radon 222;radiologique;Bq/L;;100.0;;reference;;;100.0;Reference UE directive 2013/51;non;non;REG-01;a_verifier;non
+;Dose indicative totale;radiologique;mSv/an;0.10;0.10;;reference;;;0.10;Reference UE directive 2013/51;non;non;REG-01;a_verifier;non
+1302;pH;equilibre;unite pH;;;;reference (plage 6.5 a 9);;;;Plage de reference FR - pas un seuil unique;non;non;REG-01;verifie;non
+1303;Conductivite a 25 C;equilibre;µS/cm;;;;reference (plage 200 a 1100);;;;Plage de reference FR - pas un seuil unique;non;non;REG-01;verifie;non
+;Escherichia coli;microbiologique;n/100mL;0.0;0.0;;limite;;;0.0;Absence exigee;non;non;REG-01;verifie;non
+;Enterocoques;microbiologique;n/100mL;0.0;0.0;;limite;;;0.0;Absence exigee;non;non;REG-01;verifie;non
+;Bacteries coliformes;microbiologique;n/100mL;0.0;0.0;;reference;;;0.0;Absence exigee (reference);non;non;REG-01;verifie;non

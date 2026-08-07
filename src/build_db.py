@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS referentiel_seuils (
     unite_norm               VARCHAR,
     seuil_2016               DOUBLE,
     seuil_2026               DOUBLE,
+    date_applicabilite_2026  DATE,
     statut_2026              VARCHAR,
     seuil_futur              DOUBLE,
     date_applicabilite_futur DATE,
@@ -180,6 +181,7 @@ WITH base AS (
         r.libelle_norm AS r_key, r.famille, r.unite_norm AS unite_ref,
         r.seuil_2016, r.seuil_2026, r.seuil_strict, r.seuil_futur,
         r.base_seuil_strict, r.statut_2026, r.date_applicabilite_futur, r.est_agregat,
+        r.date_applicabilite_2026, p.date_prelevement,
         r.pe_reglementaire, r.pe_scientifique, r.fiabilite,
         -- Facteur de conversion du seuil (exprimé dans l'unité du référentiel)
         -- vers l'unité dans laquelle la mesure est exprimée.
@@ -194,6 +196,7 @@ WITH base AS (
             ELSE NULL
         END AS k
     FROM v_mesures_ref v
+    LEFT JOIN prelevements p ON p.code_prelevement = v.code_prelevement
     LEFT JOIN referentiel_seuils r ON r.libelle_norm = v.ref_key
     LEFT JOIN unites_masse ur ON ur.unite_norm = r.unite_norm
     LEFT JOIN unites_masse um ON um.unite_norm = v.unite_norm
@@ -226,6 +229,32 @@ SELECT
         ELSE 'absent'
     END AS origine_seuil_2026,
     (v.k IS NULL) AS unite_incomparable,
+    v.date_applicabilite_2026,
+
+    -- LE SEUIL QUI S'APPLIQUAIT LE JOUR DU PRÉLÈVEMENT.
+    -- Un reclassement n'est pas rétroactif : la note d'information de la
+    -- délégation départementale de Charente-Maritime du 10/06/2024 est
+    -- formelle — « il n'y a pas de rétroactivité possible ; l'expression des
+    -- non-conformités mises en évidence avant le 29/04/2024 est maintenue ».
+    -- Une mesure de R471811 à 0,5 µg/L prélevée en 2023 EST une non-conformité ;
+    -- la même valeur prélevée en 2025 est conforme. Comparer les deux au seul
+    -- seuil d'aujourd'hui produit un verdict anachronique — l'erreur symétrique
+    -- de celle du plomb, où un seuil futur était appliqué trop tôt.
+    CASE
+        WHEN v.date_applicabilite_2026 IS NOT NULL
+             AND v.date_prelevement IS NOT NULL
+             AND v.date_prelevement < v.date_applicabilite_2026
+        THEN v.seuil_2016 * v.k
+        ELSE COALESCE(v.seuil_2026 * v.k, v.limite_declaree)
+    END AS seuil_applicable,
+    CASE
+        WHEN v.date_applicabilite_2026 IS NOT NULL
+             AND v.date_prelevement IS NOT NULL
+             AND v.date_prelevement < v.date_applicabilite_2026 THEN '2016'
+        WHEN v.seuil_2026 * v.k IS NOT NULL THEN '2026'
+        WHEN v.limite_declaree IS NOT NULL   THEN 'declare'
+        ELSE 'aucune'
+    END AS grille_applicable,
     v.base_seuil_strict,
     v.statut_2026,
     COALESCE(v.est_agregat, FALSE) AS est_agregat,
@@ -246,12 +275,34 @@ SELECT
     (v.est_quantifie AND COALESCE(v.seuil_2026 * v.k, v.limite_declaree) IS NOT NULL
        AND v.resultat_num > COALESCE(v.seuil_2026 * v.k, v.limite_declaree))                         AS depasse_2026,
 
+    -- LE VERDICT TEL QU'IL DEVAIT ÊTRE RENDU CE JOUR-LÀ.
+    -- C'est celui-ci qui est comparable à la conclusion de l'ARS.
+    (v.est_quantifie AND v.resultat_num > CASE
+        WHEN v.date_applicabilite_2026 IS NOT NULL
+             AND v.date_prelevement IS NOT NULL
+             AND v.date_prelevement < v.date_applicabilite_2026
+        THEN v.seuil_2016 * v.k
+        ELSE COALESCE(v.seuil_2026 * v.k, v.limite_declaree)
+     END) AS depasse_applicable,
+
     -- LA BASCULE : dépassait la limite de 2016, ne dépasse pas celle de 2026.
     -- Ce n'est pas l'eau qui a changé, c'est la limite. Référentiel seul.
     (v.est_quantifie
        AND v.seuil_2016 * v.k IS NOT NULL AND v.seuil_2026 * v.k IS NOT NULL
        AND v.resultat_num >  v.seuil_2016 * v.k
        AND v.resultat_num <= v.seuil_2026 * v.k) AS bascule_2016_2026,
+
+    -- BASCULE DATÉE : la bascule, mais avec le jour où la limite a bougé.
+    -- Ce prélèvement est postérieur au déplacement : cette eau est conforme
+    -- parce qu'elle a été prélevée APRÈS. La même valeur, la veille, ne
+    -- l'était pas. C'est la thèse du projet, datable au jour près.
+    (v.est_quantifie
+       AND v.date_applicabilite_2026 IS NOT NULL
+       AND v.date_prelevement IS NOT NULL
+       AND v.date_prelevement >= v.date_applicabilite_2026
+       AND v.seuil_2016 * v.k IS NOT NULL AND v.seuil_2026 * v.k IS NOT NULL
+       AND v.resultat_num >  v.seuil_2016 * v.k
+       AND v.resultat_num <= v.seuil_2026 * v.k) AS bascule_datee,
 
     -- Troisième état de verdict : ni conforme ni dépassement, indéterminé.
     (NOT v.est_quantifie AND v.lq IS NOT NULL
@@ -297,9 +348,11 @@ SELECT
     COUNT(*) FILTER (WHERE v.origine_seuil_2026 = 'absent')       AS nb_sans_seuil,
     COUNT(*) FILTER (WHERE v.depasse_2016)                        AS nb_depasse_2016,
     COUNT(*) FILTER (WHERE v.depasse_2026)                        AS nb_depasse_2026,
+    COUNT(*) FILTER (WHERE v.depasse_applicable)                  AS nb_depasse_applicable,
     COUNT(*) FILTER (WHERE v.depasse_strict)                      AS nb_depasse_strict,
     COUNT(*) FILTER (WHERE v.depasse_futur)                       AS nb_depasse_futur,
     COUNT(*) FILTER (WHERE v.bascule_2016_2026)                   AS nb_bascules,
+    COUNT(*) FILTER (WHERE v.bascule_datee)                       AS nb_bascules_datees,
     COUNT(*) FILTER (WHERE v.indetermine_strict)                  AS nb_indetermines,
     COUNT(*) FILTER (WHERE v.ecart_referentiel_declare)           AS nb_ecarts_seuil,
     COUNT(*) FILTER (WHERE v.est_quantifie
@@ -382,6 +435,16 @@ GROUP BY 1
 ORDER BY nb_mesures DESC;
 """
 
+VUE_SEUILS_SANS_DATE = """
+CREATE OR REPLACE VIEW v_seuils_sans_date AS
+SELECT libelle, famille, seuil_2016, seuil_2026, statut_2026, sources, fiabilite
+FROM referentiel_seuils
+WHERE seuil_2016 IS NOT NULL AND seuil_2026 IS NOT NULL
+  AND seuil_2016 <> seuil_2026
+  AND date_applicabilite_2026 IS NULL
+ORDER BY famille, libelle;
+"""
+
 VUE_UNITES = """
 CREATE OR REPLACE VIEW v_unites_incomparables AS
 SELECT libelle_parametre,
@@ -395,7 +458,8 @@ ORDER BY nb_mesures DESC;
 """
 
 VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES,
-        VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES]
+        VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES,
+        VUE_SEUILS_SANS_DATE]
 
 
 def charger_referentiel(con, chemin=REF_CSV):
@@ -414,7 +478,7 @@ def charger_referentiel(con, chemin=REF_CSV):
                 continue
             vus.add(cle)
             con.execute(
-                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO referentiel_seuils VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [
                     cle,
                     s(ligne.get("code_parametre")),
@@ -424,6 +488,7 @@ def charger_referentiel(con, chemin=REF_CSV):
                     norm_unite(ligne.get("unite")),
                     f(ligne.get("seuil_2016")),
                     f(ligne.get("seuil_2026")),
+                    s(ligne.get("date_applicabilite_2026")),
                     s(ligne.get("statut_2026")),
                     f(ligne.get("seuil_futur")),
                     s(ligne.get("date_applicabilite_futur")),
@@ -558,6 +623,13 @@ def build(db=DB_PATH, reset=False):
     if incoherences:
         print("  ! seuil futur sans date d'applicabilité (ou l'inverse) — cf. CLAUDE.md §2.5 :")
         for r in incoherences:
+            print(f"      {r[0]}")
+
+    sans_date = con.execute("SELECT libelle FROM v_seuils_sans_date").fetchall()
+    if sans_date:
+        print(f"  ! {len(sans_date)} seuil(s) déplacé(s) sans date d'applicabilité — "
+              "le verdict y est anachronique (cf. CLAUDE.md §2.10) :")
+        for r in sans_date:
             print(f"      {r[0]}")
 
     a_verifier = con.execute(

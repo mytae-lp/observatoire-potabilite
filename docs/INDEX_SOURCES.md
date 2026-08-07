@@ -79,7 +79,7 @@ Data - Analyse de la qualité de l'eau en France/
 
 | Code | Fichier | Source | Ce qu'elle fournit | Lien d'origine |
 |---|---|---|---|---|
-| **MET-01** | `MET-01_ANSES_avis-chlorothalonil-R471811.pdf` | ANSES, avis EAUX2023SA0142 | ⚠️ Reclassement R471811 **pertinent → non pertinent** (0,1 → 0,9 µg/L ; 34 %) — **cas pilote n°1** | https://www.anses.fr/fr/system/files/EAUX2023SA0142.pdf |
+| **MET-01** | `MET-01_ANSES_avis-chlorothalonil-R417888-et-R471811_2024.pdf` | ANSES, avis du 29/04/2024, saisines 2023-SA-0041-a et 2023-SA-0142-a | R471811 reclassé **non pertinent** (0,1 → 0,9 µg/L, applicable au 29/04/2024, **sans rétroactivité**) ; R417888 classé **pertinent** (limite de qualité 0,1 µg/L, VST 3 µg/L UBA pour la restriction de consommation) — **deux conclusions opposées dans le même avis** | https://www.anses.fr/fr/system/files/EAUX2023SA0142.pdf |
 | **MET-02** | `MET-02_Hamilton_seuil-0.1ugL-zero-substitution_2013.pdf` | Hamilton et al. 2013, *Environ. Sci. Technol.* | La limite pesticide **0,1 µg/L n'est pas sanitaire** (« zéro de substitution ») | https://pubs.acs.org/doi/10.1021/es304955g |
 
 ---
