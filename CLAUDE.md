@@ -112,6 +112,22 @@ n'existe pas, n'a pas de date, et n'est pas réétalonnable — il ne peut pas
 être noté contre une grille datée, ce qui détruit la thèse du projet.
 Une analyse porte sur **un prélèvement, à une date, dans son intégralité**.
 
+**L'unité est le `code_prelevement`, jamais la date.** Erreur réellement
+commise ici et corrigée le 7 août 2026 : le code regroupait les mesures par
+commune et par date. Or une commune a souvent plusieurs prélèvements le même
+jour, sur des points d'eau différents — à Saintes, 27 dates sur 54. Le
+regroupement par date fusionnait l'analyse complète d'un point avec l'analyse
+de routine d'un autre, gonflait `nb_parametres`, et pour les paramètres
+communs (pH, chlore, nitrates) retenait la valeur du premier enregistrement
+rencontré, c'est-à-dire potentiellement celle de l'autre point. `ingest.py`
+refuse désormais un lot portant plusieurs `code_prelevement`
+(`BulletinHeterogene`).
+
+**Le point d'eau est l'installation de production amont**
+(`code_installation_amont`). Une commune alimentée par trois installations
+donne trois bulletins, analysés séparément. C'est aussi ce qui permettra de
+voir si un mélange conforme masque une ressource qui ne l'est pas — cf. §7bis.
+
 ### 2.4 Zéro n'est pas zéro
 
 Dans les données SISE-Eaux, une valeur affichée `0` ou `< 0,01` signifie
@@ -182,6 +198,43 @@ Chaque ligne du référentiel porte une colonne `sources` (codes du fichier
 Ne jamais « arrondir » un `a_verifier` en `verifie` par confort. Le projet
 tire sa force de sa vérifiabilité, pas de son volume.
 
+### 2.8 Une conformité sans son dénominateur est une demi-vérité
+
+Un bulletin complet porte 350 à 400 paramètres ; le référentiel saisi à la
+main en décrit 55. Tant que les 300 pesticides nommés (Boscalid, Quinmérac,
+Imazamox…) n'étaient rattachés à rien, la base annonçait « aucun
+dépassement » après n'avoir lu qu'un dixième de l'analyse. C'est le travers
+du §2.3, transposé du bulletin au paramètre.
+
+Trois mécanismes le corrigent, et ils ne se confondent pas :
+
+| Source du seuil | Ce qu'elle apporte | Ce qu'elle n'apporte PAS |
+|---|---|---|
+| `referentiel_seuils.csv` | 2016, 2026, strict, différé, sources, fiabilité | — |
+| `regles_famille.csv` | rattache par la limite déclarée les substances d'une même famille à une ligne du référentiel | rien d'automatique : la règle est écrite, sourcée, et son effet est auditable |
+| `limite_qualite_parametre` (source) | la grille **d'aujourd'hui** uniquement | 2016, seuil strict, seuil différé |
+
+**Une limite seulement déclarée ne peut jamais produire une bascule ni un
+verdict 2016.** On ne fabrique pas de passé réglementaire à partir de la
+grille du jour. Quand le référentiel et la source se contredisent, le
+référentiel daté du projet prime, et l'écart est signalé
+(`v_ecarts_referentiel_source`) : chaque ligne est soit une erreur de notre
+référentiel, soit un écart réel entre le texte et la pratique déclarée.
+
+Toute sortie publique affiche le dénominateur : « 323 paramètres notés sur
+383 ». `pct_couverture` est porté par `v_prelevement_verdict`.
+
+### 2.9 Un seuil et une mesure dans deux unités différentes ne se comparent pas
+
+Erreur réellement présente et détectée par le contrôle croisé : le chlorate
+était au référentiel en 0,25 mg/L et mesuré en µg/L. La comparaison directe
+se trompait d'un facteur 1000.
+
+Les seuils sont désormais convertis vers l'unité de la mesure avant toute
+comparaison. Quand les deux unités sont connues, différentes et non
+convertibles, **aucun verdict n'est produit** — la mesure est listée dans
+`v_unites_incomparables`. Un verdict faux est pire qu'un verdict absent.
+
 ---
 
 ## 3. Contraintes d'environnement
@@ -225,16 +278,27 @@ d'appels. Le respect du débit n'est pas optionnel.
 DuckDB, schéma en étoile. Fichier `data/eau.duckdb` (non versionné).
 
 ```
-communes            code_insee (PK), nom, code_departement
-prelevements        code_prelevement (PK), code_insee, nom_installation,
-                    nom_distributeur, date_prelevement, nb_parametres,
+communes            code_insee (PK), nom, code_departement, codes_postaux, lon, lat
+prelevements        code_prelevement (PK, celui de la source), code_insee,
+                    code_installation_amont, nom_installation_amont,
+                    nom_distributeur, nom_uge, codes_reseaux, noms_reseaux,
+                    code_lieu_analyse, date_prelevement, nb_parametres,
                     est_complet, conclusion_conformite, conf_limites_bact,
                     conf_limites_pc, conf_references_pc, source_url
-mesures             code_prelevement, code_parametre, libelle_parametre,
-                    libelle_norm, resultat_num, resultat_alpha, lq,
-                    est_quantifie, unite, limite_qualite
+mesures             code_prelevement, code_parametre, code_cas,
+                    libelle_parametre, libelle_norm, resultat_num,
+                    resultat_alpha, lq, est_quantifie, unite, unite_norm,
+                    limite_brute, limite_declaree, reference_brute,
+                    reference_declaree
 referentiel_seuils  chargé depuis referentiel/referentiel_seuils.csv
 alias_parametres    alias_norm -> libelle_norm
+regles_famille      chargé depuis referentiel/regles_famille.csv
+unites_masse        facteurs de conversion g/L, mg/L, µg/L, ng/L
+
+analyses_figees     (code_prelevement, version_referentiel) : le résultat figé
+verdicts_figes      (code_prelevement, version_referentiel, libelle) : le détail
+couverture_communes (code_insee, version_referentiel) : analysee /
+                    rattachee_reseau / non_documentee — ce que colorie la carte
 ```
 
 Vues :
@@ -244,9 +308,29 @@ Vues :
 - `v_mesures_verdict` — les trois notations et la bascule ;
 - `v_prelevement_verdict` — agrégat par prélèvement ;
 - `v_parametres_non_apparies` — **diagnostic indispensable au passage à
-  l'échelle** : les mesures qu'aucune règle n'a rattachées au référentiel.
-  À consulter après chaque collecte : un paramètre non apparié est une
-  mesure invisible pour l'analyse.
+  l'échelle** : les mesures qui n'ont AUCUN seuil de comparaison, ni par le
+  référentiel ni par la limite déclarée. Un tel paramètre est invisible pour
+  l'analyse : il existe en base et ne pèse sur aucun verdict ;
+- `v_regle_famille_appliquee` — ce que la règle de famille a rattaché
+  automatiquement, à relire : une substance qui n'est pas un pesticide et
+  qui porte la même limite y figurerait à tort ;
+- `v_ecarts_referentiel_source` — là où notre seuil 2026 contredit la limite
+  déclarée par l'administration ;
+- `v_unites_incomparables` — mesures dont l'unité ne peut pas être ramenée à
+  celle du seuil : aucun verdict n'est produit.
+
+### La sortie est figée, mais toujours estampillée
+
+La mesure ne change jamais : c'est un fait. Le verdict, lui, dépend du
+référentiel — et le sujet du projet est que les seuils bougent. Figer un
+« conforme » sans dire contre quelle grille il a été calculé reproduirait, à
+l'intérieur de l'outil, le défaut que l'outil dénonce.
+
+Chaque ligne figée porte donc `version_referentiel` — empreinte du CONTENU des
+fichiers du référentiel, pas un commit git : une modification non commitée doit
+rester identifiable — et `calcule_le`. Refiger après modification produit une
+nouvelle version ; les deux coexistent, et leur comparaison est la trace du
+déplacement.
 
 ### Le référentiel est un fichier versionné, pas du code
 
@@ -285,10 +369,25 @@ corrigée ici — elle avait déplacé `fiabilite` sur 14 lignes).
 
 ```
 1. build      src/build_db.py                             → schéma + référentiel
-2. fetch      src/fetch_departement.py --dept 17          → collecte
-3. contrôle   v_parametres_non_apparies                   → couverture réelle
-4. analyse    src/queries.sql                             → requêtes de thèse
-5. fiche      sortie/build_fiche.py                       → fiche citoyenne
+2. fetch      src/fetch_hubeau.py 31520                    → une commune (code postal ou INSEE)
+   ou         src/fetch_departement.py --dept 17           → un département entier
+3. contrôle   v_parametres_non_apparies, pct_couverture    → couverture réelle
+4. figer      src/figer.py                                → sortie estampillée
+5. analyse    src/queries.sql                             → requêtes de thèse
+6. fiche      sortie/build_fiche.py                       → fiche citoyenne
+
+Le raccourci qui fait tout l'enchaînement pour une commune :
+
+```
+python3 src/observer.py 31520
+```
+
+Entretien du catalogue des paramètres (rare, quand de nouveaux libellés
+apparaissent) :
+
+```
+python3 src/catalogue_parametres.py --depts 17,31,28,51 --communes 8 --depuis 2023
+```
 ```
 
 Test de non-régression, sans réseau, à lancer après toute modification de
@@ -296,6 +395,7 @@ Test de non-régression, sans réseau, à lancer après toute modification de
 
 ```
 python3 tests/test_verdict.py
+python3 tests/test_figer.py
 ```
 
 Il fabrique un bulletin complet fictif et vérifie que les règles §2.3 à §2.5
@@ -326,14 +426,25 @@ retournée est un cas.
 
 ## 7. Effet cocktail — statut
 
-Sujet identifié, **pas encore implémenté**. À traiter avec prudence : il
-est méthodologiquement le plus contestable du projet, donc celui qui doit
-être le plus rigoureux.
+**Méthode écrite** : `docs/METHODE_EFFET_COCKTAIL.md` (7 août 2026), qui
+définit trois indicateurs du plus solide au plus fragile — dénombrement,
+charge massique cumulée, indice de danger. **Implémenté** dans `src/figer.py`.
 
-Piste retenue : indice de danger (`hazard index`), somme des rapports
-`mesure / seuil`, alerte si > 1. Cadres de référence à documenter avant
-tout calcul : MAF (facteur d'ajustement des mélanges), CAG/MOET de l'EFSA,
-projet EDC-MixRisk.
+L'indice de danger reste ce qu'il y a de plus contestable dans le projet et
+doit donc rester le plus encadré : jamais nommé « risque », jamais publié
+sans le nombre de substances qui le composent, jamais présenté comme un
+verdict de potabilité.
+
+Un piège rencontré et corrigé : calculé sur TOUS les paramètres notés,
+l'indice était dominé par le potassium, les chlorures, les sulfates et le
+sodium — des minéraux comparés à des références organoleptiques — et passait
+au-dessus de 1 sans qu'aucun micropolluant n'y soit pour rien. Il est
+restreint aux substances de synthèse.
+
+Reste à faire : les cadres de référence (MAF, CAG/MOET de l'EFSA,
+EDC-MixRisk) sont cités dans la note de méthode mais **non implémentés**.
+Tant qu'ils ne le sont pas, l'indice sert à classer des bulletins entre eux,
+pas à estimer un risque.
 
 Ordre de grandeur utile, à présenter comme un raisonnement et non comme
 une mesure : cent pesticides chacun à 0,1 µg/L font 10 µg/L de charge
@@ -346,6 +457,32 @@ ses limites.
 
 ---
 
+## 7bis. Dilution — deuxième axe, non implémenté
+
+Décidé le 7 août 2026. Le réétalonnage n'est pas le seul mécanisme par lequel
+une eau devient conforme sans être traitée. Si un réseau est alimenté par
+trois captages et qu'un seul est très dégradé, le mélange peut respecter la
+limite alors qu'aucune action n'a été menée sur la pollution. **La dilution
+tient alors lieu de dépollution.** C'est un problème citoyen, et il est
+invisible dans l'eau distribuée — puisque celle-ci EST le mélange.
+
+Ce que les données permettent, vérifié :
+
+| Maillon | Source | État |
+|---|---|---|
+| l'eau au robinet (le mélange) | `qualite_eau_potable/resultats_dis` | branché |
+| les captages AEP et leur position | `prelevements/referentiel/points_prelevement` (BNPE) | disponible |
+| la qualité de l'eau **brute** | `qualite_nappes` (clé `code_bss`), `qualite_rivieres` | disponible |
+| **quel captage alimente quelle UDI** | — | **non exposé par Hub'Eau** |
+
+Le dernier maillon manque. Substituts partiels : `code_installation_amont`
+donne l'usine, et le champ `reseaux` donne le mélange entre réseaux avec un
+débit en pourcentage. Le lien captage → usine ne peut être établi que par
+inférence géographique, et devra donc être **affiché comme une hypothèse,
+jamais comme un fait**.
+
+---
+
 ## 8. Angles morts connus
 
 À conserver visibles, ce sont les prochains chantiers :
@@ -355,8 +492,19 @@ ses limites.
 - **eaux embouteillées** : aucun corpus, alors que les repères
   « nourrissons » utilisés comme `seuil_strict` en viennent ;
 - **effet cocktail** : cf. §7 ;
-- **couverture géographique** : sept communes témoins seulement à ce jour ;
-  le passage au département est l'objet immédiat du travail en Claude Code.
+- **couverture géographique** : le moteur et la collecte sont prêts pour le
+  département ; aucun département n'a encore été collecté en entier ;
+- **communes sans bulletin complet** : règle arrêtée le 7 août 2026 — on prend
+  le bulletin de l'UDI qui alimente la commune même s'il a été prélevé
+  ailleurs, en le mentionnant ; à défaut la commune sort en **« non
+  documenté »**, catégorie visible à part entière, ni conforme ni non
+  conforme. Non implémenté ;
+- **cartographie** : les coordonnées et le statut de couverture sont en base
+  (`couverture_communes`), la carte elle-même reste à faire ;
+- **fiche citoyenne** : `sortie/build_fiche.py` ne lit PAS la base, il lit
+  `data/communes_params.json`. À rebrancher sur `analyses_figees` et
+  `verdicts_figes` ;
+- **eau brute et dilution** : cf. §7bis.
 
 ---
 

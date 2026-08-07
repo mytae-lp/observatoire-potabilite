@@ -38,6 +38,8 @@ python3 -m venv .venv && source .venv/bin/activate     # Windows : .venv\Scripts
 pip install -r requirements.txt
 
 python3 src/build_db.py                     # crée data/eau.duckdb + charge le référentiel
+python3 src/observer.py 31520               # TOUT l'enchaînement pour une commune
+python3 src/fetch_hubeau.py 31520           # collecte seule, sans figer
 python3 src/fetch_departement.py --dept 17 --limite 5    # essai sur 5 communes
 python3 src/fetch_departement.py --dept 17               # le département entier
 python3 src/fetch_departement.py --dept 17 --rapport     # couverture, sans rien collecter
@@ -57,17 +59,24 @@ duckdb data/eau.duckdb
 ```
 CLAUDE.md                        méthode, règles et garde-fous — À LIRE D'ABORD
 referentiel/
-  referentiel_seuils.csv         source de vérité des seuils (versionnée)
+  referentiel_seuils.csv         source de vérité des seuils datés (versionnée)
   alias_parametres.csv           variantes d'écriture des libellés
+  regles_famille.csv             rattachement par limite déclarée (les ~300 pesticides)
+  catalogue_parametres_hubeau.csv  inventaire daté de ce qui est réellement mesuré
 src/
-  common.py                      norm(), parse_val(), constantes de méthode
+  common.py                      norm(), parse_val(), parse_limite(), unités, constantes
+  hubeau.py                      accès réseau : communes, inventaire, bulletins
   build_db.py                    schéma DuckDB + chargement du référentiel + vues
   ingest.py                      ingestion d'un bulletin, idempotente
+  observer.py                    point d'entrée : code postal -> analyse figée
+  figer.py                       sortie estampillée (version + date) et sommes
   fetch_departement.py           collecte à l'échelle d'un département
-  fetch_hubeau.py                collecte pour une liste de communes
+  fetch_hubeau.py                collecte pour des communes (INSEE ou code postal)
+  catalogue_parametres.py        inventaire des paramètres réellement mesurés
   queries.sql                    requêtes de référence, dont la requête de la thèse
 tests/
-  test_verdict.py                test de bout en bout, sans réseau
+  test_verdict.py                moteur de réétalonnage, sans réseau
+  test_figer.py                  sortie figée et couverture, sans réseau
 data/
   communes_params.json           tableaux de paramètres des communes témoins
   eau.duckdb                     base (non versionnée, reconstructible)
@@ -79,7 +88,24 @@ docs/
   Plan_Projet_...md              plan d'ensemble du projet
   INDEX_SOURCES.md              index des sources (codes FAMILLE-NN)
   Note_Comparative_...md         analyse comparative d'un projet voisin
+  METHODE_EFFET_COCKTAIL.md      les trois indicateurs de cumul et leurs limites
 ```
+
+## Couverture
+
+Un bulletin complet porte 350 à 400 paramètres ; le référentiel saisi à la main
+en décrit 55. Trois mécanismes assurent que le reste est tout de même noté, sans
+jamais se confondre :
+
+| Source du seuil | Apporte | N'apporte pas |
+|---|---|---|
+| `referentiel_seuils.csv` | 2016, 2026, strict, différé, sources | — |
+| `regles_famille.csv` | rattache par la limite déclarée les substances d'une même famille | rien d'implicite : la règle est écrite et auditable |
+| limite déclarée par la source | la grille **d'aujourd'hui** | 2016, seuil strict, seuil différé |
+
+**Une limite seulement déclarée ne peut jamais produire une bascule.** Mesuré
+sur données réelles : 84 à 94 % des mesures d'un bulletin sont notées, contre
+10 % auparavant. Chaque sortie affiche son dénominateur (`pct_couverture`).
 
 ## Les quatre règles qui font la valeur de l'outil
 
@@ -127,7 +153,10 @@ même ligne est un commit incomplet.
 ## Contrôles à faire après chaque collecte
 
 ```sql
-SELECT * FROM v_parametres_non_apparies LIMIT 40;   -- mesures invisibles pour l'analyse
+SELECT * FROM v_parametres_non_apparies LIMIT 40;   -- mesures sans aucun seuil : invisibles
+SELECT * FROM v_regle_famille_appliquee;            -- ce que la règle a rattaché : à relire
+SELECT * FROM v_ecarts_referentiel_source;          -- notre seuil contre celui de la source
+SELECT * FROM v_unites_incomparables;               -- unités non réconciliables : aucun verdict
 SELECT * FROM v_referentiel_jamais_mesure;          -- lignes du référentiel jamais rencontrées
 ```
 
@@ -140,6 +169,7 @@ c'est à quoi servent le `code_parametre` Hub'Eau et la table d'alias.
 
 ```bash
 python3 tests/test_verdict.py
+python3 tests/test_figer.py
 ```
 
 Sans réseau. Fabrique un bulletin complet fictif et vérifie que les règles
@@ -151,8 +181,10 @@ Un échec signale une règle de méthode qui a cessé de s'appliquer.
 ## État et prochains chantiers
 
 Fait : schéma, référentiel daté à 55 paramètres, réétalonnage à trois
-grilles, appariement par `code_parametre` avec repli libellé puis alias,
-collecte départementale avec reprise, fiche citoyenne.
+grilles, appariement par `code_parametre` avec repli libellé, alias puis règle
+de famille, conversion d'unités, collecte par point d'eau (`code_prelevement`),
+entrée par code postal, contrôle croisé contre la limite déclarée, collecte
+départementale avec reprise, fiche citoyenne.
 
 À faire : effet cocktail (méthode à écrire avant tout chiffre — indice de
 danger, MAF, CAG/MOET de l'EFSA), volet radiologique, corpus des eaux
