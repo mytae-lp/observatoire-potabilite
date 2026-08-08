@@ -26,6 +26,29 @@ Les sommes
 ----------
 Voir docs/METHODE_EFFET_COCKTAIL.md, qui définit les trois indicateurs et
 leurs limites. Ce module les calcule ; il ne les commente pas.
+
+Le plafond analytique
+---------------------
+Chantier C4, devenu la **onzième obligation d'affichage du §8bis** le 8 août
+2026. Une mesure « non quantifiée » ne dit pas la même chose selon la
+finesse du laboratoire : si sa limite de quantification est AU-DESSUS du seuil
+auquel on compare, l'analyse ne voit rien là où la conformité se joue. On ne
+peut alors pas dire que l'eau respecte la limite, seulement qu'on ne sait pas
+(CLAUDE.md §2.4, vu par le bout de l'instrument).
+
+Trois objets le portent, du plus sûr au plus synthétique :
+  - `verdicts_figes.lq_aveugle` / `lq_rapport_seuil` — au paramètre ;
+  - `analyses_figees.nb_aveugles` / `aveugles_pour_mille` — au bulletin, et
+    c'est le TAUX qui est comparable d'un bulletin à l'autre, jamais le compte
+    (§2.11) ;
+  - la table `lq_corpus` — l'étendue des LQ observées pour chaque paramètre,
+    qui permet de situer celle d'un bulletin. Elle est estampillée comme le
+    reste parce qu'elle bouge avec le corpus : c'est le plus fin IDENTIFIÉ,
+    jamais le plus fin qui existe (§2.14).
+
+Une LQ élevée n'est pas une négligence : c'est une capacité d'instrument. On
+examine ce que le dispositif permet de savoir, on n'accuse pas le laboratoire —
+pas plus qu'on n'accuse l'exploitant (§2.1).
 """
 import argparse
 import datetime
@@ -73,10 +96,21 @@ CREATE TABLE IF NOT EXISTS analyses_figees (
     nb_depasse_futur        INTEGER,
     nb_bascules             INTEGER,
     nb_indetermines         INTEGER,
+    -- Le plafond analytique du bulletin : combien de paramètres cherchés sont
+    -- hors de portée du laboratoire, c'est-à-dire non quantifiés avec une LQ
+    -- au-dessus du seuil auquel on les compare. Compté à part de
+    -- `nb_indetermines`, qui ne porte que sur le repère le plus strict : « on
+    -- ne sait pas si le repère danois est tenu » et « on ne sait pas si la
+    -- limite française est tenue » ne sont pas la même information.
+    nb_aveugles             INTEGER,
     nb_ecarts_seuil         INTEGER,
     nb_depasse_applicable   INTEGER,
     nb_bascules_datees      INTEGER,
     depassements_pour_mille DOUBLE,
+    -- Seul comparable d'un bulletin à l'autre. Un bulletin qui cherche
+    -- 700 paramètres en aura mécaniquement plus qu'un qui en cherche 200 :
+    -- le compte brut ne se compare pas, le taux si (§2.11).
+    aveugles_pour_mille     DOUBLE,
     synthese_quantifiees_pour_mille DOUBLE,
     nb_synthese_quantifiees INTEGER,
     charge_synthese_ug_l    DOUBLE,
@@ -123,6 +157,15 @@ CREATE TABLE IF NOT EXISTS verdicts_figes (
     bascule_datee       BOOLEAN,
     indetermine_strict  BOOLEAN,
     indetermine_condition BOOLEAN,
+    -- LE PLAFOND ANALYTIQUE, au paramètre (chantier C4).
+    -- `lq_aveugle` : la mesure n'est pas quantifiée ET la limite de
+    -- quantification du laboratoire est au-dessus du seuil auquel on compare.
+    -- Sous cette valeur, l'analyse ne voit rien : on ne peut pas dire que le
+    -- seuil est respecté, seulement qu'on ne sait pas.
+    -- `lq_rapport_seuil` : de combien. « LQ 0,5 µg/L, soit 5 × la limite de
+    -- 0,1 » se lit ; « 0,5 » ne se lit pas.
+    lq_aveugle          BOOLEAN,
+    lq_rapport_seuil    DOUBLE,
     -- Statut de perturbateur endocrinien, dans les DEUX registres et jamais
     -- fusionnés (CLAUDE.md §2.6). Figés ici parce qu'ils viennent de la ligne
     -- de référentiel réellement appariée : une substance rattachée par règle de
@@ -157,6 +200,21 @@ CREATE TABLE IF NOT EXISTS couverture_communes (
     nb_parametres       INTEGER,
     pct_couverture      DOUBLE,
     PRIMARY KEY (code_insee, version_referentiel)
+);
+
+CREATE TABLE IF NOT EXISTS lq_corpus (
+    version_referentiel VARCHAR,
+    calcule_le          DATE,
+    cle_param           VARCHAR,
+    libelle_parametre   VARCHAR,
+    unite               VARCHAR,
+    lq_min              DOUBLE,
+    lq_max              DOUBLE,
+    lq_mediane          DOUBLE,
+    nb_mesures          INTEGER,
+    nb_bulletins        INTEGER,
+    nb_departements     INTEGER,
+    PRIMARY KEY (version_referentiel, cle_param)
 );
 """
 
@@ -294,6 +352,93 @@ def _sommes(con, code_prel):
     }
 
 
+# Le seuil auquel la LQ est comparée : celui qui s'appliquait le jour du
+# prélèvement, sauf s'il existe un seuil conditionnel — auquel c'est le plus
+# permissif des deux qui fait foi, exactement comme pour `depasse_applicable`
+# (§2.13 : rien dans les données ne dit si la condition est remplie, et un faux
+# positif coûte plus cher au projet qu'un faux négatif).
+#
+# `> 0` n'est pas une précaution de calcul, c'est une règle de méthode. La
+# limite de qualité de la bactériologie est ZÉRO — zéro entérocoque pour
+# 100 mL — et la « LQ » d'un dénombrement vaut 1, puisqu'on ne compte pas
+# une demi-bactérie. Aucune LQ ne peut passer sous zéro : sans cette
+# condition, les 69 mesures bactériologiques du corpus seraient déclarées
+# « aveugles » alors qu'elles sont parfaitement lisibles, et elles
+# noieraient les 46 cas réels.
+SEUIL_LQ = "COALESCE(seuil_conditionnel, seuil_applicable)"
+
+EST_AVEUGLE = f"""
+    COALESCE(NOT est_quantifie AND lq IS NOT NULL
+             AND {SEUIL_LQ} IS NOT NULL AND {SEUIL_LQ} > 0
+             AND lq > {SEUIL_LQ}, FALSE)
+"""
+
+
+def _plafond_analytique(con, code_prel):
+    """
+    Ce que le laboratoire ne pouvait pas voir sur ce bulletin (chantier C4).
+
+    Le compte ET le taux. Le compte seul n'est pas comparable d'un bulletin à
+    l'autre — un bulletin qui cherche 700 paramètres a mécaniquement plus
+    d'occasions d'être aveugle qu'un qui en cherche 200 (§2.11). Le
+    dénominateur est le nombre de mesures NOTÉES, le même que
+    `depassements_pour_mille`, pour que les deux taux se lisent ensemble.
+    """
+    n, notees = con.execute(f"""
+        SELECT COUNT(*) FILTER (WHERE {EST_AVEUGLE}),
+               COUNT(*) FILTER (WHERE notee)
+        FROM v_mesures_verdict WHERE code_prelevement = ?
+    """, [code_prel]).fetchone()
+    return {
+        "nb_aveugles": n or 0,
+        "aveugles_pour_mille": (round(1000.0 * n / notees, 2) if notees else None),
+    }
+
+
+def figer_lq_corpus(con, version, calcule_le=None):
+    """
+    L'étendue des limites de quantification observées dans le corpus, paramètre
+    par paramètre. C'est la base du barème de finesse analytique.
+
+    Pourquoi une table figée et non une vue : la référence BOUGE avec le
+    corpus. « Le plus fin » sur 45 bulletins n'est pas « le plus fin » sur
+    4 000, et une fiche publiée doit pouvoir dire contre quelle base elle a
+    situé son laboratoire — d'où `nb_bulletins` et `nb_departements`, qui
+    s'affichent avec le barème et ne sont pas décoratifs. C'est le §2.14
+    transposé à l'instrument : le plus fin IDENTIFIÉ, jamais le plus fin qui
+    existe.
+
+    Clé d'identité du paramètre : `code_parametre` quand la source le donne,
+    sinon le libellé normalisé — la même convention que les vues de panel. Le
+    code seul perdrait les mesures qui n'en portent pas, le libellé seul
+    éclaterait un paramètre renommé d'une campagne à l'autre.
+
+    Une LQ élevée n'est pas une négligence : c'est une capacité d'instrument
+    (§2.1). Cette table décrit des instruments, elle ne classe pas des
+    laboratoires — elle ne porte d'ailleurs aucun nom de laboratoire.
+    """
+    jour = calcule_le or datetime.date.today().isoformat()
+    con.execute("DELETE FROM lq_corpus WHERE version_referentiel = ?", [version])
+    con.execute("""
+        INSERT INTO lq_corpus
+        SELECT ?, ?::DATE,
+               COALESCE(m.code_parametre, m.libelle_norm)  AS cle_param,
+               ANY_VALUE(m.libelle_parametre),
+               ANY_VALUE(m.unite),
+               MIN(m.lq), MAX(m.lq), MEDIAN(m.lq),
+               COUNT(*),
+               COUNT(DISTINCT m.code_prelevement),
+               COUNT(DISTINCT c.code_departement)
+        FROM mesures m
+        JOIN prelevements p ON p.code_prelevement = m.code_prelevement
+        JOIN communes     c ON c.code_insee = p.code_insee
+        WHERE m.lq IS NOT NULL
+        GROUP BY cle_param
+    """, [version, jour])
+    return con.execute("SELECT COUNT(*) FROM lq_corpus WHERE version_referentiel = ?",
+                       [version]).fetchone()[0]
+
+
 def figer(con, version=None, calcule_le=None):
     """(Re)calcule et fige tous les bulletins présents en base."""
     assurer_schema(con)
@@ -308,6 +453,7 @@ def figer(con, version=None, calcule_le=None):
 
     for cp in prels:
         s = _sommes(con, cp)
+        lq = _plafond_analytique(con, cp)
         con.execute("""
             INSERT INTO analyses_figees
             SELECT p.code_prelevement, ?, ?::DATE,
@@ -320,20 +466,24 @@ def figer(con, version=None, calcule_le=None):
                    p.nb_notees_referentiel, p.nb_notees_declare,
                    p.nb_depasse_2016, p.nb_depasse_2026, p.nb_depasse_strict,
                    p.nb_depasse_futur, p.nb_bascules, p.nb_indetermines,
+                   ?,
                    p.nb_ecarts_seuil,
                    p.nb_depasse_applicable, p.nb_bascules_datees,
-                   p.depassements_pour_mille, p.synthese_quantifiees_pour_mille,
+                   p.depassements_pour_mille,
+                   ?,
+                   p.synthese_quantifiees_pour_mille,
                    ?, ?, ?, ?, ?, ?,
                    p.conclusion_conformite, pr.source_url
             FROM v_prelevement_verdict p
             JOIN prelevements pr ON pr.code_prelevement = p.code_prelevement
             WHERE p.code_prelevement = ?
         """, [version, jour,
+              lq["nb_aveugles"], lq["aveugles_pour_mille"],
               s["nb_synthese_quantifiees"], s["charge_synthese_ug_l"],
               s["somme_pesticides_declaree"], s["somme_pesticides_recalculee"],
               s["indice_danger"], s["indice_danger_n"], cp])
 
-        con.execute("""
+        con.execute(f"""
             INSERT INTO verdicts_figes
             SELECT code_prelevement, ?, libelle_parametre, code_parametre, code_cas,
                    famille, mode_appariement, resultat_num, lq, est_quantifie, unite,
@@ -344,6 +494,8 @@ def figer(con, version=None, calcule_le=None):
                    depasse_strict, depasse_futur,
                    bascule_2016_2026, bascule_datee,
                    indetermine_strict, indetermine_condition,
+                   {EST_AVEUGLE},
+                   CASE WHEN {EST_AVEUGLE} THEN lq / {SEUIL_LQ} END,
                    pe_reglementaire, pe_scientifique, est_agregat, fiabilite
             FROM v_mesures_verdict
             -- « notee » = la mesure a un seuil dans la grille D'AUJOURD'HUI.
@@ -359,6 +511,7 @@ def figer(con, version=None, calcule_le=None):
         """, [version, cp])
 
     figer_couverture_implicite(con, version, jour)
+    figer_lq_corpus(con, version, jour)
     return version, len(prels)
 
 
@@ -527,6 +680,27 @@ def statut(con):
         FROM analyses_figees GROUP BY 1,2 ORDER BY 2 DESC
     """).fetchall():
         print(f"  {r[0]}  {r[1]}  {r[2]} bulletin(s)")
+
+    # Le plafond analytique, en clair. Ce n'est pas un défaut du bulletin :
+    # c'est la part de l'analyse qui ne peut pas conclure, et elle conditionne
+    # toute comparaison entre communes au même titre que l'effort de recherche.
+    aveugles = con.execute("""
+        SELECT COUNT(*) FILTER (WHERE nb_aveugles > 0), SUM(nb_aveugles),
+               MAX(aveugles_pour_mille)
+        FROM analyses_figees
+        WHERE version_referentiel = (SELECT version_referentiel FROM analyses_figees
+                                     GROUP BY 1 ORDER BY MAX(calcule_le) DESC LIMIT 1)
+    """).fetchone()
+    if aveugles and aveugles[1]:
+        print("\n=== Plafond analytique (chantier C4) ===")
+        print(f"  {aveugles[1]} mesure(s) hors de portée du laboratoire sur "
+              f"{aveugles[0]} bulletin(s) — jusqu'à {aveugles[2]} pour mille")
+        print("    LQ au-dessus du seuil de comparaison : ni conforme, ni dépassement.")
+        for r in con.execute("""
+            SELECT libelle_parametre, COUNT(*), MIN(lq), MAX(lq), ANY_VALUE(unite)
+            FROM verdicts_figes WHERE lq_aveugle GROUP BY 1 ORDER BY 2 DESC LIMIT 8
+        """).fetchall():
+            print(f"      {r[0][:44]:<44} {r[1]:>3} mesure(s)  LQ {r[2]}–{r[3]} {r[4] or ''}")
 
 
 def main():

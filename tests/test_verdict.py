@@ -81,6 +81,39 @@ def bulletin_fictif():
          "resultat_alphanumerique": "0", "resultat_numerique": 0.0,
          "libelle_unite": "µg/L"},
 
+        # --- 3bis. LE PLAFOND ANALYTIQUE (chantier C4) -----------------------
+        # Hydrazide maléique non quantifiée avec une LQ de 0,5 µg/L, pour une
+        # limite déclarée de 0,1. Le laboratoire ne voit RIEN dans la zone où
+        # la conformité se joue : ce n'est ni un conforme ni un dépassement.
+        # Valeurs authentiques — le corpus porte des LQ de 0,05 à 2,5 µg/L pour
+        # cette molécule, soit un facteur 50 entre deux communes.
+        {"code_parametre": "99905", "libelle_parametre": "Hydrazide maleique",
+         "resultat_alphanumerique": "<0,5", "resultat_numerique": 0.0,
+         "libelle_unite": "µg/L", "limite_qualite_parametre": "<=0,1 µg/L"},
+
+        # Le contre-exemple, et il est indispensable. La limite de qualité de la
+        # bactériologie est ZÉRO, et la « LQ » d'un dénombrement vaut 1 : on ne
+        # compte pas une demi-bactérie. Aucune LQ ne peut passer sous zéro —
+        # déclarer cette ligne « aveugle » serait un faux positif, et il y en
+        # aurait 69 dans le corpus, qui noieraient les 46 cas réels.
+        #
+        # Ce libellé-ci est celui de la source, et il ne rejoint AUCUNE ligne du
+        # référentiel : son seuil vient de la limite déclarée, `seuil_strict`
+        # reste vide. C'est l'état réel du corpus au 8 août 2026.
+        {"code_parametre": "99906", "libelle_parametre": "Escherichia coli /100ml - MF",
+         "resultat_alphanumerique": "<1", "resultat_numerique": 0.0,
+         "libelle_unite": "n/(100mL)", "limite_qualite_parametre": "<=0 n/(100mL)"},
+
+        # Le même cas, mais APPARIÉ au référentiel — libellé et unité exacts.
+        # Il porte alors un `seuil_strict` de 0, et c'est lui qui vérifie que
+        # `indetermine_strict` ne se perce pas non plus par le bas. Sans la
+        # garde, cette ligne serait « indéterminée » : le corpus n'y échappait
+        # que parce qu'aucun alias ne mène des libellés de la source à ces
+        # trois lignes du référentiel.
+        {"code_parametre": None, "libelle_parametre": "Enterocoques",
+         "resultat_alphanumerique": "<1", "resultat_numerique": 0.0,
+         "libelle_unite": "n/100mL"},
+
         # --- 4. APPARIEMENT --------------------------------------------------
         # Par alias : « nitrates » -> « Nitrates (en NO3) ».
         # 38 mg/L : conforme aux 50 mg/L, au-dessus du repère nourrisson 10.
@@ -254,6 +287,30 @@ def main():
             verifie(hg[0] is False, "« 0 » sec lu comme non quantifié")
             verifie(hg[1] is None, "« 0 » sec ne produit pas de valeur 0.0")
             verifie(hg[2] is False, "« 0 » sec ne produit aucun verdict de dépassement")
+
+        # UN SEUIL DE ZÉRO NE SE PERCE PAS PAR LE BAS (§8bis obligation 11).
+        # La bactériologie exige l'absence et la LQ d'un dénombrement vaut 1 :
+        # on ne compte pas une demi-bactérie. Sans cette garde, toute mesure
+        # bactériologique non quantifiée passerait « indéterminée » — 69 dans le
+        # corpus au 8 août 2026, qui n'y échappaient que parce qu'aucun alias ne
+        # les rattachait au référentiel. Une règle qui ne tient que par une
+        # lacune du catalogue n'est pas une règle.
+        ent = con.execute("""
+            SELECT est_quantifie, lq, seuil_strict, seuil_applicable,
+                   indetermine_strict, depasse_strict, depasse_applicable
+            FROM v_mesures_verdict WHERE libelle_parametre = 'Enterocoques'
+        """).fetchone()
+        verifie(ent is not None, "« Enterocoques » apparié au référentiel par libellé")
+        if ent:
+            verifie(ent[2] == 0.0 and ent[3] == 0.0,
+                    f"son seuil et son repère strict valent zéro — absence exigée "
+                    f"({ent[3]}, {ent[2]})")
+            verifie(ent[1] == 1.0, f"LQ de dénombrement conservée ({ent[1]})")
+            verifie(ent[4] is False,
+                    "LQ 1 pour un seuil de 0 : PAS indéterminé — aucune LQ ne "
+                    "passe sous zéro")
+            verifie(ent[5] is False and ent[6] is False,
+                    "et pas davantage un dépassement : rien n'a été quantifié")
 
         print("\n7. appariement")
         modes = dict(con.execute("""
@@ -475,6 +532,207 @@ def main():
         verifie(con.execute(
             "SELECT COUNT(*) FROM v_effort_recherche").fetchone()[0] >= 1,
             "v_effort_recherche expose le bulletin, trié par effort décroissant")
+
+        print("\n17. le panel — ce qu'on a cessé de chercher")
+        # Trois bulletins complets sur une même commune fictive. Ils vérifient
+        # les deux choses que les vues de panel doivent savoir faire : compter
+        # ce qui disparaît, et dire si deux bulletins portent sur le MÊME point
+        # d'eau — car un panel qui change entre deux captages différents n'est
+        # pas une évolution (§2.3), et le code d'installation est vide sur un
+        # tiers des bulletins réels.
+        def panel_fictif(code, date, libelles, installation, reseaux):
+            lignes = [{"code_parametre": None, "libelle_parametre": lib,
+                       "resultat_alphanumerique": "<0,01", "resultat_numerique": 0.0,
+                       "libelle_unite": "µg/L",
+                       "code_prelevement": code, "date_prelevement": date}
+                      for lib in libelles]
+            meta = dict(META, code_prelevement=code, date_prelevement=date,
+                        code_insee="28999", nom="Panelville", code_departement="28",
+                        code_installation_amont=None,
+                        nom_installation_amont=installation,
+                        noms_reseaux=reseaux)
+            return ingest.ingest_bulletin(con, meta, lignes)
+
+        socle = [f"Substance A{i:03d}" for i in range(220)]
+        garde = socle[:200]
+        neuf = [f"Substance N{i:03d}" for i in range(10)]
+        panel_fictif("PANEL-2024", "2024-05-02", socle,
+                     "SOURCE DU HAUT", "PANELVILLE (100 %)")
+        panel_fictif("PANEL-2026", "2026-05-02", garde + neuf,
+                     "SOURCE DU BAS", "PANELVILLE (100 %)")
+        # Bulletin récent SANS nom d'installation : le seul repère est le nom de
+        # réseau, et il a perdu sa part de mélange en cours de route.
+        panel_fictif("PANEL-2027", "2027-05-02", garde + neuf, None, "PANELVILLE")
+
+        paires = con.execute("""
+            SELECT prelevement_courant, panel_precedent, panel_courant,
+                   nb_abandonnes, nb_nouveaux, meme_point_deau, identite_certaine
+            FROM v_panel_evolution WHERE code_insee = '28999'
+            ORDER BY date_courante
+        """).fetchall()
+        verifie(len(paires) == 2, f"{len(paires)} paire(s) de bulletins consécutifs")
+        p1, p2 = paires
+        verifie((p1[1], p1[2]) == (220, 210),
+                f"panels lus : {p1[1]} puis {p1[2]} paramètres")
+        verifie((p1[3], p1[4]) == (20, 10),
+                f"20 abandonnés et 10 nouveaux ({p1[3]} et {p1[4]} trouvés)")
+        verifie(p1[6] is True and p1[5] is False,
+                "deux installations nommées et différentes : point d'eau différent, sans doute possible")
+        verifie(p2[6] is False and p2[5] is True,
+                "installation non renseignée : « PANELVILLE (100 %) » et « PANELVILLE » "
+                "sont le même réseau — présumé, et dit comme tel")
+        abandonnes = {r[0] for r in con.execute("""
+            SELECT libelle_parametre FROM v_parametres_abandonnes
+            WHERE cle_param LIKE 'substance a2%'
+        """).fetchall()}
+        verifie(len(abandonnes) == 20,
+                f"les 20 substances retirées sont nommées ({len(abandonnes)} listées)")
+        presence = con.execute("""
+            SELECT nb_recherche, nb_bulletins FROM v_parametre_presence
+            WHERE libelle_parametre = 'Substance A219' AND annee = 2024
+        """).fetchone()
+        verifie(presence == (1, 1),
+                "v_parametre_presence affiche son dénominateur : "
+                f"{presence[0]} bulletin(s) sur {presence[1]} cette année-là")
+
+        # LE ZÉRO S'ÉCRIT. Ce contrôle disait exactement l'inverse jusqu'au
+        # 8 août 2026 — « un paramètre qu'on ne cherche plus n'a plus de ligne
+        # l'année suivante » — et il verrouillait un angle mort : le détecteur
+        # à l'échelle était aveugle au seul cas qui l'intéresse vraiment,
+        # l'abandon complet. Une absence de ligne ne se distingue pas d'une
+        # année non documentée ; un 0 % avec son dénominateur, si (§2.4, §2.11).
+        zero = con.execute("""
+            SELECT nb_recherche, pct_bulletins, nb_bulletins
+            FROM v_parametre_presence
+            WHERE libelle_parametre = 'Substance A219' AND annee = 2026
+        """).fetchone()
+        verifie(zero is not None and zero[0] == 0 and zero[1] == 0.0,
+                "un paramètre qu'on ne cherche plus garde une ligne, à 0 % — "
+                + (f"{zero[0]} bulletin(s) sur {zero[2]}" if zero
+                   else "AUCUNE LIGNE : l'abandon complet est invisible"))
+        verifie(con.execute("""
+            SELECT COUNT(*) FROM v_parametre_presence
+            WHERE libelle_parametre = 'Substance N000' AND pct_bulletins = 0
+        """).fetchone()[0] >= 1,
+                "la grille est pleine des deux côtés : un paramètre apparu en "
+                "2026 porte aussi ses années à 0 %, avant qu'on le cherche")
+
+        # La strate départementale — le contre-feu. Elle dit si une chute est un
+        # retrait de programme ou un corpus qui a changé de composition.
+        strate = con.execute("""
+            SELECT dept, nb_recherche, pct_bulletins
+            FROM v_parametre_presence_dept
+            WHERE libelle_parametre = 'Substance A219'
+            ORDER BY dept, annee
+        """).fetchall()
+        verifie(strate and {r[0] for r in strate} == {"28"},
+                "v_parametre_presence_dept borne l'univers au département : "
+                "une substance cherchée dans le seul 28 ne produit pas de 0 % "
+                f"trompeur dans le 17 ({sorted({r[0] for r in strate})} vus)")
+        verifie(any(r[2] == 0.0 for r in strate),
+                "et dans le département qui l'a cherchée, l'année de l'abandon "
+                "est bien à 0 %")
+
+        print("\n18. le mélange — ce qu'un réseau moyenne avant le robinet")
+        # Chantier C7. Six bulletins fictifs, chacun sur un piège réel du
+        # corpus : la part qui se lit, la somme qui se referme, la part qui
+        # manque, la part ABSENTE qui n'est pas 100 %, le code de réseau
+        # répété sous deux libellés (Berchères), et la station recodée qui
+        # ferait croire à deux sources (Laparrouquial).
+        def melange_fictif(code, insee, commune, inst_code, inst_nom,
+                           codes_reseaux, noms_reseaux, nb_params=4):
+            lignes = [{"code_parametre": None,
+                       "libelle_parametre": f"{code} substance {i:03d}",
+                       "resultat_alphanumerique": "<0,01", "resultat_numerique": 0.0,
+                       "libelle_unite": "µg/L",
+                       "code_prelevement": code, "date_prelevement": "2026-01-15"}
+                      for i in range(nb_params)]
+            meta = dict(META, code_prelevement=code, date_prelevement="2026-01-15",
+                        code_insee=insee, nom=commune, code_departement=insee[:2],
+                        code_installation_amont=inst_code,
+                        nom_installation_amont=inst_nom,
+                        codes_reseaux=codes_reseaux, noms_reseaux=noms_reseaux)
+            return ingest.ingest_bulletin(con, meta, lignes)
+
+        complet = SEUIL_COMPLET + 1
+        # Un réseau alimenté par deux installations : 60 + 40 = 100.
+        melange_fictif("MEL-A", "46999", "Mélangeville", "046999801", "SOURCE HAUTE",
+                       "046999001", "MELANGEVILLE (60 %)", complet)
+        melange_fictif("MEL-B", "46998", "Mélangeville-Bas", "046999802", "SOURCE BASSE",
+                       "046999001", "MELANGEVILLE (40 %)", complet)
+        # Une seule part connue, sur 30 % : 70 % viennent d'on ne sait où.
+        melange_fictif("MEL-C", "46997", "Partielleville", "046999803", "USINE TIERS",
+                       "046999002", "PARTIELLE (30 %)")
+        # Même code de réseau, deux libellés : un doublon, pas un mélange.
+        melange_fictif("MEL-D", "46996", "Doublonville", None, None,
+                       "046999003|046999003", "DOUBLON|SECTEUR DOUBLON")
+        # La station recodée : deux clés d'installation, mais l'une déclare
+        # 100 % — le réseau n'est donc pas mélangé.
+        melange_fictif("MEL-E", "46995", "Recodéville", "046999804", "STATION X",
+                       "046999004", "RECODEE (100 %)")
+        melange_fictif("MEL-F", "46994", "Recodéville-Bis", "046999805", "STATION X BIS",
+                       "046999004", "RECODEE")
+
+        ligne_a = con.execute("""
+            SELECT nom_reseau, part_reseau_pct, nb_libelles FROM v_reseau_bulletin
+            WHERE code_prelevement = 'MEL-A'
+        """).fetchone()
+        verifie(ligne_a == ("MELANGEVILLE", 60.0, 1),
+                "la part se détache du nom : « MELANGEVILLE (60 %) » -> "
+                f"réseau « {ligne_a[0]} », part {ligne_a[1]}")
+
+        reconstitue = con.execute("""
+            SELECT statut_melange, somme_parts_connues, part_non_attribuee,
+                   nb_sources_identifiees, nb_sources_analysees, melange_lisible
+            FROM v_melange_reseau WHERE code_reseau = '046999001'
+        """).fetchone()
+        verifie(reconstitue[:4] == ('melange_reconstitue', 100.0, 0.0, 2),
+                "deux sources sous 100 % dont la somme se referme : mélange "
+                f"reconstitué, rien de non attribué ({reconstitue[0]})")
+        verifie(reconstitue[4] == 2 and reconstitue[5] is True,
+                "et ses deux sources portent un bulletin complet : c'est là que "
+                "l'hypothèse de dilution devient instruisible")
+
+        partiel = con.execute("""
+            SELECT statut_melange, somme_parts_connues, part_non_attribuee
+            FROM v_melange_reseau WHERE code_reseau = '046999002'
+        """).fetchone()
+        verifie(partiel == ('melange_partiel', 30.0, 70.0),
+                f"une part de 30 % laisse {partiel[2]} % d'origine inconnue — "
+                "le chiffre du chantier")
+
+        # LE PIÈGE CENTRAL : une part absente n'est pas une part de 100 %.
+        # C'est le §2.4 transposé au mélange — l'absence d'information n'est
+        # pas une information d'absence.
+        muet = con.execute("""
+            SELECT statut_melange, part_non_attribuee, melange_lisible,
+                   nb_parts_declarees
+            FROM v_melange_reseau WHERE code_reseau = '046999003'
+        """).fetchone()
+        verifie(muet == ('non_declare', None, False, 0),
+                "aucune part déclarée : statut « non_declare » et part non "
+                "attribuée à NULL — jamais 100, jamais 0")
+
+        doublon = con.execute("""
+            SELECT nb_reseaux_desservis, nb_libelles FROM v_melange_bulletin b
+            JOIN v_reseau_bulletin r USING (code_prelevement)
+            WHERE b.code_prelevement = 'MEL-D'
+        """).fetchone()
+        verifie(doublon == (1, 2),
+                "un code de réseau répété sous deux libellés reste UN réseau "
+                f"({doublon[0]} réseau, {doublon[1]} libellés)")
+
+        recode = con.execute("""
+            SELECT statut_melange, nb_sources_identifiees, melange_lisible
+            FROM v_melange_reseau WHERE code_reseau = '046999004'
+        """).fetchone()
+        verifie(recode == ('source_unique_declaree', 2, False),
+                "deux clés d'installation dont une déclare 100 % : une source "
+                f"unique, pas un mélange ({recode[1]} clés vues)")
+
+        verifie(con.execute("SELECT COUNT(*) FROM v_reseaux_illisibles").fetchone()[0] == 0,
+                "aucun prélèvement dont les listes de codes et de noms de "
+                "réseaux ne s'apparient : la décomposition n'écarte rien en silence")
 
         con.close()
     finally:

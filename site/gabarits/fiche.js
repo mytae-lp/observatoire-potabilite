@@ -31,10 +31,20 @@ function setPill(id, level, s){ const p = byId(id);
 function etat(r){
   if(r.x) return ["dep", "Dépassement"];
   if(r.b) return ["bas", "Bascule"];
+  /* Le plafond analytique (chantier C4) passe AVANT l'indéterminé ordinaire :
+     c'est la forme la plus forte du troisième état. Là où l'indéterminé dit
+     « on ne sait pas si le repère le plus strict est tenu », celui-ci dit
+     « on ne sait pas si la limite réglementaire est tenue », et il porte son
+     chiffre. C'est aussi le seul « non quantifié » qu'il serait faux de lire
+     comme rassurant. */
+  if(r.a4) return ["ind aveugle", "LQ au-dessus du seuil"];
   if(r.i) return ["ind", "Indéterminé"];
   if(r.d) return ["det", "Quantifiée"];
   return ["ok", "Sous la LQ"];
 }
+
+/* Nombre à la française, pour les valeurs composées côté navigateur. */
+function fr(x){ return String(x).replace(".", ","); }
 
 const GRILLE = {"2016":"grille 2016 — applicable à cette date",
                 "2026":"grille en vigueur", "declare":"limite déclarée par la source",
@@ -66,6 +76,11 @@ function renderTable(){
     const tds = txt("td", "num", r.s || "—");
     if(r.g) tds.appendChild(txt("span", "grille", GRILLE[r.g] || r.g));
     if(r.b && r.s16) tds.appendChild(txt("span", "grille", "en 2016 : " + r.s16));
+    /* La mention demandée au chantier C4, sur la ligne même. « 0,5 » ne se lit
+       pas ; « 5 × le seuil » se lit. */
+    if(r.a4) tds.appendChild(txt("span", "lq-mention",
+      "LQ " + String(r.v).replace(/^</, "")
+      + (r.lqr ? " — " + fr(r.lqr) + " × ce seuil" : "")));
     tr.appendChild(tds);
 
     const tde = el("td");
@@ -97,9 +112,13 @@ function toCsv(){
           + "# referentiel " + d.version_referentiel + ", calcule le " + d.calcule_le
           + " — donnees Hub'Eau/SISE-Eaux (Licence Ouverte), referentiel ODbL 1.0\n"
           + "# le seuil est celui APPLICABLE A LA DATE du prelevement, pas celui du jour\n"
-          + "Parametre;Valeur mesuree;Seuil applicable a la date;Grille;Etat;Seuil a verifier\n";
+          + "# LQ/seuil : rapport de la limite de quantification du laboratoire au seuil,\n"
+          + "#   quand elle lui est superieure — l'analyse ne conclut alors pas\n"
+          + "Parametre;Valeur mesuree;Seuil applicable a la date;Grille;Etat;Seuil a verifier;"
+          + "LQ/seuil\n";
   rows.forEach(r => {
-    out += [q(r.p), q(r.v), q(r.s), q(r.g), q(etat(r)[1]), q(r.a ? "oui" : "non")].join(";") + "\n";
+    out += [q(r.p), q(r.v), q(r.s), q(r.g), q(etat(r)[1]), q(r.a ? "oui" : "non"),
+            q(r.a4 ? r.lqr : "")].join(";") + "\n";
   });
   const blob = new Blob(["﻿" + out], {type: "text/csv;charset=utf-8"});
   const a = document.createElement("a");
@@ -198,6 +217,17 @@ function renderHero(d){
     sous = "Pour ceux-là, la limite de quantification du laboratoire se situe "
          + "au-dessus du seuil de comparaison : on ne peut pas affirmer que le seuil "
          + "est respecté. <b>Un indéterminé n'est pas un conforme.</b>";
+  } else if(h.nb_aveugles){
+    /* Annoncer « aucun dépassement » quand une part de l'analyse ne pouvait
+       pas conclure serait exactement la demi-vérité que l'outil dénonce
+       (chantier C4). */
+    titre = "Aucun dépassement — et " + h.nb_aveugles
+      + (h.nb_aveugles > 1 ? " paramètres que l'analyse ne pouvait pas trancher"
+                           : " paramètre que l'analyse ne pouvait pas trancher");
+    sous = "Pour ceux-là, la limite de quantification du laboratoire se situe "
+         + "au-dessus de la <b>limite réglementaire elle-même</b> : sous cette valeur "
+         + "l'analyse ne voit rien, là précisément où la conformité se joue. "
+         + "<b>Ce n'est ni un conforme, ni un dépassement.</b>";
   } else {
     titre = "Aucun dépassement, aucune bascule";
     sous = "Sur ce qui a été cherché. Une eau n'est jamais déclarée pure ici : "
@@ -311,6 +341,11 @@ function renderIndicateurs(d){
             Math.round(i.part * 100) + " % du seuil applicable"));
       }
       if(i.detail) c.appendChild(txt("div", "ind-det", i.detail));
+      /* Le plafond analytique de cette tuile. Une tuile verte au-dessus d'une
+         mesure que le laboratoire ne pouvait pas voir serait le pire mensonge
+         de la fiche : la mention est donc portée par la tuile elle-même, en
+         rouge, et pas seulement par le bloc plus bas (chantier C4). */
+      if(i.lq_mention) c.appendChild(txt("div", "ind-lq-mention", i.lq_mention));
       if(libEtat) c.appendChild(txt("span", "ind-etat", libEtat));
       c.appendChild(txt("p", "ind-lecture", i.lecture));
       grille.appendChild(c);
@@ -326,7 +361,92 @@ function renderIndicateurs(d){
       renderPfas(d, zone);
       renderDanger(d, zone);
     }
+    if(cle === "lecture") renderPlafond(d, zone);
   });
+}
+
+/* ---------------------------------------------------------------------------
+   LE PLAFOND ANALYTIQUE — ce que le laboratoire ne pouvait pas voir.
+
+   Chantier C4. Demande de Yannick, à propos de Pont-de-Larn : « le seuil du
+   laboratoire ne permet pas du tout de quantifier ce qui est en dessous de
+   cette limite […] si je compare avec une autre commune dont les limites du
+   laboratoire sont beaucoup plus faibles, la comparaison des deux est biaisée. »
+
+   Le barème n'a de sens qu'à PARAMÈTRE CONSTANT : un laboratoire peut
+   descendre à 4 ng/L sur les PFAS et rester à 0,5 µg/L sur l'hydrazide
+   maléique. Une jauge unique par commune moyennerait deux instruments
+   différents — le profil synthétique que le §2.3 interdit, transposé à
+   l'instrument. Il ne s'affiche donc que là où il mord, et il porte toujours
+   sa base : « le plus fin » sur 29 bulletins n'est pas « le plus fin » sur
+   4 000 (§2.14).
+
+   L'échelle est logarithmique. Entre 0,05 et 2,5 µg/L, une graduation linéaire
+   collerait 0,5 contre la borne basse et laisserait croire à une finesse
+   quasi optimale, alors qu'elle en est dix fois éloignée.
+   --------------------------------------------------------------------------- */
+function renderPlafond(d, zone){
+  const p = d.plafond;
+  if(!p || !(p.lignes || []).length) return;
+
+  const b = el("div", "bloc-lecture en-plafond");
+  b.appendChild(txt("h5", null, "Ce que le laboratoire ne pouvait pas voir"));
+  b.appendChild(el("p", null,
+    "Pour ces paramètres, la <b>limite de quantification</b> du laboratoire — la plus "
+    + "petite quantité qu'il sait mesurer — se situe <b>au-dessus du seuil auquel on "
+    + "compare</b>. Sous cette valeur, l'analyse ne voit rien, là précisément où la "
+    + "conformité se joue : elle ne permet ni de constater un dépassement, ni "
+    + "d'affirmer que le seuil est respecté. "
+    + (p.pour_mille != null
+       ? "Cela représente <b>" + fr(p.pour_mille) + " pour mille</b> des "
+         + p.notees + " paramètres notés de ce bulletin — un taux, seul comparable à "
+         + "celui d'une autre commune. "
+       : "")
+    + "Une limite de quantification élevée est une <b>capacité d'instrument, pas une "
+    + "négligence</b> : ce qui est examiné ici est ce que le dispositif permet de "
+    + "savoir."));
+
+  p.lignes.forEach(l => {
+    const c = el("div", "lq-cas");
+    const t = el("div", "lq-t");
+    t.appendChild(txt("b", null, l.libelle));
+    t.appendChild(txt("span", "lq-r",
+      l.rapport ? fr(l.rapport) + " × le seuil" : "au-dessus du seuil"));
+    c.appendChild(t);
+    c.appendChild(txt("div", "lq-mention",
+      "LQ " + l.lq + " " + l.unite + " pour un seuil de " + l.seuil + " " + l.unite
+      + ". Sous cette valeur, l'analyse ne conclut pas."));
+
+    const g = l.bareme;
+    if(g && g.position != null){
+      const jauge = el("div", "lq-jauge");
+      const piste = el("div", "piste");
+      const ici = el("div", "ici");
+      ici.style.left = Math.max(0, Math.min(100, g.position * 100)) + "%";
+      piste.appendChild(ici);
+      jauge.appendChild(piste);
+      const bornes = el("div", "lq-bornes");
+      bornes.appendChild(txt("span", null, g.min + " " + l.unite + " — le plus fin relevé"));
+      bornes.appendChild(txt("span", null, g.max + " " + l.unite + " — le plus grossier"));
+      jauge.appendChild(bornes);
+      c.appendChild(jauge);
+      c.appendChild(txt("div", "lq-base",
+        "Ici : " + g.ici + " " + l.unite
+        + (g.facteur_au_plus_fin ? ", soit " + fr(g.facteur_au_plus_fin)
+             + " fois moins fin que la plus basse relevée" : "")
+        + ". Étendue observée sur " + g.nb_bulletins + " bulletin(s) et "
+        + g.nb_departements + " département(s) du corpus — elle se déplacera à mesure "
+        + "qu'il grandira."));
+    } else if(g){
+      c.appendChild(txt("div", "lq-base",
+        "Une seule limite de quantification relevée dans le corpus pour cette "
+        + "substance (" + g.min + " " + l.unite + ", sur " + g.nb_bulletins
+        + " bulletin(s)) : il n'y a rien à comparer pour l'instant."));
+    }
+    b.appendChild(c);
+  });
+
+  zone.appendChild(b);
 }
 
 /* Perturbateurs endocriniens — trois registres, jamais fusionnés.

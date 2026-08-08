@@ -6,6 +6,13 @@ d'architecture, et il est relu automatiquement au début de chaque session. Ce
 fichier-ci ne dit que ce que `CLAUDE.md` ne peut pas dire : l'état du chantier
 à cet instant, et ce qui attend une décision.
 
+> **Depuis ce passage de main**, la reprise a eu lieu et plusieurs points du §4
+> sont tranchés. Ce qui est décidé, lancé ou gelé vit désormais dans
+> `docs/CHANTIERS.md`, qui fait foi en cas de désaccord avec ce fichier :
+> les 45 propositions sont validées, la clé de Challet est corrigée, le corpus
+> est confirmé et destiné à croître, et le journal des abandons de paramètres
+> est construit.
+
 ---
 
 ## 1. Où en est le dépôt

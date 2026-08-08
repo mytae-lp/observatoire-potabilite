@@ -5,6 +5,10 @@ data/*.duckdb.wal
 data/*.sqlite
 data/journal/
 
+# Le journal des abandons et les autres matériaux d'étude : entièrement
+# dérivés de la base, régénérés par src/etude_panel.py.
+data/etudes/
+
 # Sorties générées
 sortie/*.html
 !sortie/_template.html

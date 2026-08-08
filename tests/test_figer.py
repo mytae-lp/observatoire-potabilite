@@ -162,6 +162,79 @@ def main():
         verifie(sans_seuil == 0,
                 "toute mesure notée porte le seuil qui s'appliquait ce jour-là")
 
+        print("\n3quater. le plafond analytique — ce que le laboratoire ne peut pas voir")
+        # Chantier C4. Une mesure non quantifiée ne dit pas la même chose selon
+        # la finesse de l'instrument : si la LQ est AU-DESSUS du seuil auquel on
+        # compare, l'analyse ne voit rien là où la conformité se joue. C'est le
+        # §2.4 vu par le bout de l'instrument.
+        for col in ("lq_aveugle", "lq_rapport_seuil"):
+            verifie(col in colonnes, f"verdicts_figes porte {col}")
+
+        hydra = con.execute("""
+            SELECT lq, seuil_applicable, lq_aveugle, lq_rapport_seuil, est_quantifie
+            FROM verdicts_figes
+            WHERE version_referentiel = ? AND libelle_parametre = 'Hydrazide maleique'
+        """, [v1]).fetchone()
+        verifie(hydra is not None, "l'hydrazide maléique est figée")
+        if hydra:
+            verifie(hydra[2] is True,
+                    f"LQ {hydra[0]} au-dessus du seuil {hydra[1]} : mesure AVEUGLE")
+            verifie(abs((hydra[3] or 0) - 5.0) < 1e-9,
+                    f"et le rapport est dit : {hydra[3]} × la limite (5 attendu)")
+
+        # Le contre-exemple : un seuil de zéro ne peut jamais être « percé par
+        # le bas ». Sans cette garde, toute la bactériologie serait déclarée
+        # aveugle — 69 mesures du corpus réel, qui noieraient les 46 vraies.
+        coli = con.execute("""
+            SELECT lq, seuil_applicable, lq_aveugle FROM verdicts_figes
+            WHERE version_referentiel = ?
+              AND libelle_parametre = 'Escherichia coli /100ml - MF'
+        """, [v1]).fetchone()
+        verifie(coli is not None, "la ligne de bactériologie est figée")
+        if coli:
+            verifie(coli[1] == 0.0, f"son seuil est zéro ({coli[1]})")
+            verifie(coli[2] is False,
+                    f"LQ {coli[0]} pour un seuil de 0 : PAS aveugle — "
+                    "aucune LQ ne passe sous zéro")
+
+        agrege_av, detail_av = con.execute("""
+            SELECT (SELECT nb_aveugles FROM analyses_figees WHERE version_referentiel = ?),
+                   (SELECT COUNT(*) FROM verdicts_figes
+                    WHERE version_referentiel = ? AND lq_aveugle)
+        """, [v1, v1]).fetchone()
+        verifie(agrege_av == detail_av == 1,
+                f"le compteur d'aveugles ({agrege_av}) est d'accord avec son "
+                f"détail ({detail_av})")
+
+        taux, notees = con.execute("""
+            SELECT aveugles_pour_mille, nb_mesures_notees FROM analyses_figees
+            WHERE version_referentiel = ?
+        """, [v1]).fetchone()
+        verifie(taux is not None and abs(taux - round(1000.0 / notees, 2)) < 1e-9,
+                f"le TAUX est calculé sur les mesures notées : {taux} pour mille "
+                f"sur {notees} notées — seul comparable d'un bulletin à l'autre")
+
+        print("\n3quinquies. le barème de finesse et sa base")
+        # La référence bouge avec le corpus : « le plus fin » sur 45 bulletins
+        # n'est pas « le plus fin » sur 4 000. La table dit donc sur combien de
+        # bulletins elle est calculée — c'est le §2.14 transposé à l'instrument.
+        base = con.execute("""
+            SELECT lq_min, lq_max, lq_mediane, nb_mesures, nb_bulletins, nb_departements
+            FROM lq_corpus WHERE version_referentiel = ? AND libelle_parametre = ?
+        """, [v1, "Hydrazide maleique"]).fetchone()
+        verifie(base is not None, "lq_corpus porte l'étendue observée du paramètre")
+        if base:
+            verifie(base[0] == base[1] == 0.5,
+                    f"une seule LQ observée dans ce corpus minuscule ({base[0]})")
+            verifie(base[4] == 1 and base[5] == 1,
+                    f"et la base est affichée : {base[4]} bulletin(s), "
+                    f"{base[5]} département(s)")
+        verifie(con.execute(
+            "SELECT COUNT(*) FROM lq_corpus WHERE version_referentiel = ?",
+            [v1]).fetchone()[0] > 1,
+            "le barème couvre tous les paramètres porteurs d'une LQ, "
+            "pas seulement les aveugles")
+
         print("\n3ter. un schéma figé obsolète est reconstruit, jamais gardé en silence")
         # `CREATE TABLE IF NOT EXISTS` ne dit rien quand la table existe avec
         # d'autres colonnes : un dépôt plus ancien garderait la sienne, et

@@ -12,7 +12,8 @@ change en même temps.** Si le référentiel bouge et qu'on refige, la phrase
 bouge avec lui. Un texte figé à côté de chiffres qui évoluent, c'est
 exactement la demi-vérité que le projet dénonce.
 
-Trois origines de prose, jamais confondues (cf. CLAUDE.md §8quater) :
+Trois origines de prose, jamais confondues (cf. `docs/ARCHITECTURE.md` §5,
+d'où le §8quater de CLAUDE.md a été déplacé le 8 août 2026) :
 
     auteur   la main de Yannick, dans sortie/redactions.json
     propose  rédigé par le modèle, contexte extérieur inclus, dans
@@ -90,7 +91,8 @@ def _lignes(con, code_prel, version):
         SELECT libelle_parametre, resultat_num, lq, unite, seuil_applicable,
                seuil_2016, grille_applicable, depasse_applicable,
                bascule_2016_2026, bascule_datee, indetermine_strict,
-               indetermine_condition, famille, est_quantifie, seuil_strict
+               indetermine_condition, famille, est_quantifie, seuil_strict,
+               lq_aveugle, lq_rapport_seuil
         FROM verdicts_figes
         WHERE code_prelevement = ? AND version_referentiel = ?
         ORDER BY resultat_num DESC NULLS LAST
@@ -103,16 +105,23 @@ def _mesure(r):
     return f"{r[0]} à {nb(r[1])}{u}"
 
 
-def sections(con, a, version):
+def sections(con, a, version, lignes=None):
     """
     `a` est une ligne de `analyses_figees` en dictionnaire.
     Renvoie [{t, x, o}] — titre, texte, origine.
     """
-    lignes = _lignes(con, a["code_prelevement"], version)
+    lignes = _lignes(con, a["code_prelevement"], version) if lignes is None else lignes
     dep = [r for r in lignes if r[7]]
     bas = [r for r in lignes if r[8] and not r[7]]
-    ind = [r for r in lignes if (r[10] or r[11]) and not r[7] and not r[8]]
     quant = [r for r in lignes if r[13] and r[12] in FAMILLES_SYNTHESE and not r[7]]
+    aveugles = [r for r in lignes if r[15]]
+    # Un aveugle est presque toujours AUSSI un indéterminé au sens du repère le
+    # plus strict — 46 sur 46 dans le corpus au 8 août 2026. Les laisser dans
+    # les deux sections ferait dire deux fois la même chose, et le lecteur
+    # croirait à deux problèmes là où il n'y en a qu'un. La section 4 garde
+    # donc ce que la section 4bis ne dit pas.
+    ind = [r for r in lignes
+           if (r[10] or r[11]) and not r[7] and not r[8] and not r[15]]
 
     out = []
 
@@ -202,6 +211,66 @@ def sections(con, a, version):
                     "n'est pas un résultat conforme."),
             "o": "derive"})
 
+    # --- 4bis. le plafond analytique (chantier C4) -------------------------
+    # Le §2.4 vu par le bout de l'instrument. La section 4 dit qu'on ne sait
+    # pas ; celle-ci dit POURQUOI on ne sait pas, et de combien on en est loin.
+    # Elle ne met personne en cause : une limite de quantification est une
+    # capacité d'appareil, pas une décision (§2.1).
+    if aveugles:
+        un = len(aveugles) == 1
+        detail = liste_fr(
+            [f"{r[0]} (LQ {nb(r[2])} {r[3] or ''}".strip()
+             + f" pour un seuil de {nb(r[4])}"
+             + (f", soit {nb(round(r[16], 1) if r[16] < 10 else round(r[16]))} fois plus haut)"
+                if r[16] else ")")
+             for r in aveugles], 6)
+        texte = (f"{pluriel(len(aveugles), 'paramètre a été cherché', 'paramètres ont été cherchés')} "
+                 "avec une limite de quantification supérieure au seuil auquel on "
+                 + ("le" if un else "les") + f" compare : {detail}. "
+                 + ("Sous cette valeur" if un else "Sous ces valeurs")
+                 + ", l'analyse ne voit rien — elle ne permet ni de constater un "
+                   "dépassement, ni d'affirmer que le seuil est respecté.")
+        if a.get("aveugles_pour_mille"):
+            texte += (f" Cela représente {nb(a['aveugles_pour_mille'])} pour mille des "
+                      f"{a['nb_mesures_notees']} paramètres notés de ce bulletin. "
+                      "C'est un taux, et c'est à ce titre qu'il se compare à celui d'une "
+                      "autre commune : le compte brut, lui, dépend du nombre de "
+                      "paramètres cherchés.")
+
+        # Le barème — niveau 3 du chantier. Il ne vaut qu'à PARAMÈTRE CONSTANT,
+        # et il porte toujours sa base : « le plus fin » sur 45 bulletins n'est
+        # pas « le plus fin » sur 4 000 (§2.14 transposé à l'instrument).
+        etendues = []
+        for r in aveugles:
+            c = con.execute("""
+                SELECT c.lq_min, c.lq_max, c.nb_bulletins, c.nb_departements
+                FROM lq_corpus c
+                JOIN mesures m ON c.cle_param = COALESCE(m.code_parametre, m.libelle_norm)
+                WHERE c.version_referentiel = ? AND m.code_prelevement = ?
+                  AND m.libelle_parametre = ?
+            """, [version, a["code_prelevement"], r[0]]).fetchone()
+            if c and c[0] and c[1] and c[1] > c[0]:
+                etendues.append(
+                    f"{r[0]}, de {nb(c[0])} à {nb(c[1])} {r[3] or ''}".strip()
+                    + f" sur {pluriel(c[2], 'bulletin')} et "
+                      f"{pluriel(c[3], 'département')}"
+                    + (f" — celle-ci en est {nb(round(r[2] / c[0], 1))} fois moins fine "
+                       "que la plus basse relevée" if c[0] else ""))
+        if etendues:
+            # Point-virgule et non « et » : chaque élément porte déjà des
+            # virgules, et une énumération à la française y deviendrait
+            # illisible.
+            texte += (" Le corpus a déjà relevé, pour les mêmes substances : "
+                      + " ; ".join(etendues[:4])
+                      + (f" ; et {len(etendues) - 4} autre(s)" if len(etendues) > 4 else "")
+                      + ". Ces étendues sont celles des analyses réunies à ce jour, et "
+                        "elles se déplaceront à mesure que le corpus grandira.")
+        texte += (" Une limite de quantification élevée est une capacité d'instrument, "
+                  "pas une négligence : ce qui est en cause ici est ce que le "
+                  "dispositif permet de savoir.")
+        out.append({"t": "Ce que le laboratoire ne pouvait pas voir",
+                    "x": texte, "o": "derive"})
+
     # --- 5. le cumul -------------------------------------------------------
     if a["nb_synthese_quantifiees"]:
         texte = (f"{pluriel(a['nb_synthese_quantifiees'], 'substance de synthèse est quantifiée', 'substances de synthèse sont quantifiées')} "
@@ -225,7 +294,40 @@ def sections(con, a, version):
     return out
 
 
-def lecture_citoyenne(a):
+def _phrase_aveugles(a, lq):
+    """
+    La phrase du plafond analytique, dans un résumé où figure déjà le nombre
+    d'indéterminés.
+
+    Les deux ensembles se RECOUVRENT : un paramètre dont la LQ dépasse la
+    limite réglementaire dépasse a fortiori le repère plus strict, quand il en
+    existe un. Dans le corpus au 8 août 2026, les 46 aveugles sont tous parmi
+    les 55 indéterminés. Les additionner annoncerait 101 problèmes là où il y
+    en a 55, ce qui serait exactement le genre d'arithmétique dont le projet
+    fait le reproche au reste du monde.
+
+    `lq['dedans']` est donc COMPTÉ, pas supposé : rien n'interdit qu'un
+    paramètre sans repère strict soit aveugle sans être indéterminé.
+    """
+    if not lq or not lq.get("nb"):
+        return ""
+    n, dedans = lq["nb"], lq.get("dedans", 0)
+    if a.get("nb_indetermines") and dedans == n:
+        tete = (" Pour " + ("l'un d'eux" if n == 1 else f"{n} d'entre eux")
+                + ", ce n'est pas seulement le repère le plus strict qui est hors "
+                  "de portée")
+    elif a.get("nb_indetermines") and dedans:
+        tete = (f" Pour {n} paramètre(s), dont {dedans} déjà comptés ci-dessus, "
+                "ce n'est pas seulement le repère le plus strict qui est hors de "
+                "portée")
+    else:
+        tete = (f" Pour {pluriel(n, 'paramètre')}, le repère hors de portée n'est "
+                "pas le plus strict")
+    return (tete + " : la limite de quantification du laboratoire se situe au-dessus "
+            "de la limite réglementaire elle-même, et l'analyse ne conclut donc pas.")
+
+
+def lecture_citoyenne(a, lq=None):
     if a["nb_depasse_applicable"]:
         base = (f"{pluriel(a['nb_depasse_applicable'], 'paramètre dépassait', 'paramètres dépassaient')} "
                 "le seuil applicable le jour du prélèvement.")
@@ -239,10 +341,14 @@ def lecture_citoyenne(a):
             f"parmi les {a['nb_mesures_lues']} mesurés, soit "
             f"{nb(a['pct_couverture'])} % du bulletin."
             + (f" {pluriel(a['nb_indetermines'], 'paramètre reste indéterminé', 'paramètres restent indéterminés')}."
-               if a["nb_indetermines"] else ""))
+               if a["nb_indetermines"] else "")
+            # Une absence de dépassement annoncée sans dire quelle part de
+            # l'analyse ne pouvait pas conclure est une demi-vérité — le §2.8
+            # transposé du seuil à l'instrument (chantier C4).
+            + _phrase_aveugles(a, lq))
 
 
-def verdict(a):
+def verdict(a, lq=None):
     if a["nb_depasse_applicable"]:
         t = (f"Bulletin portant {pluriel(a['nb_depasse_applicable'], 'dépassement')} "
              "du seuil applicable à la date du prélèvement.")
@@ -257,14 +363,30 @@ def verdict(a):
             f"{a['nb_mesures_notees']} ont pu être notés."
             + (f" {pluriel(a['nb_indetermines'], 'reste indéterminé', 'restent indéterminés')}, "
                "faute d'une limite de quantification assez basse."
-               if a["nb_indetermines"] else ""))
+               if a["nb_indetermines"] else "")
+            + _phrase_aveugles(a, lq)
+            + (f" Soit {nb(a.get('aveugles_pour_mille'))} pour mille des paramètres "
+               "notés — le taux, et non le compte, est ce qui se compare d'un "
+               "bulletin à l'autre."
+               if (lq or {}).get("nb") and a.get("aveugles_pour_mille") else ""))
 
 
 def rediger(con, a, version):
-    """Toutes les parties dérivables, en une fois."""
-    return {"analyse": sections(con, a, version),
-            "lecture_citoyenne": lecture_citoyenne(a),
-            "verdict": verdict(a),
+    """
+    Toutes les parties dérivables, en une fois.
+
+    Le détail du bulletin est lu UNE fois et partagé : les trois parties
+    doivent parler du même objet, et le recouvrement entre indéterminés et
+    paramètres aveugles se compte sur les lignes, il ne se déduit pas des
+    compteurs (cf. `_phrase_aveugles`).
+    """
+    lignes = _lignes(con, a["code_prelevement"], version)
+    aveugles = [r for r in lignes if r[15]]
+    lq = {"nb": len(aveugles),
+          "dedans": sum(1 for r in aveugles if r[10] or r[11])}
+    return {"analyse": sections(con, a, version, lignes),
+            "lecture_citoyenne": lecture_citoyenne(a, lq),
+            "verdict": verdict(a, lq),
             "origine": "derive"}
 
 

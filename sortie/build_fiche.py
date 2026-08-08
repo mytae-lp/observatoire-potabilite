@@ -325,7 +325,8 @@ def parametres(con, code_prel, version):
                f.seuil_applicable, f.depasse_applicable, f.fiabilite,
                f.grille_applicable, f.seuil_2016, f.seuil_2026_effectif,
                f.bascule_2016_2026, f.bascule_datee,
-               f.indetermine_strict, f.indetermine_condition
+               f.indetermine_strict, f.indetermine_condition,
+               f.lq_aveugle, f.lq_rapport_seuil
         FROM mesures m
         LEFT JOIN verdicts_figes f
                ON f.code_prelevement = m.code_prelevement
@@ -484,6 +485,10 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
         "pfas": IND.pfas_par_chaine(con, a, version),
         "nourrissons": IND.reperes_nourrissons(con, a, version),
         "pe": IND.perturbateurs(con, a, version),
+        # Ce que le laboratoire ne pouvait pas voir : la mention au paramètre,
+        # le taux au bulletin, et le barème qui situe cette LQ dans le corpus
+        # (chantier C4). Absent quand le bulletin n'a aucun paramètre aveugle.
+        "plafond": IND.plafond_analytique(con, a, version),
         "danger": {"total": a["indice_danger"], "n": a["indice_danger_n"],
                    "parts": IND.decomposition_danger(con, a, version)},
         # Le bandeau de tête : les mesures qui portent la thèse.
@@ -502,6 +507,11 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
             "nb_bascules": a["nb_bascules"],
             "nb_depassements": a["nb_depasse_applicable"],
             "nb_indetermines": a["nb_indetermines"],
+            # Un bandeau qui annonce « aucun dépassement » alors qu'une part de
+            # l'analyse ne pouvait pas conclure est la demi-vérité que le
+            # projet dénonce. Le bandeau le dit donc lui-même (chantier C4).
+            "nb_aveugles": a["nb_aveugles"],
+            "aveugles_pour_mille": a["aveugles_pour_mille"],
         },
         "analyse": analyse,
         "verdict": {"level": niv, "t": r.get("verdict") or manque,
@@ -525,21 +535,33 @@ def bloc_parametres(con, code_prel, version):
       i  indéterminé   — soit la LQ du laboratoire est au-dessus du seuil
                          strict, soit le seuil dépend d'une condition
                          (ressource, procédé) que la base ne connaît pas ;
+      a  aveugle       — la LQ du laboratoire est au-dessus de la limite
+                         RÉGLEMENTAIRE elle-même : sous cette valeur l'analyse
+                         ne voit rien, là précisément où la conformité se joue
+                         (§8bis obligation 11). C'est le cas le plus fort du
+                         troisième état, et il porte sa mention chiffrée ;
       d  quantifié     — la substance a été détectée et mesurée.
 
     Un « indéterminé » n'est pas un « conforme ». Il porte sa propre couleur.
     """
     lignes = []
     for (lib, num, lq, quant, unite, seuil, depasse, fiab, grille,
-         s2016, s2026, bascule, bascule_d, ind_strict, ind_cond) in parametres(
-            con, code_prel, version):
+         s2016, s2026, bascule, bascule_d, ind_strict, ind_cond,
+         lq_aveugle, lq_rapport) in parametres(con, code_prel, version):
         lignes.append({
             "p": lib,
             "v": fmt_val(num, lq, quant, unite),
             "s": fmt_seuil(seuil, unite),
             "d": bool(quant),
             "x": bool(depasse),
-            "i": bool(ind_strict or ind_cond),
+            "i": bool(ind_strict or ind_cond or lq_aveugle),
+            # LE PLAFOND ANALYTIQUE (chantier C4). Distinct de « i » : ici la LQ
+            # dépasse la limite RÉGLEMENTAIRE, pas seulement le repère le plus
+            # strict. La ligne porte donc sa mention chiffrée, et elle est le
+            # seul « non quantifié » qu'il serait faux de lire comme rassurant.
+            "a4": bool(lq_aveugle),
+            "lqr": (round(lq_rapport, 1) if lq_rapport and lq_rapport < 10
+                    else (round(lq_rapport) if lq_rapport else None)),
             "b": bool(bascule),
             "g": grille,
             # Signalée telle quelle : une valeur non confirmée sur source

@@ -713,6 +713,13 @@ def exporter(con, version, dossier):
     dump("couverture_communes.csv",
          "SELECT * FROM couverture_communes WHERE version_referentiel = ? ORDER BY commune",
          "le statut de chaque commune, dont les non documentées")
+    # La base du barème de finesse analytique (chantier C4). Les fiches
+    # affirment « dix fois moins fin que la plus basse relevée » : la table qui
+    # le dit doit être téléchargeable, sinon l'affirmation demande d'être crue
+    # sur parole — et elle se déplacera avec le corpus.
+    dump("lq_corpus.csv",
+         "SELECT * FROM lq_corpus WHERE version_referentiel = ? ORDER BY libelle_parametre",
+         "l'étendue des limites de quantification observées, paramètre par paramètre")
 
     shutil.copyfile(REF_CSV, os.path.join(dossier, "referentiel_seuils.csv"))
     produits.append(("referentiel_seuils.csv", "le référentiel daté de seuils, source de vérité du projet",

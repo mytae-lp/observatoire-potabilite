@@ -30,9 +30,18 @@ Quatre états, pas deux
                   voudrait comparer — on ne sait pas, et ça ne se peint pas en
                   vert (CLAUDE.md §2.4)
     absent        le paramètre n'a pas été recherché. Ce n'est pas un résultat.
+
+Le plafond analytique
+---------------------
+Chantier C4. Un « non quantifié » ne porte pas la même information selon la
+finesse du laboratoire. Quand la LQ dépasse le seuil auquel on compare, la
+tuile porte sa mention — `lq_aveugle` et `lq_mention` — et `plafond_analytique()`
+en donne la lecture d'ensemble : le taux au bulletin, et le barème qui situe
+cette LQ parmi celles du corpus, à paramètre constant.
 """
 import argparse
 import csv
+import math
 import os
 import sys
 
@@ -87,7 +96,8 @@ def _mesures(con, code_prel, version):
                m.limite_brute, m.reference_brute,
                f.seuil_applicable, f.seuil_2016, f.seuil_strict,
                f.depasse_applicable, f.bascule_2016_2026,
-               f.indetermine_strict, f.indetermine_condition, f.fiabilite
+               f.indetermine_strict, f.indetermine_condition, f.fiabilite,
+               f.lq_aveugle, f.lq_rapport_seuil
         FROM mesures m
         LEFT JOIN verdicts_figes f
                ON f.code_prelevement = m.code_prelevement
@@ -113,8 +123,14 @@ def _etat(quantifie, valeur, lq, seuil, seuil_2016, seuil_strict,
     if not quantifie:
         # Non quantifié : conforme SEULEMENT si la LQ est sous le seuil. Sinon
         # on ne sait pas, et c'est le piège le plus facile du projet.
+        #
+        # `cible > 0` : un seuil de zéro — la bactériologie, où l'absence est
+        # exigée — ne peut pas être « percé par le bas ». La LQ d'un
+        # dénombrement vaut 1, puisqu'on ne compte pas une demi-bactérie ;
+        # sans cette garde, toute la bactériologie serait déclarée indéterminée
+        # (chantier C4).
         cible = seuil if seuil is not None else seuil_strict
-        if cible is not None and lq is not None and lq > cible:
+        if cible is not None and cible > 0 and lq is not None and lq > cible:
             return "indetermine"
         return "sous_lq"
     return "conforme"
@@ -127,6 +143,26 @@ def _texte_valeur(quantifie, valeur, lq, unite):
     if lq is not None:
         return f"< {_nb(lq)}{u}"
     return "—"
+
+
+def _mention_lq(lq, seuil, rapport, unite):
+    """
+    La mention du chantier C4, telle que Yannick l'a demandée : la LQ, le seuil,
+    et le rapport entre les deux. « 0,5 » ne se lit pas ; « 5 × la limite de
+    0,1 » se lit.
+
+    Elle ne met en cause personne. Une LQ élevée est une capacité d'instrument,
+    pas une négligence : on examine ce que le dispositif permet de savoir, on
+    n'accuse pas le laboratoire (CLAUDE.md §2.1).
+    """
+    u = f" {unite}" if unite else ""
+    facteur = ""
+    if rapport:
+        arrondi = round(rapport, 1) if rapport < 10 else round(rapport)
+        facteur = f", soit {_nb(arrondi, 1)} × la limite de {_nb(seuil)}{u}"
+    return (f"LQ {_nb(lq)}{u}{facteur}. Sous cette valeur, l'analyse ne voit "
+            "rien : on ne peut pas dire que le seuil est respecté, seulement "
+            "qu'on ne sait pas.")
 
 
 def calculer(con, a, version):
@@ -164,7 +200,8 @@ def calculer(con, a, version):
             continue
 
         (lib, valeur, lq, quantifie, unite, limite_brute, reference_brute,
-         seuil, s2016, sstrict, depasse, bascule, ind_s, ind_c, fiab) = m
+         seuil, s2016, sstrict, depasse, bascule, ind_s, ind_c, fiab,
+         lq_aveugle, lq_rapport) = m
 
         # La plage vient de la référence déclarée par la source : c'est le seul
         # endroit où un encadrement bas ET haut existe (pH, conductivité).
@@ -204,7 +241,14 @@ def calculer(con, a, version):
                    seuil=seuil, seuil_2016=s2016, seuil_strict=sstrict,
                    plage=list(plage) if plage else None,
                    etat=etat, part=part, detail=" · ".join(detail),
-                   a_verifier=bool(fiab and fiab != "verifie"))
+                   a_verifier=bool(fiab and fiab != "verifie"),
+                   # Le plafond analytique de CETTE tuile : sous la LQ, elle ne
+                   # dit rien. Une tuile verte au-dessus d'une analyse aveugle
+                   # serait le pire mensonge de la fiche (chantier C4).
+                   lq_aveugle=bool(lq_aveugle),
+                   lq_mention=(_mention_lq(lq, seuil, lq_rapport,
+                                           unite or ind["unite"])
+                               if lq_aveugle else None))
         resultat[d["groupe"]].append(ind)
 
     return resultat
@@ -398,6 +442,106 @@ def perturbateurs(con, a, version):
     return groupes
 
 
+def plafond_analytique(con, a, version):
+    """
+    Ce que le laboratoire de CE bulletin ne pouvait pas voir — chantier C4,
+    devenu la onzième obligation d'affichage du §8bis le 8 août 2026.
+
+    Demande de Yannick, à propos de Pont-de-Larn : « le seuil du laboratoire ne
+    permet pas du tout de quantifier ce qui est en dessous de cette limite […]
+    si je compare avec une autre commune dont les limites du laboratoire sont
+    beaucoup plus faibles, la comparaison des deux est biaisée. »
+
+    Trois niveaux, du plus sûr au plus synthétique, et ils ne se remplacent pas.
+
+    1. **La mention, au paramètre.** Vraie sans aucune convention : la LQ est
+       au-dessus du seuil, donc l'analyse ne conclut pas.
+    2. **Le taux, au bulletin.** `aveugles_pour_mille` — le seul chiffre
+       comparable d'un bulletin à l'autre (§2.11), au même titre que
+       `depassements_pour_mille`. Les comptes bruts ne se comparent pas : un
+       bulletin qui cherche 700 paramètres a mécaniquement plus d'occasions
+       d'être aveugle qu'un qui en cherche 200.
+    3. **Le barème, et sa base.** Situer une LQ entre la plus fine et la plus
+       grossière n'a de sens qu'À PARAMÈTRE CONSTANT : un laboratoire peut
+       descendre à 4 ng/L sur les PFAS et rester à 0,5 µg/L sur l'hydrazide
+       maléique. Une jauge unique par commune moyennerait deux instruments
+       différents et produirait un score qui ne correspond à rien de mesurable
+       — le profil synthétique que le §2.3 interdit, transposé à l'instrument.
+
+    Trois réserves, qui sont le prix du niveau 3 :
+      · **la référence bouge avec le corpus.** Le barème affiche donc sur
+        combien de bulletins et de départements il est calculé, et il est figé
+        avec sa version. C'est le §2.14 : le plus fin IDENTIFIÉ, jamais le plus
+        fin qui existe ;
+      · **un barème par paramètre ne tient pas sur une fiche** — 350 lignes. Il
+        ne s'affiche que là où il mord, c'est-à-dire sur les paramètres du
+        niveau 1 ;
+      · **une LQ élevée n'est pas une négligence.** C'est une capacité
+        d'instrument. On examine ce que le dispositif permet de savoir, on
+        n'accuse pas le laboratoire — pas plus que l'exploitant (§2.1).
+
+    L'échelle du barème est LOGARITHMIQUE : les LQ s'étalent sur des facteurs,
+    pas sur des écarts. Entre 0,05 et 2,5 µg/L, une graduation linéaire
+    collerait 0,5 contre la borne basse et laisserait croire à une finesse
+    quasi optimale, alors qu'elle en est dix fois éloignée.
+    """
+    lignes = con.execute("""
+        SELECT v.libelle_parametre, v.lq, v.seuil_applicable, v.unite,
+               v.lq_rapport_seuil,
+               c.lq_min, c.lq_max, c.lq_mediane, c.nb_bulletins, c.nb_departements
+        FROM verdicts_figes v
+        JOIN mesures m ON m.code_prelevement = v.code_prelevement
+                      AND m.libelle_parametre = v.libelle_parametre
+        LEFT JOIN lq_corpus c
+               ON c.version_referentiel = v.version_referentiel
+              AND c.cle_param = COALESCE(m.code_parametre, m.libelle_norm)
+        WHERE v.code_prelevement = ? AND v.version_referentiel = ? AND v.lq_aveugle
+        ORDER BY v.lq_rapport_seuil DESC NULLS LAST
+    """, [a["code_prelevement"], version]).fetchall()
+    if not lignes:
+        return None
+
+    out = []
+    for (lib, lq, seuil, unite, rapport,
+         cmin, cmax, cmed, nb_bull, nb_dept) in lignes:
+        bareme = None
+        if cmin is not None and cmax is not None and cmax > cmin > 0 and lq:
+            etendue = math.log10(cmax) - math.log10(cmin)
+            bareme = {
+                "min": _nb(cmin), "max": _nb(cmax),
+                "mediane": _nb(cmed) if cmed is not None else None,
+                "ici": _nb(lq),
+                "position": (math.log10(lq) - math.log10(cmin)) / etendue,
+                # La base, jamais tue : « le plus fin » sur 29 bulletins n'est
+                # pas « le plus fin » sur 4 000.
+                "nb_bulletins": nb_bull, "nb_departements": nb_dept,
+                "facteur_au_plus_fin": round(lq / cmin, 1) if cmin else None,
+            }
+        elif cmin is not None:
+            # Une seule LQ observée dans tout le corpus : il n'y a pas de
+            # barème, et le dire vaut mieux qu'afficher une jauge plate qui
+            # laisserait croire à une position.
+            bareme = {"min": _nb(cmin), "max": _nb(cmax), "ici": _nb(lq),
+                      "position": None, "mediane": None,
+                      "nb_bulletins": nb_bull, "nb_departements": nb_dept,
+                      "facteur_au_plus_fin": None}
+        out.append({
+            "libelle": lib,
+            "lq": _nb(lq), "seuil": _nb(seuil), "unite": unite or "",
+            "rapport": (round(rapport, 1) if rapport and rapport < 10
+                        else (round(rapport) if rapport else None)),
+            "mention": _mention_lq(lq, seuil, rapport, unite),
+            "bareme": bareme,
+        })
+
+    return {
+        "lignes": out,
+        "nb": a.get("nb_aveugles") or len(out),
+        "pour_mille": a.get("aveugles_pour_mille"),
+        "notees": a.get("nb_mesures_notees"),
+    }
+
+
 def decomposition_danger(con, a, version, maxi=6):
     """
     De quoi l'indice de danger est fait.
@@ -483,6 +627,21 @@ def main():
         for lib, val, u, s16, sapp, datee in bascules_en_tete(con, a, version):
             print(f"\n  BASCULE  {lib} {_nb(val)} {u} — 2016 : {_nb(s16)}, "
                   f"aujourd'hui : {_nb(sapp)}" + ("  (datée)" if datee else ""))
+
+        plafond = plafond_analytique(con, a, version)
+        if plafond:
+            print(f"\n--- Ce que le laboratoire ne pouvait pas voir "
+                  f"({plafond['nb']} paramètre(s), {_nb(plafond['pour_mille'])} "
+                  f"pour mille notés) ---")
+            for l in plafond["lignes"]:
+                print(f"  {l['libelle'][:38]:<38} LQ {l['lq']} {l['unite']} "
+                      f"pour un seuil de {l['seuil']} — {_nb(l['rapport'], 1)} ×")
+                b = l["bareme"]
+                if b and b["position"] is not None:
+                    print(f"      corpus : {b['min']} à {b['max']} "
+                          f"({b['nb_bulletins']} bulletins, "
+                          f"{b['nb_departements']} dép.) — "
+                          f"{_nb(b['facteur_au_plus_fin'], 1)} × le plus fin relevé")
     con.close()
 
 

@@ -16,7 +16,19 @@ Ce qu'elle contrôle
   4. aucun marqueur de gabarit n'est resté en place ;
   5. la vitrine n'appelle aucune ressource distante ;
   6. **aucune prose générée ne prescrit quoi que ce soit** (CLAUDE.md §2.2) ;
-  7. un indéterminé n'est jamais aussi un dépassement.
+  7. un indéterminé n'est jamais aussi un dépassement, et un paramètre déclaré
+     hors de portée du laboratoire l'est réellement (chantier C4) ;
+  8. **aucune comparaison de territoire ne reste anonyme** (§2.11, chantier C5).
+
+Ce que le contrôle 8 sait faire, et ce qu'il ne sait pas
+-------------------------------------------------------
+Il repère les désignations qui ne nomment rien — « ailleurs », « le
+voisinage », « les grands réseaux », « plusieurs communes » — et vérifie
+qu'un nom propre ou le mot « corpus » figure dans la **même phrase**. Il
+constate donc qu'une zone est nommée ; il ne peut pas constater que c'est la
+bonne, ni que le corpus détient ses bulletins, ni que l'effort de recherche
+des deux termes est affiché. Cette relecture-là reste humaine — le contrôle
+sert à ce qu'on ne l'oublie pas.
 
 L'asymétrie du contrôle 6
 -------------------------
@@ -58,6 +70,41 @@ PRESCRIPTIONS = ["osmoseur", "charbon actif", "filtration", "filtrer", "filtrez"
 NEGATIONS = ["aucun", "aucune", "jamais", "ne doit", "n'y figure", "sans",
              "interdit", "s'interdit", "ne dit rien", "ne sert à aucune"]
 
+# Désignations de territoire qui ne nomment rien (CLAUDE.md §2.11, chantier C5).
+# « Mieux que le voisinage » est invérifiable : le lecteur ne peut ni retrouver
+# la zone, ni lire son effort de recherche, ni contredire la phrase. Et c'est
+# d'autant plus tentant que ça ne demande aucune donnée.
+COMPARAISONS_VAGUES = ["ailleurs", "voisinage", "alentours", "aux environs",
+                       "les grands réseaux", "les gros réseaux",
+                       "d'autres communes", "plusieurs communes",
+                       "certaines communes", "les autres communes",
+                       "d'autres agglomérations", "d'autres territoires",
+                       "d'autres secteurs", "d'autres départements",
+                       "la moyenne nationale", "au niveau national",
+                       "le reste de la France"]
+
+# Emplois de ces mots qui ne sont pas des comparaisons de territoire.
+# « prélevée ailleurs » est l'obligation d'affichage n° 5 du §8bis — dire où
+# l'analyse a eu lieu quand elle est empruntée au réseau.
+IDIOMES = ["par ailleurs", "prélevé ailleurs", "prélevée ailleurs",
+           "prélevés ailleurs", "prélevées ailleurs", "analysé ailleurs",
+           "analysée ailleurs"]
+
+# Ce qui, dans la même phrase, dit à quelle zone on compare : un nom propre,
+# ou le corpus lui-même — un ensemble dont on détient par définition les
+# bulletins. Les mots ci-dessous commencent une phrase sans nommer personne.
+ANCRES_MOTS = ["corpus", "série"]
+FAUX_NOMS_PROPRES = {
+    "Le", "La", "Les", "Un", "Une", "Des", "Du", "De", "Ce", "Cette", "Ces",
+    "Il", "Elle", "On", "Ils", "Elles", "Sur", "Dans", "Et", "Ou", "Mais",
+    "Or", "Donc", "Car", "Ni", "Aucun", "Aucune", "Sans", "Avec", "Pour",
+    "Par", "Au", "Aux", "En", "Son", "Sa", "Ses", "Leur", "Leurs", "Deux",
+    "Trois", "Quatre", "Cinq", "Six", "Sept", "Huit", "Neuf", "Dix", "Cent",
+    "Quand", "Ici", "Rien", "Tout", "Toute", "Toutes", "Tous", "Cela", "Ça",
+    "Comparer", "Lire", "Dire", "Écrire", "Trouver", "Chaque", "Plus",
+    "Moins", "Autant", "Depuis", "Après", "Avant", "Pendant", "Puis", "Ainsi",
+}
+
 ECHECS, ALERTES = [], []
 
 
@@ -76,6 +123,47 @@ def prescrit(texte):
             contexte = t[max(0, m.start() - 120):m.end() + 60]
             if not any(n in contexte for n in NEGATIONS):
                 trouves.append((mot, texte[max(0, m.start() - 80):m.end() + 60].strip()))
+    return trouves
+
+
+def _sans_balises(texte):
+    return re.sub(r"<[^>]+>", " ", texte).replace("&lt;", "<").replace("&gt;", ">")
+
+
+def _phrases(texte):
+    """Découpe grossière en phrases. Le séparateur décimal est la virgule dans
+    cette prose (« 1,662 ») : couper sur « . » suivi d'une espace ne casse
+    aucun nombre.
+
+    On ne coupe **pas** sur « : » ni sur « ; ». La zone comparée est très
+    souvent nommée avant le deux-points — « Le contraste avec les autres
+    communes du corpus est net : ailleurs les perfluorés… » — et couper là
+    produirait un signalement sur une phrase qui nomme pourtant sa zone."""
+    return [p.strip() for p in re.split(r"(?<=[.!?])\s+", _sans_balises(texte))
+            if p.strip()]
+
+
+def _nomme_une_zone(phrase):
+    """La phrase désigne-t-elle quelque chose de nommé ?"""
+    if any(m in phrase.lower() for m in ANCRES_MOTS):
+        return True
+    mots = re.findall(r"[A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ][\wÀ-ÿ'’-]+", phrase)
+    return any(m not in FAUX_NOMS_PROPRES for m in mots[1:] if len(m) > 1)
+
+
+def comparaison_anonyme(texte):
+    """Renvoie les comparaisons de territoire qui ne nomment aucune zone."""
+    trouves = []
+    for phrase in _phrases(texte):
+        bas = phrase.lower()
+        for mot in COMPARAISONS_VAGUES:
+            for m in re.finditer(re.escape(mot), bas):
+                fenetre = bas[max(0, m.start() - 12):m.end() + 12]
+                if any(i in fenetre for i in IDIOMES):
+                    continue
+                if not _nomme_une_zone(phrase):
+                    trouves.append((mot, phrase))
+                break
     return trouves
 
 
@@ -123,7 +211,11 @@ def main():
         print("\n2. chaque compteur est d'accord avec son détail")
         for col, cond in (("nb_depasse_applicable", "depasse_applicable"),
                           ("nb_bascules", "bascule_2016_2026"),
-                          ("nb_indetermines", "indetermine_strict")):
+                          ("nb_indetermines", "indetermine_strict"),
+                          # Chantier C4 : le plafond analytique compte à part de
+                          # l'indéterminé ordinaire, et son compteur doit lui
+                          # aussi être d'accord avec son propre détail.
+                          ("nb_aveugles", "lq_aveugle")):
             n = con.execute(f"""
                 SELECT COUNT(*) FROM analyses_figees a
                 WHERE a.version_referentiel = ?
@@ -192,6 +284,45 @@ def main():
             WHERE version_referentiel = ? AND indetermine_strict AND depasse_applicable
         """, [attendue]).fetchone()[0]
         ok(faux == 0, f"aucun paramètre dans les deux états ({faux})")
+
+        # Chantier C4. Un paramètre aveugle n'est ni quantifié — sinon la
+        # question de la LQ ne se pose plus — ni comparé à un seuil de zéro :
+        # la limite de qualité de la bactériologie est nulle et la LQ d'un
+        # dénombrement vaut 1, ce qui déclarerait aveugle une analyse
+        # parfaitement lisible.
+        incoherents = con.execute("""
+            SELECT COUNT(*) FROM verdicts_figes
+            WHERE version_referentiel = ? AND lq_aveugle
+              AND (est_quantifie OR depasse_applicable
+                   OR seuil_applicable IS NULL OR seuil_applicable <= 0
+                   OR lq IS NULL OR lq <= seuil_applicable)
+        """, [attendue]).fetchone()[0]
+        ok(incoherents == 0,
+           f"un paramètre aveugle est non quantifié, sous un seuil non nul, "
+           f"et sa LQ dépasse ce seuil ({incoherents} contre-exemple(s))")
+        bacterio = con.execute("""
+            SELECT COUNT(*) FROM verdicts_figes
+            WHERE version_referentiel = ? AND seuil_applicable = 0 AND lq_aveugle
+        """, [attendue]).fetchone()[0]
+        ok(bacterio == 0,
+           f"aucune mesure à seuil nul déclarée aveugle ({bacterio}) — "
+           "aucune LQ ne passe sous zéro")
+
+        print("\n8. §2.11 — aucune comparaison de territoire anonyme")
+        machine, auteur = [], []
+        for commune, champ, origine, texte in prose_des_pages():
+            for mot, phrase in comparaison_anonyme(texte):
+                (auteur if origine == "auteur" else machine).append(
+                    (commune, champ, origine, mot, phrase))
+        ok(not machine,
+           f"la prose générée ne compare qu'à des zones nommées ({len(machine)} cas)")
+        for c, champ, o, mot, phrase in machine:
+            print(f"        {c} · {champ} [{o}] : « {phrase} »")
+        ok(not auteur,
+           f"la prose d'auteur ne compare qu'à des zones nommées ({len(auteur)} cas) — "
+           "signalement, la décision revient à l'auteur", bloquant=False)
+        for c, champ, o, mot, phrase in auteur:
+            print(f"        {c} · {champ} : « {phrase} »")
     finally:
         con.close()
 
@@ -202,7 +333,8 @@ def main():
             print("   -", e)
         sys.exit(1)
     print("sorties conformes : version juste, compteurs d'accord avec leur détail,")
-    print("aucune ressource distante, aucune prescription générée")
+    print("aucune ressource distante, aucune prescription générée,")
+    print("aucune comparaison de territoire anonyme")
     if ALERTES:
         print(f"\n{len(ALERTES)} point(s) signalé(s), non bloquants — à relire.")
 

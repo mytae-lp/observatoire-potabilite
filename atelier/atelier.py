@@ -48,6 +48,12 @@ sys.path.insert(0, os.path.join(RACINE, "site"))
 
 from common import DB_PATH, SEUIL_COMPLET, lire_liste_communes  # noqa: E402
 import figer  # noqa: E402
+# La règle des trois clés — `INSEE@date`, `INSEE`, `PREL:code` — n'existe qu'à
+# un seul endroit, et l'atelier interroge la MÊME fonction que la fiche. La
+# recopier ici la ferait diverger à la première évolution : c'est précisément
+# ce qui s'est produit le 8 août 2026, quand la prose est passée à l'indexation
+# par point d'eau et que la page d'état a continué de chercher par commune.
+from build_fiche import pour_bulletin  # noqa: E402
 
 GABARITS = os.path.join(RACINE, "site", "gabarits")
 REDACTIONS = os.path.join(RACINE, "sortie", "redactions.json")
@@ -191,33 +197,45 @@ def circuit():
         collectees = {r[0]: r[1] for r in con.execute(
             "SELECT DISTINCT p.code_insee, c.nom FROM prelevements p "
             "JOIN communes c ON c.code_insee = p.code_insee").fetchall()}
-        couvertes = {r[0]: (r[1], r[2]) for r in con.execute(
-            "SELECT code_insee, commune, statut FROM couverture_communes "
+        # Le bulletin qui documente chaque commune est porté par la couverture,
+        # y compris pour une commune rattachée — dont le texte est celui du
+        # POINT D'EAU dont elle boit l'eau, prélevé ailleurs.
+        couvertes = {r[0]: (r[1], r[2], r[3], r[4]) for r in con.execute(
+            "SELECT code_insee, commune, statut, code_prelevement, "
+            "       date_prelevement FROM couverture_communes "
             "WHERE version_referentiel = ?", [version]).fetchall()}
     finally:
         con.close()
 
     lire = lambda p: json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}  # noqa: E731
-    redigees = set(lire(REDACTIONS))
-    proposees = set(lire(PROPOSEES)) - {"_lisez_moi"}
+    redactions, propositions = lire(REDACTIONS), lire(PROPOSEES)
     public = os.path.join(RACINE, "site", "public", "commune")
 
+    # Une commune est « rédigée » si la fiche trouve un texte pour SON bulletin,
+    # et cela se demande à `pour_bulletin`, jamais en cherchant son code INSEE
+    # dans les clés. Sur 52 clés du fichier, 45 sont des `PREL:` : compter les
+    # clés reviendrait à compter des points d'eau et à les appeler des communes.
     a_figer = [(i, n) for i, n in collectees.items() if i not in couvertes]
-    a_publier, a_rediger = [], []
-    for insee, (nom, statut) in couvertes.items():
+    a_publier, a_rediger, redigees, proposees, publiees = [], [], 0, 0, 0
+    for insee, (nom, statut, code_prel, date_prel) in couvertes.items():
         if statut == "non_documentee":
             continue
-        if not os.path.exists(os.path.join(public, f"{insee}.html")):
+        if os.path.exists(os.path.join(public, f"{insee}.html")):
+            publiees += 1
+        else:
             a_publier.append((insee, nom))
-        if insee not in redigees and insee not in proposees:
+
+        d_iso = str(date_prel) if date_prel else None
+        if pour_bulletin(redactions, insee, d_iso, code_prel):
+            redigees += 1
+        elif pour_bulletin(propositions, insee, d_iso, code_prel):
+            proposees += 1
+        else:
             a_rediger.append((insee, nom))
 
     return {"version": version, "collectees": len(collectees),
-            "couvertes": len(couvertes),
-            "publiees": len([1 for i, (n, s) in couvertes.items()
-                             if s != "non_documentee"
-                             and os.path.exists(os.path.join(public, f"{i}.html"))]),
-            "redigees": len(redigees), "proposees": len(proposees),
+            "couvertes": len(couvertes), "publiees": publiees,
+            "redigees": redigees, "proposees": proposees,
             "a_figer": sorted(a_figer, key=lambda x: x[1] or ""),
             "a_publier": sorted(a_publier, key=lambda x: x[1] or ""),
             "a_rediger": sorted(a_rediger, key=lambda x: x[1] or "")}

@@ -346,8 +346,31 @@ SELECT
        AND v.resultat_num <= v.seuil_2026 * v.k) AS bascule_datee,
 
     -- Troisième état de verdict : ni conforme ni dépassement, indéterminé.
+    --
+    -- `seuil_strict * k > 0` n'est pas une précaution de calcul, c'est une
+    -- règle de méthode — la même que celle du §8bis obligation 11, dont ce
+    -- champ est le voisin immédiat. **Un seuil de zéro ne se perce pas par le
+    -- bas.** La bactériologie exige l'absence, et la « LQ » d'un dénombrement
+    -- vaut 1 puisqu'on ne compte pas une demi-bactérie : sans cette condition,
+    -- toute mesure bactériologique non quantifiée serait déclarée indéterminée
+    -- alors qu'elle est parfaitement lisible.
+    --
+    -- Aucune mesure du corpus n'était concernée le 8 août 2026, et par
+    -- accident : les libellés de la source — « Escherichia coli /100ml - MF »,
+    -- « Entérocoques /100ml-MS » — ne rejoignent aucune ligne du référentiel,
+    -- qui porte « Escherichia coli » tout court. Leur seuil vient donc de la
+    -- seule limite déclarée, et `seuil_strict` reste NULL. Le jour où un alias
+    -- est ajouté — c'est précisément à cela que sert alias_parametres.csv —
+    -- 69 mesures basculaient en « indéterminé » sans que rien n'ait changé
+    -- dans l'eau. Une règle qui ne tient que par une lacune du catalogue n'est
+    -- pas une règle.
+    --
+    -- Rien à corriger en revanche sur `depasse_strict` : trois entérocoques
+    -- pour 100 mL franchissent bel et bien une exigence d'absence. C'est la
+    -- LQ, et elle seule, qui ne peut pas passer sous zéro.
     (NOT v.est_quantifie AND v.lq IS NOT NULL
-       AND v.seuil_strict * v.k IS NOT NULL AND v.lq > v.seuil_strict * v.k) AS indetermine_strict,
+       AND v.seuil_strict * v.k IS NOT NULL AND v.seuil_strict * v.k > 0
+       AND v.lq > v.seuil_strict * v.k) AS indetermine_strict,
 
     -- Contrôle croisé : notre seuil 2026 contredit-il celui que
     -- l'administration déclare avec la mesure ? Comparaison faite après
@@ -535,6 +558,264 @@ WHERE est_complet
 ORDER BY parametres_recherches DESC;
 """
 
+# ---------------------------------------------------------------------------
+# LE PANEL : ce qu'on a cherché, et ce qu'on a cessé de chercher
+# ---------------------------------------------------------------------------
+#
+# Le §2.11 dit que l'effort de recherche est un indicateur. Il l'exprime par un
+# NOMBRE — 627 paramètres en 2019, 369 en 2024. Mais l'information est aussi
+# dans la LISTE : quels paramètres a-t-on cessé de chercher ? Personne ne
+# l'annonce, et sur des centaines de communes un retrait commun trahirait une
+# décision nationale, un changement de laboratoire ou une date d'arrêté.
+#
+# Cinq vues, du local à l'agrégé :
+#   v_panel_bulletin          le panel de chaque bulletin complet
+#   v_panel_evolution         la comparaison de deux bulletins consécutifs
+#   v_parametres_abandonnes   ce qui disparaît, et chez combien de communes
+#   v_parametre_presence      la part des bulletins qui cherchent un paramètre,
+#                             année par année — le détecteur à l'échelle
+#   v_parametre_presence_dept la même, par département — le contre-feu, qui dit
+#                             si une chute est un retrait ou un corpus qui a
+#                             changé de composition
+#
+# Clé d'identité du paramètre : `code_parametre` quand la source le donne
+# (15 613 mesures sur 15 617 au 8 août 2026), sinon le libellé normalisé. Les
+# deux sont nécessaires : le code seul perdrait quatre mesures, le libellé seul
+# éclaterait un paramètre renommé d'une campagne à l'autre.
+VUE_PANEL = """
+CREATE OR REPLACE VIEW v_panel_bulletin AS
+SELECT
+    p.code_prelevement,
+    p.code_insee,
+    c.nom               AS commune,
+    c.code_departement  AS dept,
+    p.date_prelevement,
+    p.nom_installation_amont,
+    -- Le nom de réseau porte sa part de mélange : « JOUY (100 %) » en 2025,
+    -- « JOUY » en 2026. C'est le même réseau ; sans ce nettoyage, toute
+    -- comparaison d'une année sur l'autre les croirait différents.
+    regexp_replace(COALESCE(p.noms_reseaux, ''),
+                   '\\s*\\(\\d+([.,]\\d+)?\\s*%\\)', '', 'g') AS reseau_norm,
+    COUNT(DISTINCT COALESCE(m.code_parametre, m.libelle_norm))        AS nb_panel,
+    list_sort(list(DISTINCT COALESCE(m.code_parametre, m.libelle_norm))) AS panel
+FROM prelevements p
+JOIN communes c ON c.code_insee = p.code_insee
+JOIN mesures   m ON m.code_prelevement = p.code_prelevement
+WHERE p.est_complet
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+"""
+
+# La comparaison de deux bulletins complets CONSÉCUTIFS d'une même commune.
+#
+# Réserve de méthode, vérifiée sur le corpus le 8 août 2026 et à ne pas perdre
+# de vue : sur les huit communes portant plus d'un bulletin complet, AUCUNE
+# paire ne partage un `code_installation_amont`. Deux situations très
+# différentes se cachent derrière ce zéro — le même point d'eau recodé
+# (Laparrouquial : 081000936 puis 081004209, même station) ou non renseigné
+# (Challet, Jouy, Souel, Bailleau : code vide sur le bulletin récent), et des
+# points d'eau réellement distincts (Boissezon : trois captages).
+#
+# D'où deux colonnes et non une. `meme_point_deau` répond, `identite_certaine`
+# dit si la réponse est lue ou déduite. Comparer les panels de deux captages
+# différents reste légitime — c'est bien le programme d'analyse qu'on observe —
+# mais on ne peut alors pas parler d'évolution d'une même eau (§2.3).
+VUE_PANEL_EVOLUTION = """
+CREATE OR REPLACE VIEW v_panel_evolution AS
+WITH suite AS (
+    SELECT
+        v.*,
+        LAG(code_prelevement)       OVER w AS prec_code,
+        LAG(date_prelevement)       OVER w AS prec_date,
+        LAG(panel)                  OVER w AS prec_panel,
+        LAG(nb_panel)               OVER w AS prec_nb,
+        LAG(nom_installation_amont) OVER w AS prec_installation,
+        LAG(reseau_norm)            OVER w AS prec_reseau
+    FROM v_panel_bulletin v
+    WINDOW w AS (PARTITION BY code_insee ORDER BY date_prelevement)
+)
+SELECT
+    code_insee, commune, dept,
+    prec_date          AS date_precedente,
+    date_prelevement   AS date_courante,
+    prec_code          AS prelevement_precedent,
+    code_prelevement   AS prelevement_courant,
+    prec_installation  AS installation_precedente,
+    nom_installation_amont AS installation_courante,
+    (prec_installation IS NOT NULL AND nom_installation_amont IS NOT NULL)
+                       AS identite_certaine,
+    CASE WHEN prec_installation IS NOT NULL AND nom_installation_amont IS NOT NULL
+         THEN nom_installation_amont = prec_installation
+         ELSE reseau_norm = prec_reseau
+    END                AS meme_point_deau,
+    prec_nb            AS panel_precedent,
+    nb_panel           AS panel_courant,
+    nb_panel - prec_nb AS variation_panel,
+    len(list_filter(prec_panel, x -> NOT list_contains(panel, x)))      AS nb_abandonnes,
+    len(list_filter(panel, x -> NOT list_contains(prec_panel, x)))      AS nb_nouveaux,
+    list_filter(prec_panel, x -> NOT list_contains(panel, x))           AS abandonnes,
+    list_filter(panel, x -> NOT list_contains(prec_panel, x))           AS nouveaux
+FROM suite
+WHERE prec_code IS NOT NULL
+ORDER BY commune, date_courante;
+"""
+
+# Ce qui a cessé d'être cherché, paramètre par paramètre.
+#
+# À l'échelle du corpus actuel (45 bulletins), c'est une curiosité. À celle de
+# plusieurs centaines de communes, c'est le matériau : un paramètre abandonné
+# partout à la même période ne relève plus du choix local.
+VUE_PARAMETRES_ABANDONNES = """
+CREATE OR REPLACE VIEW v_parametres_abandonnes AS
+WITH detail AS (
+    SELECT code_insee, commune, dept, date_courante, meme_point_deau,
+           UNNEST(abandonnes) AS cle_param
+    FROM v_panel_evolution
+),
+libelles AS (
+    SELECT COALESCE(code_parametre, libelle_norm) AS cle_param,
+           ANY_VALUE(libelle_parametre)           AS libelle
+    FROM mesures GROUP BY 1
+)
+SELECT
+    COALESCE(l.libelle, d.cle_param) AS libelle_parametre,
+    d.cle_param,
+    COUNT(*)                         AS nb_abandons,
+    COUNT(DISTINCT d.code_insee)     AS nb_communes,
+    COUNT(*) FILTER (WHERE d.meme_point_deau) AS nb_abandons_meme_point,
+    MIN(d.date_courante)             AS premier_constat,
+    MAX(d.date_courante)             AS dernier_constat
+FROM detail d
+LEFT JOIN libelles l ON l.cle_param = d.cle_param
+GROUP BY 1, 2
+ORDER BY nb_abandons DESC, libelle_parametre;
+"""
+
+# La part des bulletins complets qui cherchent un paramètre, année par année.
+#
+# C'est la vue qui n'a pas besoin d'apparier quoi que ce soit : elle ne compare
+# pas deux bulletins, elle regarde une population. Un paramètre dont la
+# présence passe de 90 % à 5 % en deux ans a été retiré des programmes, et
+# aucune commune n'a eu à le décider.
+#
+# Elle ne dit RIEN de la qualité de l'eau, et tout de ce qu'on a choisi d'en
+# savoir. Le dénominateur est affiché : sur trois bulletins dans l'année, un
+# pourcentage ne veut rien dire.
+#
+# LE ZÉRO DOIT EXISTER. Corrigé le 8 août 2026. La vue ne produisait de ligne
+# que pour les couples (année, paramètre) effectivement cherchés : un paramètre
+# tombé à 0 % n'avait plus de ligne du tout. Le détecteur était donc aveugle au
+# seul cas qui l'intéresse vraiment — l'abandon complet — et tout consommateur
+# devait le retrouver par une anti-jointure qu'il n'avait aucune raison
+# d'écrire. C'est le §2.4 transposé du laboratoire au programme d'analyse :
+# l'absence de trace n'est pas l'absence de fait, et elle doit s'écrire.
+#
+# D'où la grille pleine : chaque paramètre connu du corpus × chaque année
+# documentée, à 0 % quand il n'a pas été cherché. Le libellé est désormais pris
+# une fois pour toutes sur l'ensemble du corpus, et non année par année : un
+# paramètre absent d'une année n'y a pas de libellé à lire.
+VUE_PARAMETRE_PRESENCE = """
+CREATE OR REPLACE VIEW v_parametre_presence AS
+WITH bulletins AS (
+    SELECT YEAR(date_prelevement) AS annee, COUNT(*) AS nb_bulletins
+    FROM prelevements WHERE est_complet GROUP BY 1
+),
+params AS (
+    SELECT COALESCE(m.code_parametre, m.libelle_norm) AS cle_param,
+           ANY_VALUE(m.libelle_parametre)             AS libelle
+    FROM prelevements p
+    JOIN mesures m ON m.code_prelevement = p.code_prelevement
+    WHERE p.est_complet
+    GROUP BY 1
+),
+cherches AS (
+    SELECT YEAR(p.date_prelevement)                     AS annee,
+           COALESCE(m.code_parametre, m.libelle_norm)   AS cle_param,
+           COUNT(DISTINCT p.code_prelevement)           AS nb_recherche
+    FROM prelevements p
+    JOIN mesures m ON m.code_prelevement = p.code_prelevement
+    WHERE p.est_complet
+    GROUP BY 1, 2
+)
+SELECT b.annee, x.cle_param, x.libelle AS libelle_parametre,
+       COALESCE(c.nb_recherche, 0) AS nb_recherche,
+       b.nb_bulletins,
+       ROUND(100.0 * COALESCE(c.nb_recherche, 0) / b.nb_bulletins, 1)
+                                   AS pct_bulletins
+FROM bulletins b
+CROSS JOIN params x
+LEFT JOIN cherches c ON c.annee = b.annee AND c.cle_param = x.cle_param
+ORDER BY x.libelle, b.annee;
+"""
+
+# La même chose, stratifiée par département — le contre-feu de la vue
+# précédente.
+#
+# Ajoutée le 8 août 2026. Une présence nationale qui chute peut avoir deux
+# causes, et elles n'ont rien à voir : le programme d'analyse a changé, ou bien
+# c'est le CORPUS qui a changé de composition. Le corpus actuel le montre en
+# clair — 7 bulletins sur 2 départements en 2022, 13 sur 6 en 2026. Un
+# paramètre qui serait une habitude du seul Tarn passerait mécaniquement de
+# 100 % à 20 % en n'ayant jamais été retiré nulle part.
+#
+# C'est le §2.11 poussé d'un cran : l'effort de recherche se déclare, et le
+# dénominateur d'un taux agrégé doit dire de QUI il est le dénominateur.
+#
+# Le corpus ne porte pas le laboratoire — `code_lieu_analyse` vaut « L » sur les
+# 45 bulletins. Le département est donc la strate la plus fine dont on dispose
+# pour approcher les trois hypothèses du chantier (une logique nationale, un
+# laboratoire, une date d'arrêté), et il faut le lire comme un proxy, pas comme
+# une explication.
+#
+# L'univers est borné au département : un paramètre jamais cherché dans le 17
+# n'y produit pas de ligne à 0 %. Sans cette borne, la grille pleine noierait
+# le signal sous des zéros qui ne veulent rien dire — et elle exploserait au
+# passage à l'échelle (chantier C6).
+VUE_PARAMETRE_PRESENCE_DEPT = """
+CREATE OR REPLACE VIEW v_parametre_presence_dept AS
+WITH bulletins AS (
+    SELECT YEAR(p.date_prelevement) AS annee,
+           c.code_departement       AS dept,
+           COUNT(*)                 AS nb_bulletins
+    FROM prelevements p
+    JOIN communes c ON c.code_insee = p.code_insee
+    WHERE p.est_complet
+    GROUP BY 1, 2
+),
+cherches AS (
+    SELECT YEAR(p.date_prelevement)                     AS annee,
+           c.code_departement                           AS dept,
+           COALESCE(m.code_parametre, m.libelle_norm)   AS cle_param,
+           COUNT(DISTINCT p.code_prelevement)           AS nb_recherche
+    FROM prelevements p
+    JOIN communes c ON c.code_insee = p.code_insee
+    JOIN mesures  m ON m.code_prelevement = p.code_prelevement
+    WHERE p.est_complet
+    GROUP BY 1, 2, 3
+),
+params_dept AS (
+    SELECT DISTINCT dept, cle_param FROM cherches
+),
+libelles AS (
+    SELECT COALESCE(m.code_parametre, m.libelle_norm) AS cle_param,
+           ANY_VALUE(m.libelle_parametre)             AS libelle
+    FROM prelevements p
+    JOIN mesures m ON m.code_prelevement = p.code_prelevement
+    WHERE p.est_complet
+    GROUP BY 1
+)
+SELECT b.annee, b.dept, x.cle_param, l.libelle AS libelle_parametre,
+       COALESCE(c.nb_recherche, 0) AS nb_recherche,
+       b.nb_bulletins,
+       ROUND(100.0 * COALESCE(c.nb_recherche, 0) / b.nb_bulletins, 1)
+                                   AS pct_bulletins
+FROM bulletins b
+JOIN params_dept x ON x.dept = b.dept
+LEFT JOIN cherches c
+       ON c.annee = b.annee AND c.dept = b.dept AND c.cle_param = x.cle_param
+LEFT JOIN libelles l ON l.cle_param = x.cle_param
+ORDER BY l.libelle, b.dept, b.annee;
+"""
+
 VUE_SEUILS_SANS_DATE = """
 CREATE OR REPLACE VIEW v_seuils_sans_date AS
 SELECT libelle, famille, seuil_2016, seuil_2026, statut_2026, sources, fiabilite
@@ -557,9 +838,233 @@ GROUP BY 1
 ORDER BY nb_mesures DESC;
 """
 
+# ---------------------------------------------------------------------------
+# LE MÉLANGE : ce qu'un réseau moyenne avant d'arriver au robinet
+# ---------------------------------------------------------------------------
+#
+# Chantier C7 (docs/CHANTIERS.md), premier pas : DÉNOMBRER les mélanges déjà
+# lisibles, sans aucune collecte nouvelle. L'hypothèse à instruire est celle de
+# Yannick — « si pour une commune on mélange 3 captages alors la moyenne peut
+# être bonne, même si un captage est hors caractéristique » — c'est-à-dire la
+# dilution tenant lieu de dépollution (CLAUDE.md §7bis).
+#
+# CE QUE DIT LE CHAMP, ET COMMENT ON LE SAIT
+# ------------------------------------------
+# Hub'Eau attache à chaque prélèvement une liste `reseaux`, dont chaque entrée
+# porte `code`, `nom` et parfois `debit` — une chaîne du genre « 80 % ».
+# `hubeau.bulletin_meta` l'aplatit en `codes_reseaux` / `noms_reseaux`, séparés
+# par des barres verticales, la part restant collée au nom : « LOUBERS (80 %) ».
+#
+# La documentation de l'API ne décrit pas ce `debit`. Sa signification est donc
+# DÉDUITE du corpus, et deux réseaux la démontrent en se refermant sur 100 % :
+#
+#   LOUBERS (081000643)          LOUBERS BATESTE 80 %  +  BOUYSSOUNADE 20 %
+#   VALLEE DU CEROU (081004092)  BOURNAZEL RÉSERVOIR 50 %  +  MOULIN GALAT 50 %
+#
+# Deux installations distinctes, deux bulletins distincts, une somme exacte :
+# `debit` est la PART DU DÉBIT DU RÉSEAU APPORTÉE PAR L'INSTALLATION AMONT DE CE
+# PRÉLÈVEMENT. La lecture concurrente — « part de l'eau de la commune » — est
+# réfutée par Loubers, où la même commune et le même réseau portent 80 % sur un
+# bulletin et 20 % sur l'autre ; et par le Moulin Galat, qui alimente quatre
+# réseaux à quatre parts différentes. C'est une déduction vérifiée deux fois,
+# pas une lecture de texte : elle est marquée comme telle dans
+# docs/METHODE_DILUTION.md et doit le rester tant que la source ne l'écrit pas.
+#
+# TROIS PIÈGES, INSCRITS DANS LE CODE
+# -----------------------------------
+# 1. UNE PART ABSENTE N'EST PAS 100 %. Le `debit` disparaît quand la source ne
+#    rattache le prélèvement à aucune installation amont — « CHALLET » en 2026
+#    contre « CHALLET (100 %) » en 2022, sans que rien n'ait changé au réseau.
+#    C'est le §2.4 transposé au mélange : l'absence d'information n'est pas une
+#    information d'absence. `part_reseau_pct` reste donc NULL, et
+#    `part_non_attribuee` est NULL — jamais 100 — quand rien n'est déclaré.
+# 2. UN RÉSEAU PEUT FIGURER DEUX FOIS DANS LE MÊME BULLETIN, sous deux libellés
+#    et le même code : « BERCHERES ST GERMAIN|SECTEUR BERCHERES ST GERMAIN »,
+#    codes `028000707|028000707`. Ce n'est pas un mélange, c'est un doublon de
+#    libellé : le regroupement se fait sur le CODE, et `nb_libelles` le signale.
+# 3. DEUX SOURCES NE FONT PAS UN MÉLANGE SI L'UNE DÉCLARE 100 %. Laparrouquial
+#    porte deux clés d'installation, `081000936 STATION LA MAFRESIE` puis
+#    `081004209 STATION DE LA MAFRESIE` : c'est la même station recodée (cf.
+#    chantier C3). Un mélange n'est reconstitué que si PLUSIEURS sources
+#    déclarent chacune moins de 100 %.
+#
+# CE QUE CES VUES NE DISENT PAS, ET NE DIRONT JAMAIS SEULES
+# ---------------------------------------------------------
+# Elles voient le mélange ENTRE INSTALLATIONS, jamais entre captages. Une usine
+# alimentée par trois forages dont un seul est dégradé apparaît ici comme une
+# source unique à 100 % : la dilution y est déjà faite, en amont du seul point
+# que la donnée expose. Le maillon captage → usine n'est pas publié par Hub'Eau
+# et ne pourra être établi que par inférence géographique — donc affiché comme
+# une hypothèse, jamais comme un fait (§7bis).
+# Et diluer est légal : ce qui est interrogé ici est la norme, qui note l'eau
+# distribuée et ne demande rien sur ce qu'on y a mêlé, jamais l'exploitant qui
+# l'applique (§2.1).
+
+# a) La décomposition : une ligne par (bulletin × réseau desservi).
+VUE_RESEAU_BULLETIN = """
+CREATE OR REPLACE VIEW v_reseau_bulletin AS
+WITH eclate AS (
+    SELECT p.code_prelevement, p.code_insee, p.date_prelevement, p.est_complet,
+           p.code_installation_amont, p.nom_installation_amont,
+           UNNEST(str_split(p.codes_reseaux, '|')) AS code_brut,
+           UNNEST(str_split(p.noms_reseaux,  '|')) AS nom_brut
+    FROM prelevements p
+    WHERE p.codes_reseaux IS NOT NULL AND p.noms_reseaux IS NOT NULL
+      -- Les deux listes sont appariées par POSITION. Si elles n'ont pas la
+      -- même longueur, l'appariement colle un nom au mauvais code : on
+      -- n'apparie pas, et `v_reseaux_illisibles` dit lesquels sont écartés.
+      AND len(str_split(p.codes_reseaux, '|')) = len(str_split(p.noms_reseaux, '|'))
+),
+lu AS (
+    SELECT e.*,
+           trim(regexp_replace(nom_brut, '\\s*\\(\\d+([.,]\\d+)?\\s*%\\)', '', 'g')) AS nom_reseau,
+           TRY_CAST(replace(regexp_extract(nom_brut, '\\((\\d+([.,]\\d+)?)\\s*%\\)', 1),
+                            ',', '.') AS DOUBLE) AS part
+    FROM eclate e
+)
+SELECT code_prelevement, code_insee, date_prelevement, est_complet,
+       code_installation_amont, nom_installation_amont,
+       trim(code_brut)  AS code_reseau,
+       MIN(nom_reseau)  AS nom_reseau,
+       MAX(part)        AS part_reseau_pct,
+       COUNT(*)         AS nb_libelles
+FROM lu
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+"""
+
+# Contrôle : les prélèvements que la décomposition a dû écarter. Un contrôle
+# qui se tait est un défaut ; celui-ci doit rester vide.
+VUE_RESEAUX_ILLISIBLES = """
+CREATE OR REPLACE VIEW v_reseaux_illisibles AS
+SELECT code_prelevement, code_insee, date_prelevement,
+       codes_reseaux, noms_reseaux,
+       len(str_split(codes_reseaux, '|')) AS nb_codes,
+       len(str_split(noms_reseaux,  '|')) AS nb_noms
+FROM prelevements
+WHERE codes_reseaux IS NULL OR noms_reseaux IS NULL
+   OR len(str_split(codes_reseaux, '|')) <> len(str_split(noms_reseaux, '|'))
+ORDER BY code_prelevement;
+"""
+
+# b) Par bulletin : l'eau que décrit ce bulletin est-elle un mélange lisible ?
+#    `nb_reseaux_melanges` compte les réseaux que l'installation de ce
+#    prélèvement n'alimente PAS seule — ceux dont l'eau vient donc, pour partie,
+#    d'ailleurs. Le Moulin Galat alimente quatre réseaux, trois à 100 % et un à
+#    50 % : le bulletin est en partie un mélange, et un booléen seul le dirait
+#    mal.
+VUE_MELANGE_BULLETIN = """
+CREATE OR REPLACE VIEW v_melange_bulletin AS
+SELECT
+    b.code_prelevement,
+    b.code_insee,
+    c.nom                   AS commune,
+    c.code_departement      AS dept,
+    b.date_prelevement,
+    b.est_complet,
+    b.code_installation_amont,
+    b.nom_installation_amont,
+    COUNT(*)                                                  AS nb_reseaux_desservis,
+    COUNT(*) FILTER (WHERE b.part_reseau_pct IS NOT NULL)     AS nb_parts_declarees,
+    COUNT(*) FILTER (WHERE b.part_reseau_pct < 100)           AS nb_reseaux_melanges,
+    MIN(b.part_reseau_pct)                                    AS part_min_pct,
+    MAX(b.part_reseau_pct)                                    AS part_max_pct,
+    COALESCE(MIN(b.part_reseau_pct) < 100, FALSE)             AS melange_lisible,
+    string_agg(b.nom_reseau
+               || COALESCE(' ' || CAST(b.part_reseau_pct AS VARCHAR) || ' %', ' (part non déclarée)'),
+               ' | ' ORDER BY b.part_reseau_pct NULLS LAST)   AS reseaux
+FROM v_reseau_bulletin b
+JOIN communes c ON c.code_insee = b.code_insee
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8;
+"""
+
+# c) Par réseau : que sait-on de ce qui entre dans ce robinet-là ?
+#
+#    `part_non_attribuee` est le chiffre du chantier : ce que le réseau reçoit
+#    d'une installation que le corpus ne connaît pas. 75 % pour CHARTRES S1 veut
+#    dire que trois quarts de l'eau distribuée viennent d'ailleurs, et qu'aucun
+#    bulletin ne nous dit d'où. Il vaut NULL — pas 100 — quand aucune part n'est
+#    déclarée : on ne sait alors même pas s'il y a mélange.
+VUE_MELANGE_RESEAU = """
+CREATE OR REPLACE VIEW v_melange_reseau AS
+WITH par_source AS (
+    -- Une ligne par (réseau, installation). Un même couple peut porter
+    -- plusieurs bulletins : on retient la part la plus récemment DÉCLARÉE, un
+    -- bulletin muet ne devant pas effacer une part connue.
+    SELECT b.code_reseau,
+           MIN(b.nom_reseau) AS nom_reseau,
+           COALESCE(b.code_installation_amont, b.nom_installation_amont) AS cle_installation,
+           MIN(b.nom_installation_amont) AS nom_installation,
+           max_by(b.part_reseau_pct, b.date_prelevement)
+                 FILTER (WHERE b.part_reseau_pct IS NOT NULL) AS part_pct,
+           MAX(b.date_prelevement)               AS derniere_date,
+           COUNT(*)                              AS nb_bulletins,
+           COUNT(*) FILTER (WHERE b.est_complet) AS nb_complets
+    FROM v_reseau_bulletin b
+    GROUP BY b.code_reseau, COALESCE(b.code_installation_amont, b.nom_installation_amont)
+),
+communes_par_reseau AS (
+    -- Les communes qui PORTENT UN BULLETIN sur ce réseau. Ce n'est pas le
+    -- nombre de communes desservies : une commune rattachée au réseau sans
+    -- bulletin propre (`couverture_communes.rattachee_reseau`) n'y figure pas.
+    -- Le rattachement est écrit au figeage, cette vue lit la base brute.
+    SELECT code_reseau, COUNT(DISTINCT code_insee) AS nb_communes
+    FROM v_reseau_bulletin GROUP BY 1
+),
+agrege AS (
+    SELECT
+        s.code_reseau,
+        MIN(s.nom_reseau)                                          AS nom_reseau,
+        COUNT(*) FILTER (WHERE s.cle_installation IS NOT NULL)     AS nb_sources_identifiees,
+        COUNT(*) FILTER (WHERE s.part_pct IS NOT NULL)             AS nb_parts_declarees,
+        COUNT(*) FILTER (WHERE s.part_pct < 100)                   AS nb_sources_partielles,
+        ROUND(SUM(s.part_pct), 1)                                  AS somme_parts_connues,
+        MIN(s.part_pct)                                            AS part_min_pct,
+        MAX(s.part_pct)                                            AS part_max_pct,
+        SUM(s.nb_bulletins)                                        AS nb_bulletins,
+        SUM(s.nb_complets)                                         AS nb_bulletins_complets,
+        COUNT(*) FILTER (WHERE s.nb_complets > 0
+                           AND s.cle_installation IS NOT NULL)     AS nb_sources_analysees,
+        MAX(s.derniere_date)                                       AS derniere_date,
+        string_agg(COALESCE(s.nom_installation, '(installation non renseignée)')
+                   || COALESCE(' ' || CAST(s.part_pct AS VARCHAR) || ' %',
+                               ' (part non déclarée)'),
+                   ' | ' ORDER BY s.part_pct DESC NULLS LAST)      AS sources
+    FROM par_source s
+    GROUP BY s.code_reseau
+)
+SELECT
+    a.code_reseau, a.nom_reseau, k.nb_communes,
+    a.nb_sources_identifiees, a.nb_parts_declarees, a.nb_sources_partielles,
+    a.nb_sources_analysees,
+    a.somme_parts_connues, a.part_min_pct, a.part_max_pct,
+    -- Ce qui entre dans ce réseau sans qu'aucun bulletin ne dise d'où.
+    CASE WHEN a.nb_parts_declarees = 0 THEN NULL
+         ELSE ROUND(100 - a.somme_parts_connues, 1) END       AS part_non_attribuee,
+    CASE
+        WHEN a.nb_parts_declarees = 0                THEN 'non_declare'
+        WHEN a.somme_parts_connues > 100.5           THEN 'incoherent'
+        WHEN a.part_max_pct >= 100                   THEN 'source_unique_declaree'
+        WHEN a.nb_sources_partielles >= 2
+             AND a.somme_parts_connues >= 99.5       THEN 'melange_reconstitue'
+        ELSE 'melange_partiel'
+    END                                                       AS statut_melange,
+    -- « lisible », pas « inexistant » : un réseau dont aucune part n'est
+    -- déclarée peut parfaitement être un mélange, on ne le voit simplement
+    -- pas. C'est `statut_melange = 'non_declare'` qui porte cette nuance.
+    COALESCE(a.part_min_pct < 100, FALSE)                     AS melange_lisible,
+    a.nb_bulletins, a.nb_bulletins_complets, a.derniere_date, a.sources
+FROM agrege a
+JOIN communes_par_reseau k ON k.code_reseau = a.code_reseau
+ORDER BY melange_lisible DESC, part_non_attribuee DESC NULLS LAST, a.nom_reseau;
+"""
+
 VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES,
         VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES,
-        VUE_SEUILS_SANS_DATE, VUE_EFFORT, VUE_CONDITIONS]
+        VUE_SEUILS_SANS_DATE, VUE_EFFORT, VUE_CONDITIONS,
+        VUE_PANEL, VUE_PANEL_EVOLUTION, VUE_PARAMETRES_ABANDONNES,
+        VUE_PARAMETRE_PRESENCE, VUE_PARAMETRE_PRESENCE_DEPT,
+        VUE_RESEAU_BULLETIN, VUE_RESEAUX_ILLISIBLES,
+        VUE_MELANGE_BULLETIN, VUE_MELANGE_RESEAU]
 
 
 def controler_forme(chemin):

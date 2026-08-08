@@ -332,6 +332,12 @@ details.bulletin>summary .count{margin-left:auto;font-weight:500;color:var(--ink
 .sw-bas{background:var(--bascule-bg);border:1px solid var(--bascule)}
 .sw-det{background:#FBF5E7;border:1px solid #d9c48c}
 .sw-ok{background:#fff;border:1px solid var(--line)}
+/* Le plafond analytique (chantier C4). Il reste dans la famille du GRIS, qui
+   est la couleur du troisième état : ce n'est pas un dépassement, c'est un
+   « on ne sait pas ». Seule la MENTION est en rouge, comme Yannick l'a
+   demandée — le rouge y signale que ce non-quantifié ne doit surtout pas se
+   lire comme rassurant, il ne requalifie pas la ligne en non-conformité. */
+.sw-lq{background:var(--gris-bg);border:1px dashed var(--rouge)}
 
 .btable-scroll{max-height:460px;overflow:auto;margin:0 18px 16px;border:1px solid var(--line);border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -356,6 +362,38 @@ tr.dep td.num{font-weight:800;color:var(--rouge)}
 .etat.ok{background:var(--vert-bg);color:var(--vert)}
 .grille{font-size:10.5px;color:var(--ink-soft);display:block;margin-top:2px}
 .av{color:var(--ambre);font-weight:800;cursor:help}
+
+/* --- Le plafond analytique (chantier C4) --------------------------------- */
+tr.ind.aveugle td{background:var(--gris-bg);box-shadow:inset 2px 0 0 var(--rouge)}
+.etat.ind.aveugle{background:var(--gris);color:#fff;
+  box-shadow:inset 0 0 0 1.5px var(--rouge)}
+/* La mention en rouge, demande explicite de Yannick. Elle dit que sous cette
+   valeur l'analyse ne voit rien — pas qu'il y a un dépassement. */
+.lq-mention{display:block;margin-top:3px;font-size:10.5px;font-weight:700;
+  color:var(--rouge);white-space:normal}
+.ind-lq-mention{margin-top:6px;font-size:11.5px;font-weight:600;color:var(--rouge);
+  border-left:2px solid var(--rouge);padding-left:8px;line-height:1.45}
+.ind-lq .ind-lq-mention,.ind-ind .ind-lq-mention{color:var(--rouge)}
+
+.bloc-lecture.en-plafond{border-color:#e6b8b0;background:#FDF8F7}
+.lq-cas{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+.lq-t{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+.lq-t b{font-size:14px}
+.lq-r{font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;
+  background:var(--rouge);border-radius:999px;padding:2px 9px}
+.lq-cas .lq-mention{margin-top:5px;font-size:12.5px;font-weight:600}
+/* La règle du barème. Échelle LOGARITHMIQUE : les limites de quantification
+   s'étalent sur des facteurs, pas sur des écarts. Le dégradé va du fin (à
+   gauche) au grossier (à droite) ; le repère dit où se situe ce bulletin. */
+.lq-jauge{margin-top:11px}
+.lq-jauge .piste{position:relative;height:10px;border-radius:99px;
+  background:linear-gradient(90deg,var(--vert-bg),var(--gris-bg) 55%,var(--rouge-bg));
+  border:1px solid var(--line)}
+.lq-jauge .ici{position:absolute;top:-4px;width:3px;height:18px;border-radius:2px;
+  background:var(--rouge);transform:translateX(-1.5px)}
+.lq-bornes{display:flex;justify-content:space-between;gap:14px;margin-top:5px;
+  font-size:10.5px;color:var(--ink-soft);font-family:var(--mono)}
+.lq-base{margin-top:7px;font-size:11.5px;color:var(--ink-soft);line-height:1.5}
 .bnote{font-size:12px;color:var(--ink-soft);padding:0 18px 16px;margin:0}
 .flag-a-verifier{margin:0 18px 16px;font-size:12px;background:var(--ambre-bg);
   border:1px solid #EAD9AE;border-radius:8px;padding:9px 12px;color:#7a5209}
