@@ -28,6 +28,7 @@ Il n'utilise que la bibliothèque standard : une dépendance de moins à
 maintenir sur un outil dont toute la valeur est de durer.
 """
 import argparse
+import datetime
 import html
 import json
 import os
@@ -323,6 +324,13 @@ def page(titre, corps, courant, scripts=""):
   .prop{{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ambre);
     border-radius:12px;padding:16px 18px;margin-bottom:12px}}
   .prop.est-validee{{border-left-color:var(--vert);background:#FAFCFB;opacity:.75}}
+  .prop.a-revoir{{border-left-color:var(--bascule);background:#FBF9FE}}
+  .prop-c{{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}}
+  .prop-c label{{margin:0 0 6px;color:var(--bascule)}}
+  .prop-c label span{{font-weight:400;text-transform:none;letter-spacing:0;
+    color:var(--ink-soft);font-size:11px}}
+  .prop-c textarea{{min-height:0;font-family:var(--sans);font-size:13.5px}}
+  .prop.a-revoir .prop-c textarea{{border-color:var(--bascule);background:#fff}}
   .prop-t{{font-size:15px;font-weight:800;color:var(--eau-deep);display:flex;
     flex-wrap:wrap;align-items:baseline;gap:10px}}
   .prop-f{{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-top:5px}}
@@ -611,6 +619,7 @@ def page_valider(message=""):
     entrees = en_attente + deja
 
     def bloc(cle, contenu, deja):
+        commentaire = contenu.get("_commentaire") or ""
         f = faits.get(cle[5:]) if cle.startswith("PREL:") else None
         entete = contenu.get("_commune") or (
             f"{f['commune']} ({f['dept']}) — {f['date']}" if f else cle)
@@ -646,56 +655,98 @@ def page_valider(message=""):
                 sections = (f"<div class='sec-prop'><b>{libelle}</b>"
                             f"<p>{valeur}</p></div>") + sections
 
+        # Un commentaire vaut « pas encore » : la case n'est plus cochée
+        # d'office, et « tout valider » passe son chemin.
         case = ("" if deja else
                 f"<label class='coche'><input type='checkbox' name='cle' "
-                f"value='{h(cle)}' checked> valider</label>")
-        etat = ("<span class='etat ok'>validée</span>" if deja else
-                "<span class='etat ind'>à relire</span>")
+                f"value='{h(cle)}'{'' if commentaire else ' checked'}> "
+                f"valider ce texte</label>")
+        if deja:
+            etat, classe = "<span class='etat ok'>validée</span>", " est-validee"
+        elif commentaire:
+            etat, classe = "<span class='etat bas'>à revoir</span>", " a-revoir"
+        else:
+            etat, classe = "<span class='etat ind'>à relire</span>", ""
         bouton = (f"<button class='btn sec2' type='submit' name='rendre' "
                   f"value='{h(cle)}'>remettre en proposition</button>" if deja else "")
+
+        # La zone de commentaire est le chemin de retour vers le rédacteur :
+        # plutôt que de valider un texte imparfait ou de le jeter, on dit ce
+        # qui manque, et le texte est réécrit à partir de là.
+        zone = ("" if deja else f"""
+          <div class="prop-c">
+            <label for="c-{h(cle)}">Ce qu'il faudrait améliorer
+              <span>— écrit pour le rédacteur, jamais publié</span></label>
+            <textarea id="c-{h(cle)}" name="c:{h(cle)}" rows="3"
+              placeholder="ce qui est faux, ce qui manque, ce qu'il faut dire autrement…"
+              >{h(commentaire)}</textarea>
+          </div>""")
+
         return f"""
-        <div class="prop{' est-validee' if deja else ''}">
+        <div class="prop{classe}">
           <div class="prop-t">{h(entete)} {etat}</div>
           <div class="prop-f">{signaux}</div>
           {sections}
+          {zone}
           <div class="prop-a">{case}{bouton}</div>
         </div>"""
 
-    entrees.sort(key=lambda e: (e[2], (e[1].get("_commune") or e[0])))
+    # À revoir d'abord : ce sont celles qui attendent quelque chose de
+    # quelqu'un. Les validées en dernier, elles ne demandent plus rien.
+    def rang(e):
+        cle, contenu, validee = e
+        return (2 if validee else (0 if contenu.get("_commentaire") else 1),
+                contenu.get("_commune") or cle)
+
+    entrees.sort(key=rang)
     blocs = "".join(bloc(k, v, est_validee) for k, v, est_validee in entrees)
-    n_attente = len(en_attente)
+    n_commentees = sum(1 for k, v in proposees.items()
+                       if not k.startswith("_") and v.get("_commentaire"))
+    n_attente = len(en_attente) - n_commentees
 
     return page("Valider les rédactions", f"""
       {message}
-      <div class="bloc"><h4>Ce que « valider » veut dire</h4>
-        <p>Une proposition validée est <b>recopiée dans
-          <code>sortie/redactions.json</code></b> : elle devient un texte de ta main.
-          Elle cesse d'être signalée « proposition, à relire » sur la fiche, et elle
-          n'est plus modifiée par la machine.</p>
-        <p>Le texte est retiré de <code>redactions_proposees.json</code> pour qu'il n'y
-          ait jamais deux versions du même passage. Rien n'est perdu : le fichier est
-          versionné, et <code>git checkout sortie/redactions_proposees.json</code> le
-          restitue. Le bouton « remettre en proposition » fait le chemin inverse.</p>
+      <div class="bloc"><h4>Trois gestes, pas un</h4>
+        <p><b>Valider</b> — la proposition est recopiée dans
+          <code>sortie/redactions.json</code> : elle devient un texte de ta main, cesse
+          d'être signalée « à relire » sur la fiche, et la machine n'y touche plus.</p>
+        <p><b>Commenter</b> — tu dis ce qui est faux, ce qui manque, ce qu'il faut dire
+          autrement. Le commentaire n'est <b>jamais publié</b> : il sert à réécrire le
+          texte. Une proposition commentée passe « à revoir », sa case se décoche, et
+          « tout valider » l'ignore — un commentaire vaut « pas encore ».</p>
+        <p><b>Ne rien faire</b> — la fiche continue d'afficher le texte proposé avec sa
+          mention « proposition, à relire ». Rien ne se perd.</p>
         <p><b>Les chiffres ne sont jamais validés</b> : ils restent dérivés de la base et
           se recalculent à chaque publication. Ce que tu valides ici, c'est la mise en
-          perspective.</p>
+          perspective. Rien n'est irréversible : les fichiers sont versionnés, et le
+          bouton « remettre en proposition » défait une validation.</p>
       </div>
 
       <form method="post" action="/valider">
         <div class="bloc" style="position:sticky;top:0;z-index:5">
-          <b>{n_attente}</b> proposition(s) à relire, <b>{len(deja)}</b> déjà validée(s).
+          <b>{n_attente}</b> à relire · <b>{n_commentees}</b> à revoir ·
+          <b>{len(deja)}</b> validée(s).
           <p style="margin:10px 0 0">
-            <button class="btn" type="submit" name="action" value="cochees">Valider les propositions cochées</button>
+            <button class="btn" type="submit" name="action" value="cochees">Enregistrer et valider les cochées</button>
+            &nbsp;
+            <button class="btn sec2" type="submit" name="action" value="commentaires">Enregistrer les commentaires seulement</button>
             &nbsp;
             <button class="btn sec2" type="submit" name="action" value="toutes">Tout valider</button>
           </p>
+          <p style="margin:8px 0 0;font-size:12px;color:var(--ink-soft)">
+            Les commentaires saisis sont enregistrés quel que soit le bouton employé :
+            rien de ce que tu écris ici ne se perd. « Tout valider » laisse de côté les
+            propositions commentées.</p>
         </div>
         {blocs or "<div class='bloc'>Aucune proposition. Les fiches portent le texte dérivé de la base.</div>"}
       </form>
 
       <p style="margin:18px 0 0;font-size:13px;color:var(--ink-soft)">
         Après validation, <a href="/publier">publie</a> pour que les fiches cessent
-        d'afficher la mention « à relire ».</p>""", "/valider")
+        d'afficher la mention « à relire ». Les commentaires restent dans
+        <code>sortie/redactions_proposees.json</code>, sous la clé
+        <code>_commentaire</code> de chaque proposition : c'est là que le rédacteur
+        va les chercher pour réécrire.</p>""", "/valider")
 
 
 def action_valider(champs, listes):
@@ -717,19 +768,68 @@ def action_valider(champs, listes):
         ecrire(PROPOSEES, proposees)
         return f"« {rendre} » est redevenue une proposition à relire."
 
-    if champs.get("action") == "toutes":
-        cles = [k for k in proposees if not k.startswith("_")]
+    # Les commentaires sont enregistrés d'abord et QUEL QUE SOIT le bouton :
+    # perdre une remarque qu'on vient d'écrire parce qu'on a cliqué au mauvais
+    # endroit serait la pire manière de traiter un relecteur.
+    n_com = 0
+    for champ, valeurs in listes.items():
+        if not champ.startswith("c:"):
+            continue
+        cle, texte = champ[2:], (valeurs[0] or "").strip()
+        if cle not in proposees:
+            continue
+        ancien = proposees[cle].get("_commentaire") or ""
+        if texte == ancien:
+            continue
+        if texte:
+            proposees[cle]["_commentaire"] = texte
+            proposees[cle]["_commente_le"] = datetime.date.today().isoformat()
+        else:
+            proposees[cle].pop("_commentaire", None)
+            proposees[cle].pop("_commente_le", None)
+        n_com += 1
+
+    action = champs.get("action")
+    if action == "commentaires":
+        ecrire(PROPOSEES, proposees)
+        return (f"{n_com} commentaire(s) enregistré(s). Les propositions commentées "
+                "passent « à revoir » et ne seront pas validées en bloc."
+                if n_com else "Aucun commentaire modifié.")
+
+    if action == "toutes":
+        # Une proposition commentée est explicitement mise en attente : la
+        # valider en bloc reviendrait à ignorer la réserve qu'on vient d'écrire.
+        cles = [k for k, v in proposees.items()
+                if not k.startswith("_") and not v.get("_commentaire")]
+        ecartees = sum(1 for k, v in proposees.items()
+                       if not k.startswith("_") and v.get("_commentaire"))
     else:
         cles = [k for k in listes.get("cle", []) if k in proposees]
+        ecartees = 0
+
     if not cles:
+        ecrire(PROPOSEES, proposees)
+        if n_com:
+            return (f"{n_com} commentaire(s) enregistré(s). Aucune proposition "
+                    "validée : celles qui portent un commentaire sont mises de côté.")
         raise ValueError("aucune proposition sélectionnée")
 
     for cle in cles:
-        validees[cle] = proposees.pop(cle)
+        # Le commentaire ne suit pas le texte validé : il portait sur une
+        # version qu'on vient d'accepter, il n'a plus d'objet.
+        contenu = proposees.pop(cle)
+        contenu.pop("_commentaire", None)
+        contenu.pop("_commente_le", None)
+        validees[cle] = contenu
     ecrire(REDACTIONS, validees)
     ecrire(PROPOSEES, proposees)
+
     return (f"{len(cles)} rédaction(s) validée(s) — elles sont désormais de ta main "
-            f"dans redactions.json. Publie pour que les fiches en tiennent compte.")
+            f"dans redactions.json."
+            + (f" {n_com} commentaire(s) enregistré(s)." if n_com else "")
+            + (f" {ecartees} proposition(s) commentée(s) laissée(s) de côté."
+               if ecartees else "")
+            + " Publie pour que les fiches en tiennent compte.")
 
 
 def page_redactions(message=""):
