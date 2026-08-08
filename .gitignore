@@ -10,6 +10,15 @@ sortie/*.html
 !sortie/_template.html
 sortie/*.pdf
 
+# La vitrine est entièrement dérivée de la base et des gabarits : c'est un
+# produit, pas une source. On versionne site/gabarits/, jamais site/public/.
+#
+# Nuance assumée : versionner le site publié donnerait l'historique de ce qui a
+# été affiché, ce qui a du sens pour un projet dont le sujet est le déplacement
+# des seuils. Mais cet historique existe déjà, mieux placé — dans les lignes
+# figées, qui portent leur version de référentiel et leur date de calcul.
+site/public/
+
 # Python
 __pycache__/
 *.py[cod]

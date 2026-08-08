@@ -39,11 +39,19 @@ pip install -r requirements.txt
 
 python3 src/build_db.py                     # crée data/eau.duckdb + charge le référentiel
 python3 src/observer.py 31520               # TOUT l'enchaînement pour une commune
+python3 src/observer.py --csv data/communes_a_collecter.csv   # un lot piloté par fichier
 python3 src/fetch_hubeau.py 31520           # collecte seule, sans figer
 python3 src/fetch_departement.py --dept 17 --limite 5    # essai sur 5 communes
 python3 src/fetch_departement.py --dept 17               # le département entier
 python3 src/fetch_departement.py --dept 17 --rapport     # couverture, sans rien collecter
+
+python3 site/build_site.py                  # la vitrine publique dans site/public/
+python3 sortie/build_fiche.py               # la fiche autonome, en un seul fichier
+python3 atelier/atelier.py                  # le poste de pilotage local, 127.0.0.1:8760
 ```
+
+Ou, plus simplement, tout depuis l'atelier : `python3 atelier/atelier.py`, puis
+<http://127.0.0.1:8760>.
 
 Puis l'analyse :
 
@@ -63,6 +71,7 @@ referentiel/
   alias_parametres.csv           variantes d'écriture des libellés
   regles_famille.csv             rattachement par limite déclarée (les ~300 pesticides)
   catalogue_parametres_hubeau.csv  inventaire daté de ce qui est réellement mesuré
+  geo/departements-simplifie.geojson  fond de carte (IGN/Etalab, Licence Ouverte)
 src/
   common.py                      norm(), parse_val(), parse_limite(), unités, constantes
   hubeau.py                      accès réseau : communes, inventaire, bulletins
@@ -79,12 +88,22 @@ tests/
   test_figer.py                  sortie figée et couverture, sans réseau
 data/
   communes_params.json           tableaux de paramètres des communes témoins
+  communes_a_collecter.csv       liste de travail : code ; motif
   eau.duckdb                     base (non versionnée, reconstructible)
   journal/                       journaux de reprise par département
 sortie/
   build_fiche.py                 fiche citoyenne, dérivée de la base
   redactions.json                les textes d'analyse, écrits à la main
-  _template.html                 gabarit de fiche
+  _template.html                 squelette de la fiche autonome
+site/                            LA VITRINE — le seul objet publié
+  build_site.py                  générateur du site statique
+  gabarits/observatoire.css      le design, partagé avec la fiche autonome
+  gabarits/corps_fiche.html      le corps de fiche, partagé lui aussi
+  gabarits/fiche.js              rendu d'un bulletin (les trois états, la bascule)
+  gabarits/recherche.js          recherche par code postal, dans le navigateur
+  public/                        produit, non versionné : à déposer tel quel
+atelier/                         LE POSTE DE PILOTAGE — ne se publie jamais
+  atelier.py                     import CSV, collecte, contrôles, rédactions, publication
 docs/
   Plan_Projet_...md              plan d'ensemble du projet
   INDEX_SOURCES.md              index des sources (codes FAMILLE-NN)
@@ -179,9 +198,19 @@ c'est à quoi servent le `code_parametre` Hub'Eau et la table d'alias.
 ## Test de non-régression
 
 ```bash
-python3 tests/test_verdict.py
-python3 tests/test_figer.py
+python3 tests/test_verdict.py     # le moteur de réétalonnage
+python3 tests/test_figer.py       # la sortie figée et la couverture
+python3 tests/test_sorties.py     # ce qui est réellement publié
 ```
+
+`test_sorties.py` contrôle la vitrine et la fiche construites : que la version
+publiée soit bien celle du référentiel actuel, que chaque compteur de bulletin
+soit d'accord avec son propre détail, qu'aucune commune documentée n'ait perdu
+sa page, qu'aucune ressource distante ne soit appelée, et **qu'aucune prose
+générée ne prescrive quoi que ce soit** (§2.2). Sur ce dernier point le
+contrôle est volontairement asymétrique : bloquant pour la prose produite par
+la machine, simple signalement pour celle de l'auteur — un outil qui censure
+son auteur ne serait pas un garde-fou.
 
 Sans réseau. Fabrique un bulletin complet fictif et vérifie que les règles
 ci-dessus sont bien appliquées par les vues : bascule détectée, seuil différé
