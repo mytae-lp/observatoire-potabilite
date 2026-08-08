@@ -55,15 +55,55 @@ Pour fusionner : `git checkout master && git merge chantier-interface`
 
 `data/eau.duckdb` n'est **pas versionnée** et se reconstruit. État actuel :
 
+**État au 8 août 2026, 22 h — collecte du Tarn en cours, arrêtée en bon ordre.**
+
+| | | était au passage de main |
+|---|---|---|
+| version de référentiel | `3a66a7b928d0` | inchangée |
+| communes ayant des mesures | **50** | 36 |
+| prélèvements | **145** | 45 |
+| mesures | **56 512** | 15 617 |
+| communes couvertes | **90** — 50 analysées, 40 rattachées au réseau | 60 |
+| départements | 15, 17, 22, 28, 46, 69, 81, 82 | idem |
+| bulletins portant la thèse | **8** — complets, sans dépassement à la date, avec bascules | 8 |
+| installations à plusieurs bulletins | **10** | **0** — c'était le verrou de C3 |
+
+Tout est **figé** à cet instant : une coupure machine ne perd rien.
+
+### La collecte du Tarn — 26 communes sur 314
+
+Elle a été arrêtée volontairement, pas interrompue. Pour la reprendre, une seule
+commande, qui repart exactement où elle en était et **ne redemande à Hub'Eau
+aucun bulletin déjà au cache** :
+
+```bash
+py -X utf8 -u src/fetch_departement.py --dept 81 --tous
+```
+
 | | |
 |---|---|
-| version de référentiel | `3a66a7b928d0` |
-| communes ayant des mesures | 36 |
-| prélèvements | 45 |
-| mesures | 15 617 |
-| communes couvertes | 60 — dont 36 analysées et 24 rattachées au réseau |
-| départements | 15, 17, 22, 28, 46, 69, 81, 82 |
-| bulletins portant la thèse | **8** — complets, sans dépassement à la date, avec bascules |
+| avancement | 26 / 314 communes — `--termine` le dit à tout moment |
+| cache brut | `data/brut/81/`, 102 bulletins, 2,0 Mo |
+| journal | `data/journal/dept_81.jsonl`, une ligne par commune, refermée à chaque fois |
+| reste à faire | ~288 communes, de l'ordre de **2 h 10** |
+
+Trois filets, dans l'ordre où on en a besoin :
+
+- `--figer` — fige ce qui est collecté, sans réseau, si la reprise ne va pas au bout ;
+- `--reingerer` — rejoue tout le cache brut dans la base, sans un seul appel
+  réseau, si `data/eau.duckdb` est abîmée ou reconstruite ;
+- `--rapport` — la couverture du département, sans rien collecter.
+
+**Ne pas lire `data/journal/collecte_81.log`** pour suivre l'avancement : Python
+tamponne sa sortie quand elle est redirigée, le fichier reste vide longtemps.
+C'est `--termine` et `--rapport` qui disent la vérité, parce qu'ils lisent le
+journal.
+
+Attention avant de republier : le corpus a triplé, donc **les barèmes de LQ de
+toutes les fiches déjà publiées ont changé de base** (§2.14), et
+`tests/test_sorties.py` signalera les communes couvertes sans page tant que la
+publication n'a pas eu lieu — c'est le contrôle qui fonctionne, pas une
+régression.
 
 **La base se reconstruit entièrement**, et deux listes versionnées permettent
 de choisir quoi restituer :

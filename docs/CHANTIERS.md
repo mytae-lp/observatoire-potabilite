@@ -26,7 +26,7 @@ un, ici ou dans une autre session.
 | **C3** | ÉVOLUTION | comparer les bulletins successifs d'un même point d'eau | en attente de C7 |
 | **C4** | LQ | la finesse du laboratoire, et le biais qu'elle crée entre communes | **fait**, règle inscrite au §8bis |
 | **C5** | TERRITOIRES | ne comparer qu'à des zones nommées, dont on a les données | **fait**, règle inscrite au §2.11 |
-| **C6** | ÉCHELLE | passer de 60 à plusieurs milliers de communes | **en cours** — outillé et mesuré, le Tarn attend le feu vert |
+| **C6** | ÉCHELLE | passer de 60 à plusieurs milliers de communes | **en cours** — le Tarn est lancé, 26 communes sur 314 |
 | **C7** | CAPTAGE | la dilution comme mode de gestion — hypothèse à instruire | **premier livrable posé** |
 | **C8** | ATELIER | comprendre et fiabiliser le back-office | **prêt à lancer** |
 
@@ -914,9 +914,13 @@ publication, qui refera aussi tous les barèmes de LQ.
 
 ### Ce qui reste à faire
 
-1. **Le Tarn en entier** — extrapolation de l'essai : ~315 communes, **~2 h 20**,
-   de l'ordre de 1 400 à 1 600 bulletins et ~30 Mo de cache. Reprenable par la
-   même commande ; `--figer` termine sans réseau si la collecte est coupée.
+1. **Le Tarn en entier** — **lancé le 8 août 2026 au soir, arrêté en bon ordre à
+   26 communes sur 314**, tout figé. Reste ~288 communes, de l'ordre de 2 h 10.
+   La commande de reprise et les trois filets — `--figer`, `--reingerer`,
+   `--rapport` — sont dans `docs/REPRISE.md` §2, qui porte l'état chiffré.
+   Le corpus est déjà passé de 45 à **145 bulletins** et de 15 617 à
+   **56 512 mesures**, et **10 installations portent plusieurs bulletins** là où
+   le corpus entier n'en portait aucune.
 2. **Republier**, ce qui refait les 12 pages manquantes et met à jour toutes les
    bases de barème. À faire après la collecte, pas pendant.
 3. **Le coût du figeage** : `figer.figer()` recalcule tout le corpus à chaque
