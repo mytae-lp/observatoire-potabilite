@@ -271,7 +271,8 @@ def h(x):
 
 
 ONGLETS = [("/", "État"), ("/collecte", "Collecte"), ("/controles", "Contrôles"),
-           ("/redactions", "Rédactions"), ("/publier", "Publier")]
+           ("/valider", "Valider"), ("/redactions", "Rédactions"),
+           ("/publier", "Publier")]
 
 
 def page(titre, corps, courant, scripts=""):
@@ -319,6 +320,19 @@ def page(titre, corps, courant, scripts=""):
   .etape-q{{font-weight:400;font-size:12.5px;color:var(--ink-soft)}}
   .etape-a{{margin-top:6px;font-size:12.5px;background:var(--ambre-bg);
     border:1px solid #EAD9AE;border-radius:8px;padding:9px 12px;color:#7a5209}}
+  .prop{{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ambre);
+    border-radius:12px;padding:16px 18px;margin-bottom:12px}}
+  .prop.est-validee{{border-left-color:var(--vert);background:#FAFCFB;opacity:.75}}
+  .prop-t{{font-size:15px;font-weight:800;color:var(--eau-deep);display:flex;
+    flex-wrap:wrap;align-items:baseline;gap:10px}}
+  .prop-f{{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-top:5px}}
+  .sec-prop{{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}}
+  .sec-prop b{{font-size:13.5px;color:var(--eau-deep)}}
+  .sec-prop p{{margin:5px 0 0;font-size:13.5px;line-height:1.6}}
+  .prop-a{{margin-top:14px;display:flex;gap:12px;align-items:center}}
+  .coche{{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
+    text-transform:none;letter-spacing:0;color:var(--eau-deep);margin:0}}
+  .coche input{{width:auto}}
 </style></head><body>
 <div class="atelier-avert">ATELIER LOCAL — 127.0.0.1 uniquement. Ce poste de pilotage
   ne fait pas partie du site public et ne doit jamais être déposé sur un hébergement.</div>
@@ -531,6 +545,193 @@ def page_controles():
     return page("Contrôles qualité", "".join(blocs), "/controles")
 
 
+def _faits_par_bulletin():
+    """Les chiffres de chaque bulletin, pour que valider soit un acte éclairé.
+
+    Un bouton « tout valider » qui n'affiche pas ce sur quoi il porte serait un
+    bouton aveugle : le texte deviendrait de la main de Yannick sans qu'il ait
+    vu à quoi il se rapporte.
+    """
+    if not os.path.exists(DB_PATH):
+        return {}
+    con = duckdb.connect(DB_PATH, read_only=True)
+    try:
+        if not con.execute("SELECT 1 FROM information_schema.tables "
+                           "WHERE table_name = 'analyses_figees'").fetchone():
+            return {}
+        v = figer.version_referentiel()
+        return {r[0]: {
+            "commune": r[1], "dept": r[2], "date": str(r[3]),
+            "installation": r[4], "reseau": r[5], "nb_parametres": r[6],
+            "effort": r[7], "dep": r[8], "bas": r[9], "ind": r[10],
+            "desservies": r[11], "n": r[12]}
+            for r in con.execute("""
+                SELECT a.code_prelevement, a.commune, a.dept, a.date_prelevement,
+                       a.nom_installation_amont, a.nom_uge, a.nb_parametres,
+                       a.classe_effort, a.nb_depasse_applicable, a.nb_bascules,
+                       a.nb_indetermines,
+                       STRING_AGG(DISTINCT cc.commune, ', ' ORDER BY cc.commune),
+                       COUNT(DISTINCT cc.code_insee)
+                FROM analyses_figees a
+                LEFT JOIN couverture_communes cc
+                       ON cc.code_prelevement = a.code_prelevement
+                      AND cc.version_referentiel = a.version_referentiel
+                WHERE a.version_referentiel = ?
+                GROUP BY 1,2,3,4,5,6,7,8,9,10,11
+            """, [v]).fetchall()}
+    finally:
+        con.close()
+
+
+def page_valider(message=""):
+    """
+    Relire et valider les propositions de rédaction.
+
+    Valider n'est pas un geste technique : le texte passe de « proposé par le
+    modèle, à relire » à « de la main de Yannick ». Il cesse d'être signalé sur
+    la fiche, et il engage. La page montre donc le texte ET les chiffres du
+    bulletin auquel il se rapporte.
+    """
+    lire = lambda p: json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}  # noqa: E731
+    proposees = lire(PROPOSEES)
+    validees = lire(REDACTIONS)
+    faits = _faits_par_bulletin()
+
+    # La page liste les propositions EN ATTENTE et celles DÉJÀ VALIDÉES, sans
+    # quoi une proposition validée disparaîtrait et le bouton « remettre en
+    # proposition » deviendrait inatteignable — une validation serait alors
+    # irréversible depuis l'interface.
+    #
+    # Une entrée validée se reconnaît à sa clé `PREL:` : les textes écrits
+    # directement par Yannick sont indexés par code INSEE et n'ont jamais été
+    # des propositions. Ils ne figurent donc pas ici, et il n'y a aucun bouton
+    # pour les défaire.
+    en_attente = [(k, v, False) for k, v in proposees.items() if not k.startswith("_")]
+    deja = [(k, v, True) for k, v in validees.items() if k.startswith("PREL:")]
+    entrees = en_attente + deja
+
+    def bloc(cle, contenu, deja):
+        f = faits.get(cle[5:]) if cle.startswith("PREL:") else None
+        entete = contenu.get("_commune") or (
+            f"{f['commune']} ({f['dept']}) — {f['date']}" if f else cle)
+        signaux = ""
+        if f:
+            morceaux = []
+            if f["dep"]:
+                morceaux.append(f"<b style='color:var(--rouge)'>{f['dep']} dépassement(s)</b>")
+            if f["bas"]:
+                morceaux.append(f"<b style='color:var(--bascule)'>{f['bas']} bascule(s)</b>")
+            if f["ind"]:
+                morceaux.append(f"{f['ind']} indéterminé(s)")
+            if not morceaux:
+                morceaux.append("aucun signal")
+            signaux = (f"{f['nb_parametres']} paramètres ({f['effort']}) · "
+                       + " · ".join(morceaux)
+                       + (f" · dessert {f['n']} commune(s) : {h(f['desservies'])}"
+                          if f and f["n"] > 1 else ""))
+
+        sections = "".join(
+            f"<div class='sec-prop'><b>{h(s.get('t',''))}</b>"
+            f"<p>{h(s.get('x',''))}</p></div>"
+            for s in contenu.get("analyse", []))
+        for champ, libelle in (("delta", "Entre les deux lectures"),
+                               ("sous_titre", "Sous-titre"),
+                               ("lecture_citoyenne", "Lecture citoyenne"),
+                               ("verdict", "Verdict")):
+            if contenu.get(champ):
+                # `delta` porte volontairement du gras : la fiche l'affiche en
+                # HTML, l'aperçu doit montrer la même chose. Relire un texte
+                # criblé de balises échappées, ce n'est pas relire le texte.
+                valeur = contenu[champ] if champ == "delta" else h(contenu[champ])
+                sections = (f"<div class='sec-prop'><b>{libelle}</b>"
+                            f"<p>{valeur}</p></div>") + sections
+
+        case = ("" if deja else
+                f"<label class='coche'><input type='checkbox' name='cle' "
+                f"value='{h(cle)}' checked> valider</label>")
+        etat = ("<span class='etat ok'>validée</span>" if deja else
+                "<span class='etat ind'>à relire</span>")
+        bouton = (f"<button class='btn sec2' type='submit' name='rendre' "
+                  f"value='{h(cle)}'>remettre en proposition</button>" if deja else "")
+        return f"""
+        <div class="prop{' est-validee' if deja else ''}">
+          <div class="prop-t">{h(entete)} {etat}</div>
+          <div class="prop-f">{signaux}</div>
+          {sections}
+          <div class="prop-a">{case}{bouton}</div>
+        </div>"""
+
+    entrees.sort(key=lambda e: (e[2], (e[1].get("_commune") or e[0])))
+    blocs = "".join(bloc(k, v, est_validee) for k, v, est_validee in entrees)
+    n_attente = len(en_attente)
+
+    return page("Valider les rédactions", f"""
+      {message}
+      <div class="bloc"><h4>Ce que « valider » veut dire</h4>
+        <p>Une proposition validée est <b>recopiée dans
+          <code>sortie/redactions.json</code></b> : elle devient un texte de ta main.
+          Elle cesse d'être signalée « proposition, à relire » sur la fiche, et elle
+          n'est plus modifiée par la machine.</p>
+        <p>Le texte est retiré de <code>redactions_proposees.json</code> pour qu'il n'y
+          ait jamais deux versions du même passage. Rien n'est perdu : le fichier est
+          versionné, et <code>git checkout sortie/redactions_proposees.json</code> le
+          restitue. Le bouton « remettre en proposition » fait le chemin inverse.</p>
+        <p><b>Les chiffres ne sont jamais validés</b> : ils restent dérivés de la base et
+          se recalculent à chaque publication. Ce que tu valides ici, c'est la mise en
+          perspective.</p>
+      </div>
+
+      <form method="post" action="/valider">
+        <div class="bloc" style="position:sticky;top:0;z-index:5">
+          <b>{n_attente}</b> proposition(s) à relire, <b>{len(deja)}</b> déjà validée(s).
+          <p style="margin:10px 0 0">
+            <button class="btn" type="submit" name="action" value="cochees">Valider les propositions cochées</button>
+            &nbsp;
+            <button class="btn sec2" type="submit" name="action" value="toutes">Tout valider</button>
+          </p>
+        </div>
+        {blocs or "<div class='bloc'>Aucune proposition. Les fiches portent le texte dérivé de la base.</div>"}
+      </form>
+
+      <p style="margin:18px 0 0;font-size:13px;color:var(--ink-soft)">
+        Après validation, <a href="/publier">publie</a> pour que les fiches cessent
+        d'afficher la mention « à relire ».</p>""", "/valider")
+
+
+def action_valider(champs, listes):
+    """Déplace des propositions vers redactions.json, ou les y reprend."""
+    lire = lambda p: json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}  # noqa: E731
+
+    def ecrire(chemin, donnees):
+        with open(chemin, "w", encoding="utf-8") as fh:
+            json.dump(donnees, fh, ensure_ascii=False, indent=1)
+
+    proposees, validees = lire(PROPOSEES), lire(REDACTIONS)
+
+    rendre = champs.get("rendre")
+    if rendre:
+        if rendre not in validees:
+            raise ValueError(f"« {rendre} » n'est pas dans les rédactions validées")
+        proposees[rendre] = validees.pop(rendre)
+        ecrire(REDACTIONS, validees)
+        ecrire(PROPOSEES, proposees)
+        return f"« {rendre} » est redevenue une proposition à relire."
+
+    if champs.get("action") == "toutes":
+        cles = [k for k in proposees if not k.startswith("_")]
+    else:
+        cles = [k for k in listes.get("cle", []) if k in proposees]
+    if not cles:
+        raise ValueError("aucune proposition sélectionnée")
+
+    for cle in cles:
+        validees[cle] = proposees.pop(cle)
+    ecrire(REDACTIONS, validees)
+    ecrire(PROPOSEES, proposees)
+    return (f"{len(cles)} rédaction(s) validée(s) — elles sont désormais de ta main "
+            f"dans redactions.json. Publie pour que les fiches en tiennent compte.")
+
+
 def page_redactions(message=""):
     red = {}
     if os.path.exists(REDACTIONS):
@@ -717,6 +918,8 @@ class Atelier(BaseHTTPRequestHandler):
                 return self._envoyer(page_collecte())
             if chemin == "/controles":
                 return self._envoyer(page_controles())
+            if chemin == "/valider":
+                return self._envoyer(page_valider())
             if chemin == "/redactions":
                 return self._envoyer(page_redactions())
             if chemin == "/publier":
@@ -731,7 +934,11 @@ class Atelier(BaseHTTPRequestHandler):
         chemin = urllib.parse.urlparse(self.path).path
         taille = int(self.headers.get("Content-Length") or 0)
         brut = self.rfile.read(taille).decode("utf-8")
-        champs = {k: v[0] for k, v in urllib.parse.parse_qs(brut, keep_blank_values=True).items()}
+        # `listes` garde toutes les valeurs : une page de validation coche
+        # plusieurs fois le même nom de champ, et n'en retenir qu'une seule
+        # ferait valider une proposition sur quarante-cinq.
+        listes = urllib.parse.parse_qs(brut, keep_blank_values=True)
+        champs = {k: v[0] for k, v in listes.items()}
         try:
             if chemin == "/collecte":
                 if action_collecte(champs):
@@ -747,6 +954,9 @@ class Atelier(BaseHTTPRequestHandler):
                     return self._envoyer(page_publier(bandeau("Publication lancée.")))
                 return self._envoyer(page_publier(
                     bandeau("Une tâche est déjà en cours.", "incomplet")))
+            if chemin == "/valider":
+                return self._envoyer(page_valider(
+                    bandeau(action_valider(champs, listes))))
             if chemin == "/redactions":
                 n = action_redactions(champs)
                 return self._envoyer(page_redactions(
@@ -755,6 +965,7 @@ class Atelier(BaseHTTPRequestHandler):
             self._envoyer(page("Page inconnue", "<div class='bloc'>Rien ici.</div>", ""), 404)
         except Exception as e:
             page_courante = {"/collecte": page_collecte, "/redactions": page_redactions,
+                             "/valider": page_valider,
                              "/publier": page_publier}.get(chemin, page_collecte)
             self._envoyer(page_courante(
                 bandeau(f"<b>Refusé :</b> {h(e)}", "incomplet")), 400)
