@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche citoyenne — Observatoire de la potabilité réglementaire</title>
+<!--
+  GABARIT DE LA FICHE AUTONOME — ne contient aucune donnée.
+
+  Rempli par sortie/build_fiche.py, qui substitue sept marqueurs :
+    /*__CSS__*/  /*__FICHE_JS__*/  <!--__CORPS__-->
+    /*__KPI_LABELS__*/  /*__C__*/  /*__PARAMS__*/  /*__ORDER__*/
+
+  Le style, le corps de la fiche et le rendu viennent de site/gabarits/ :
+  la fiche autonome et la vitrine partagent la même source, et ne peuvent
+  donc pas se mettre à dire deux choses différentes du même bulletin.
+  Ici ils sont INLINÉS, pour que le fichier reste transmissible en un seul
+  morceau, consultable sans réseau et archivable tel quel.
+
+  Obligations d'affichage appliquées (CLAUDE.md §8bis) :
+    1  jamais un « conforme » sans son dénominateur          -> KPI couverture
+    2  l'effort de recherche à côté de tout classement       -> KPI effort + taux
+    3  trois états, pas deux                                 -> .det / .ind / .dep
+    5  dire où l'analyse a été prélevée si elle est empruntée-> .bandeau.reseau
+    6  le verdict à la date du prélèvement                   -> seuil_applicable
+    7  l'indice de danger n'est jamais nommé « risque »      -> libellé KPI
+    8  une valeur 'a_verifier' est signalée comme telle      -> .flag-a-verifier
+    9  chaque écran porte sa traçabilité                     -> footer
+   10  aucune recommandation de produit, nulle part          -> garde-fou
+  L'obligation 4 (« non documentée » visible) est portée par la carte de la
+  vitrine : une fiche n'existe pas pour une commune sans bulletin.
+-->
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div class="masthead"><div class="wrap">
+  <div class="eyebrow">Observatoire de la potabilité réglementaire · données ouvertes</div>
+  <h1>Fiche citoyenne — l'eau du robinet, mesure par mesure</h1>
+  <p>Un outil de conscience. On y sépare <b>la mesure</b>, qui est un fait, du
+     <b>verdict</b>, qui est une convention administrative datée. Chaque mesure est
+     notée trois fois : contre la norme de 2016, contre celle d'aujourd'hui, et
+     contre la plus protectrice au monde.</p>
+  <div class="formule">« Ce n'est pas l'eau qui est devenue potable. C'est la limite qui a bougé. »</div>
+  <div class="method">⚙️ <b>Règles de méthode</b> — on ne retient que les <b>bulletins
+     complets</b> (plus de 200 paramètres sur un même prélèvement) : mêler les analyses
+     de routine, très nombreuses, aux analyses complètes, rares, conduit mécaniquement
+     à conclure que tout va bien. Le nombre de paramètres cherchés est un indicateur
+     de <b>transparence</b>, jamais de qualité de l'eau : une eau correcte sur 200
+     paramètres est une information plus faible qu'une eau moyenne sur 700.
+     Chaque verdict est rendu <b>à la date du prélèvement</b> — un reclassement n'est
+     pas rétroactif.</div>
+  <div class="switch" id="switch" role="group" aria-label="Choisir un bulletin"></div>
+</div></div>
+
+<div class="wrap">
+<!--__CORPS__-->
+</div>
+
+<script>
+/*__KPI_LABELS__*/
+/*__C__*/
+/*__PARAMS__*/
+/*__ORDER__*/
+/*__FICHE_JS__*/
+</script>
+</body>
+</html>

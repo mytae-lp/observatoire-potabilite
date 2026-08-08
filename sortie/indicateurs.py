@@ -1,0 +1,490 @@
+# -*- coding: utf-8 -*-
+"""
+Les indicateurs de la fiche : ce qu'il y a dans l'eau, et ce que ça vaut.
+
+    python3 sortie/indicateurs.py 28379
+
+Trois groupes, et l'ordre compte
+--------------------------------
+    polluants  ce qu'on a trouvé — pesticides, PFAS, nitrates, sous-produits
+               de chloration, cumul
+    eau        quelle eau c'est — pH, minéralisation, dureté, matière
+               organique. Ce n'est pas de la pollution : c'est le caractère de
+               la ressource, et une eau agressive est un vrai sujet.
+    lecture    ce que vaut cette lecture — effort de recherche, couverture,
+               indéterminés. Obligations 1 et 2 du §8bis : jamais un
+               « conforme » sans son dénominateur.
+
+Aucun seuil n'est écrit ici
+---------------------------
+Les valeurs de comparaison viennent de `verdicts_figes` — donc du référentiel
+daté — ou de la limite que la source déclare avec la mesure. Ce module ne fait
+que rapprocher une mesure de ses seuils et en tirer un état.
+
+Quatre états, pas deux
+----------------------
+    conforme      quantifié, sous le seuil applicable à la date
+    depassement   quantifié, au-dessus
+    bascule       sous le seuil d'aujourd'hui, au-dessus de celui de 2016
+    indetermine   la limite de quantification est au-dessus du seuil auquel on
+                  voudrait comparer — on ne sait pas, et ça ne se peint pas en
+                  vert (CLAUDE.md §2.4)
+    absent        le paramètre n'a pas été recherché. Ce n'est pas un résultat.
+"""
+import argparse
+import csv
+import os
+import sys
+
+import duckdb
+
+RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(RACINE, "src"))
+
+from common import DB_PATH, norm, parse_limite, parse_plage  # noqa: E402
+
+DEFINITIONS = os.path.join(RACINE, "referentiel", "indicateurs.csv")
+
+GROUPES = [
+    ("polluants", "Ce qu'on a trouvé dans cette eau",
+     "Chaque valeur est comparée au seuil qui s'appliquait <b>le jour du "
+     "prélèvement</b>, et non à celui d'aujourd'hui."),
+    ("eau", "Quelle eau c'est",
+     "Ces paramètres ne décrivent pas une pollution : ils décrivent le "
+     "caractère de la ressource. Ils sortent de leur plage sans que rien ne "
+     "soit « dépassé » au sens sanitaire."),
+    ("lecture", "Ce que vaut cette lecture",
+     "Sans ces trois nombres, aucun des précédents ne peut être comparé à ceux "
+     "d'une autre commune."),
+]
+
+
+def _nb(x, dec=6):
+    if x is None:
+        return ""
+    s = f"{x:.{dec}f}".rstrip("0").rstrip(".")
+    return (s or "0").replace(".", ",")
+
+
+def definitions():
+    """Le fichier versionné, tel quel. Les lignes de commentaire sautent."""
+    with open(DEFINITIONS, encoding="utf-8-sig") as fh:
+        lignes = [l for l in fh if l.strip() and not l.lstrip().startswith("#")]
+    out = []
+    for d in csv.DictReader(lignes, delimiter=";"):
+        d["ordre"] = int(d["ordre"])
+        d["candidats"] = [norm(x) for x in (d["reference"] or "").split("|") if x.strip()]
+        out.append(d)
+    return sorted(out, key=lambda d: (d["groupe"], d["ordre"]))
+
+
+# ---------------------------------------------------------------------------
+def _mesures(con, code_prel, version):
+    """Toutes les mesures du bulletin, avec leurs seuils figés et les limites
+    que la source déclare — indexées par libellé normalisé."""
+    rows = con.execute("""
+        SELECT m.libelle_parametre, m.resultat_num, m.lq, m.est_quantifie, m.unite,
+               m.limite_brute, m.reference_brute,
+               f.seuil_applicable, f.seuil_2016, f.seuil_strict,
+               f.depasse_applicable, f.bascule_2016_2026,
+               f.indetermine_strict, f.indetermine_condition, f.fiabilite
+        FROM mesures m
+        LEFT JOIN verdicts_figes f
+               ON f.code_prelevement = m.code_prelevement
+              AND f.libelle_parametre = m.libelle_parametre
+              AND f.version_referentiel = ?
+        WHERE m.code_prelevement = ?
+    """, [version, code_prel]).fetchall()
+    return {norm(r[0]): r for r in rows}
+
+
+def _etat(quantifie, valeur, lq, seuil, seuil_2016, seuil_strict,
+          plage, depasse, bascule, indetermine):
+    """L'état d'un indicateur, du plus fort au plus rassurant."""
+    if depasse:
+        return "depassement"
+    if plage and plage[0] is not None and valeur is not None:
+        if valeur < plage[0] or valeur > plage[1]:
+            return "hors_plage"
+    if bascule:
+        return "bascule"
+    if indetermine:
+        return "indetermine"
+    if not quantifie:
+        # Non quantifié : conforme SEULEMENT si la LQ est sous le seuil. Sinon
+        # on ne sait pas, et c'est le piège le plus facile du projet.
+        cible = seuil if seuil is not None else seuil_strict
+        if cible is not None and lq is not None and lq > cible:
+            return "indetermine"
+        return "sous_lq"
+    return "conforme"
+
+
+def _texte_valeur(quantifie, valeur, lq, unite):
+    u = f" {unite}" if unite else ""
+    if quantifie and valeur is not None:
+        return f"{_nb(valeur)}{u}"
+    if lq is not None:
+        return f"< {_nb(lq)}{u}"
+    return "—"
+
+
+def calculer(con, a, version):
+    """
+    `a` : une ligne de `analyses_figees` en dictionnaire.
+    Renvoie {groupe: [indicateur, ...]}.
+    """
+    mesures = _mesures(con, a["code_prelevement"], version)
+    resultat = {g: [] for g, _, _ in GROUPES}
+
+    for d in definitions():
+        ind = {"cle": d["cle"], "libelle": d["libelle"], "lecture": d["lecture"],
+               "unite": d["unite"] or None}
+
+        # ---- indicateur tiré de l'agrégat du bulletin --------------------
+        if d["source"] == "analyse":
+            v = a.get(d["reference"])
+            ind.update(valeur=v, quantifie=v is not None,
+                       texte=("—" if v is None else
+                              f"{_nb(round(v, 2) if isinstance(v, float) else v)}"
+                              + (f" {d['unite']}" if d["unite"] else "")),
+                       etat="neutre", seuil=None, plage=None, part=None)
+            resultat[d["groupe"]].append(ind)
+            continue
+
+        # ---- indicateur tiré d'une mesure --------------------------------
+        m = next((mesures[c] for c in d["candidats"] if c in mesures), None)
+        if m is None:
+            # Non recherché. Une absence de recherche n'est pas un résultat, et
+            # la taire donnerait à croire que le paramètre est bon.
+            ind.update(valeur=None, quantifie=False, texte="non recherché",
+                       etat="absent", seuil=None, plage=None, part=None,
+                       detail="ce paramètre ne figure pas dans ce bulletin")
+            resultat[d["groupe"]].append(ind)
+            continue
+
+        (lib, valeur, lq, quantifie, unite, limite_brute, reference_brute,
+         seuil, s2016, sstrict, depasse, bascule, ind_s, ind_c, fiab) = m
+
+        # La plage vient de la référence déclarée par la source : c'est le seul
+        # endroit où un encadrement bas ET haut existe (pH, conductivité).
+        plage = parse_plage(reference_brute)
+        plage = (plage[0], plage[1]) if plage[0] is not None else None
+        if seuil is None:
+            seuil = parse_limite(limite_brute)[0] or parse_limite(reference_brute)[0]
+
+        etat = _etat(quantifie, valeur, lq, seuil, s2016, sstrict, plage,
+                     depasse, bascule, ind_s or ind_c)
+
+        detail = []
+        if seuil is not None:
+            detail.append(f"limite {_nb(seuil)} {unite or ind['unite'] or ''}".strip())
+        if plage:
+            detail.append(f"référence {_nb(plage[0])} à {_nb(plage[1])} "
+                          f"{unite or ind['unite'] or ''}".strip())
+        if sstrict is not None and (seuil is None or sstrict < seuil):
+            detail.append(f"repère le plus strict {_nb(sstrict)}")
+        if s2016 is not None and seuil is not None and s2016 != seuil:
+            detail.append(f"en 2016 : {_nb(s2016)}")
+
+        # La barre : où se situe la mesure par rapport à son seuil. C'est ce
+        # qui rend un nombre lisible d'un coup d'œil — 0,493 ne dit rien,
+        # « 99 % de la limite » dit tout.
+        part = None
+        if quantifie and valeur is not None:
+            if plage:
+                etendue = plage[1] - plage[0]
+                part = (valeur - plage[0]) / etendue if etendue else None
+            elif seuil:
+                part = valeur / seuil
+
+        ind.update(valeur=valeur, lq=lq, quantifie=bool(quantifie),
+                   unite=unite or ind["unite"],
+                   texte=_texte_valeur(quantifie, valeur, lq, unite or ind["unite"]),
+                   seuil=seuil, seuil_2016=s2016, seuil_strict=sstrict,
+                   plage=list(plage) if plage else None,
+                   etat=etat, part=part, detail=" · ".join(detail),
+                   a_verifier=bool(fiab and fiab != "verifie"))
+        resultat[d["groupe"]].append(ind)
+
+    return resultat
+
+
+PFAS_CHAINES = os.path.join(RACINE, "referentiel", "pfas_chaines.csv")
+
+
+def _chaines():
+    """Le fichier versionné des longueurs de chaîne, indexé par CAS ET par
+    libellé normalisé — les laboratoires n'écrivent pas tous le CAS."""
+    if not os.path.exists(PFAS_CHAINES):
+        return {}, {}
+    with open(PFAS_CHAINES, encoding="utf-8-sig") as fh:
+        lignes = [l for l in fh if l.strip() and not l.lstrip().startswith("#")]
+    par_cas, par_libelle = {}, {}
+    for d in csv.DictReader(lignes, delimiter=";"):
+        d["carbones"] = int(d["carbones"])
+        if d["code_cas"]:
+            par_cas[d["code_cas"].strip()] = d
+        par_libelle[norm(d["libelle_norm"])] = d
+    return par_cas, par_libelle
+
+
+def pfas_par_chaine(con, a, version):
+    """
+    Les PFAS individuels du bulletin, répartis par longueur de chaîne.
+
+    Ce que cette répartition met en évidence — et c'est tout son objet ici —
+    c'est que la « somme de 4 » mise en avant par la réglementation européenne
+    (PFOA, PFNA, PFHxS, PFOS) ne contient QUE des chaînes longues, c'est-à-dire
+    celles dont l'usage est en cours d'interdiction. Les chaînes courtes qui
+    les remplacent sont mesurées et n'entrent dans aucun total opposable autre
+    que la somme de 20. La norme regarde ce qui disparaît.
+
+    Ce bloc ne dit rien d'un traitement, d'un procédé ou d'un équipement, et
+    ne doit jamais servir à en suggérer un (CLAUDE.md §2.2).
+    """
+    par_cas, par_libelle = _chaines()
+    if not par_cas:
+        return None
+
+    rows = con.execute("""
+        SELECT libelle_parametre, code_cas, resultat_num, lq, est_quantifie, unite
+        FROM mesures WHERE code_prelevement = ?
+    """, [a["code_prelevement"]]).fetchall()
+
+    groupes = {"longue": [], "courte": []}
+    for lib, cas, val, lq, quant, unite in rows:
+        d = par_cas.get((cas or "").strip()) or par_libelle.get(norm(lib))
+        if not d:
+            continue
+        groupes[d["chaine"]].append({
+            "sigle": d["sigle"], "libelle": lib, "carbones": d["carbones"],
+            "type": d["type"], "quantifie": bool(quant),
+            "valeur": val, "lq": lq, "unite": unite,
+            "texte": _texte_valeur(quant, val, lq, unite),
+        })
+    if not groupes["longue"] and not groupes["courte"]:
+        return None
+
+    def resume(cle):
+        g = sorted(groupes[cle], key=lambda x: (not x["quantifie"], -(x["valeur"] or 0)))
+        quantifies = [x for x in g if x["quantifie"]]
+        return {
+            "substances": g,
+            "cherchees": len(g),
+            "quantifiees": len(quantifies),
+            # Plancher, comme toute somme du projet : les non-quantifiés y
+            # comptent pour zéro, ce qu'ils ne sont pas (§2.4).
+            "somme": round(sum(x["valeur"] for x in quantifies), 6) if quantifies else None,
+        }
+
+    return {"longue": resume("longue"), "courte": resume("courte"),
+            "somme4_ne_voit_que_longues": True}
+
+
+def reperes_nourrissons(con, a, version):
+    """
+    Les paramètres pour lesquels il existe un repère propre aux nourrissons.
+
+    **Ce ne sont pas des limites au robinet.** Ils viennent de la
+    réglementation des eaux embouteillées autorisées à porter la mention
+    « convient à l'alimentation des nourrissons » (arrêté du 14 mars 2007).
+    Comparer une eau de robinet à ces valeurs est une information utile — un
+    nourrisson boit son biberon avec l'eau qu'on a sous la main — mais ce n'est
+    pas un test de conformité, et la fiche doit le dire à chaque fois.
+
+    Le référentiel porte déjà ces valeurs en `seuil_strict`, avec leur origine
+    dans `base_seuil_strict` : rien n'est inventé ici, on ne fait que les
+    distinguer des autres repères stricts.
+    """
+    rows = con.execute("""
+        SELECT v.libelle_parametre, v.resultat_num, v.lq, v.est_quantifie, v.unite,
+               v.seuil_strict, v.seuil_applicable, r.base_seuil_strict
+        FROM verdicts_figes v
+        JOIN referentiel_seuils r ON r.libelle = v.libelle_parametre
+                                  OR lower(strip_accents(r.libelle))
+                                     = lower(strip_accents(v.libelle_parametre))
+        WHERE v.code_prelevement = ? AND v.version_referentiel = ?
+          AND v.seuil_strict IS NOT NULL
+          AND lower(strip_accents(COALESCE(r.base_seuil_strict, ''))) LIKE '%nourrisson%'
+        ORDER BY v.resultat_num / NULLIF(v.seuil_strict, 0) DESC NULLS LAST
+    """, [a["code_prelevement"], version]).fetchall()
+
+    out = []
+    for lib, val, lq, quant, unite, strict, applicable, base in rows:
+        part = (val / strict) if (quant and val is not None and strict) else None
+        out.append({
+            "libelle": lib, "texte": _texte_valeur(quant, val, lq, unite),
+            "unite": unite,
+            # Formatés ici : un « 0.05 » à la point-décimale au milieu d'une
+            # fiche en français se lit comme une coquille.
+            "repere": _nb(strict), "limite": _nb(applicable) if applicable is not None else None,
+            "part": part, "origine": base,
+            "au_dessus": bool(quant and val is not None and strict and val > strict),
+            # Le cas qui compte : sous la limite du robinet, au-dessus du
+            # repère nourrissons. L'eau est conforme et ne convient pourtant
+            # pas à l'usage que beaucoup en font.
+            "conforme_mais_au_dessus": bool(
+                quant and val is not None and strict and applicable
+                and val <= applicable and val > strict),
+        })
+    return out
+
+
+def perturbateurs(con, a, version):
+    """
+    Les perturbateurs endocriniens quantifiés, dans TROIS registres distincts.
+
+    CLAUDE.md §2.6 : le statut réglementaire et le statut scientifique ne se
+    fusionnent jamais. Un perturbateur reconnu par la littérature n'est pas
+    nécessairement reconnu par le droit, et **dans l'eau destinée à la
+    consommation humaine le seul PE avéré au sens réglementaire européen est le
+    bisphénol A**. Écrire qu'un pesticide « est un perturbateur endocrinien »
+    sans préciser le registre est une faute vérifiable.
+
+    Le troisième registre est le plus important, et il n'existe nulle part
+    ailleurs : `a_documenter`. Quarante-cinq lignes du référentiel n'ont pas de
+    statut renseigné. Ce n'est pas « non » — c'est « la question n'a pas été
+    instruite ici ». Les ranger avec les non-PE serait un faux négatif, les
+    ranger avec les suspects un faux positif. On les montre à part, comme on
+    montre les indéterminés.
+    """
+    rows = con.execute("""
+        SELECT libelle_parametre, resultat_num, lq, est_quantifie, unite,
+               seuil_applicable, famille, pe_reglementaire, pe_scientifique
+        FROM verdicts_figes
+        WHERE code_prelevement = ? AND version_referentiel = ? AND est_quantifie
+          -- Une somme n'est pas une substance : la lister ici la ferait
+          -- compter en même temps que ses composants.
+          AND NOT COALESCE(est_agregat, FALSE)
+          -- Et une ligne qui n'est appariée à AUCUNE entrée du référentiel n'a
+          -- pas de statut à afficher, même « non documenté » : on ne sait rien
+          -- d'elle, pas même sa famille chimique. Les compter à part, plutôt
+          -- que les ranger dans un registre auquel elles n'appartiennent pas.
+          AND famille IS NOT NULL
+        ORDER BY resultat_num DESC NULLS LAST
+    """, [a["code_prelevement"], version]).fetchall()
+
+    hors_referentiel = con.execute("""
+        SELECT COUNT(*) FROM verdicts_figes
+        WHERE code_prelevement = ? AND version_referentiel = ? AND est_quantifie
+          AND NOT COALESCE(est_agregat, FALSE) AND famille IS NULL
+    """, [a["code_prelevement"], version]).fetchone()[0]
+
+    groupes = {"avere": [], "suspecte": [], "non_documente": [],
+               "hors_referentiel": hors_referentiel}
+    for lib, val, lq, quant, unite, seuil, famille, reg, sci in rows:
+        r, s = (reg or "").strip().lower(), (sci or "").strip().lower()
+        if r.startswith("pe avere"):
+            cle, mention = "avere", reg
+        elif s.startswith("pe avere") or s.startswith("suspecte"):
+            cle, mention = "suspecte", sci
+        elif s.startswith("a_documenter") or not s:
+            cle, mention = "non_documente", None
+        elif s == "non":
+            continue                       # statut instruit, et négatif
+        else:
+            # Mention circonstanciée — atrazine, atrazine déséthyl. Elle nuance
+            # plus qu'elle n'affirme : elle est citée telle quelle.
+            cle, mention = "suspecte", sci
+        groupes[cle].append({
+            "libelle": lib, "texte": _texte_valeur(quant, val, lq, unite),
+            "famille": famille, "seuil": _nb(seuil) if seuil is not None else None,
+            "unite": unite,
+            "mention": (mention[:240] if mention else None),
+        })
+    if not any(groupes[k] for k in ("avere", "suspecte", "non_documente")):
+        return None
+    return groupes
+
+
+def decomposition_danger(con, a, version, maxi=6):
+    """
+    De quoi l'indice de danger est fait.
+
+    Le nombre seul — « 6,99 » — ne se lit pas. Ce qui se lit, c'est : le
+    chlorothalonil R471811 occupe 1,85 fois sa propre limite, l'atrazine
+    déséthyl 1,10 fois la sienne, et ainsi de suite. L'indice est la somme de
+    ces fractions (cf. docs/METHODE_EFFET_COCKTAIL.md, indicateur C).
+    """
+    rows = con.execute("""
+        SELECT libelle_parametre, resultat_num, unite, seuil_applicable,
+               resultat_num / NULLIF(seuil_applicable, 0) AS part
+        FROM verdicts_figes
+        WHERE code_prelevement = ? AND version_referentiel = ?
+          AND est_quantifie AND NOT COALESCE(est_agregat, FALSE)
+          AND famille IN ('pesticide','metabolite','PFAS','organique')
+          AND seuil_applicable IS NOT NULL
+        ORDER BY part DESC NULLS LAST
+        LIMIT ?
+    """, [a["code_prelevement"], version, maxi]).fetchall()
+
+    return [{"p": r[0], "v": _nb(r[1]), "u": r[2] or "", "s": _nb(r[3]),
+             "part": round(r[4], 3) if r[4] is not None else None}
+            for r in rows]
+
+
+def bascules_en_tete(con, a, version, maxi=3):
+    """
+    Les mesures qui portent la thèse, pour le bandeau de tête : au-dessus de la
+    limite de 2016, sous celle d'aujourd'hui. C'est le sujet du projet, il n'a
+    pas à être cherché au milieu d'un tableau de 300 lignes.
+    """
+    return con.execute("""
+        SELECT libelle_parametre, resultat_num, unite, seuil_2016,
+               seuil_applicable, bascule_datee
+        FROM verdicts_figes
+        WHERE code_prelevement = ? AND version_referentiel = ? AND bascule_2016_2026
+        ORDER BY resultat_num / NULLIF(seuil_2016, 0) DESC
+        LIMIT ?
+    """, [a["code_prelevement"], version, maxi]).fetchall()
+
+
+def depassements_en_tete(con, a, version, maxi=3):
+    """`seuil_2016` est renvoyé aussi : une mesure qui dépasse aujourd'hui a
+    souvent dépassé bien plus largement l'ancienne limite, et la jauge le
+    montre mieux qu'une phrase."""
+    return con.execute("""
+        SELECT libelle_parametre, resultat_num, unite, seuil_applicable,
+               grille_applicable, seuil_2016
+        FROM verdicts_figes
+        WHERE code_prelevement = ? AND version_referentiel = ? AND depasse_applicable
+        ORDER BY resultat_num / NULLIF(seuil_applicable, 0) DESC
+        LIMIT ?
+    """, [a["code_prelevement"], version, maxi]).fetchall()
+
+
+# ---------------------------------------------------------------------------
+def main():
+    p = argparse.ArgumentParser(description="Indicateurs d'un bulletin")
+    p.add_argument("insees", nargs="+")
+    args = p.parse_args()
+
+    con = duckdb.connect(DB_PATH, read_only=True)
+    version = con.execute("SELECT version_referentiel FROM analyses_figees "
+                          "GROUP BY 1 ORDER BY MAX(calcule_le) DESC LIMIT 1").fetchone()[0]
+    marques = ",".join("?" * len(args.insees))
+    rows = con.execute(f"""SELECT * FROM analyses_figees
+                           WHERE version_referentiel = ? AND code_insee IN ({marques})
+                           ORDER BY commune, date_prelevement DESC""",
+                       [version, *args.insees]).fetchall()
+    cols = [d[0] for d in con.description]
+    for r in rows:
+        a = dict(zip(cols, r))
+        print("=" * 78)
+        print(f"{a['commune']} — {a['date_prelevement']}")
+        print("=" * 78)
+        groupes = calculer(con, a, version)
+        for cle, titre, _ in GROUPES:
+            print(f"\n--- {titre} ---")
+            for i in groupes[cle]:
+                print(f"  {i['libelle'][:38]:<38} {i['texte'][:20]:<20} "
+                      f"{i['etat']:<12} {i.get('detail', '')}")
+        for lib, val, u, s16, sapp, datee in bascules_en_tete(con, a, version):
+            print(f"\n  BASCULE  {lib} {_nb(val)} {u} — 2016 : {_nb(s16)}, "
+                  f"aujourd'hui : {_nb(sapp)}" + ("  (datée)" if datee else ""))
+    con.close()
+
+
+if __name__ == "__main__":
+    main()
