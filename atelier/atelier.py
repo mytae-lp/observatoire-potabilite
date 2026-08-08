@@ -29,14 +29,13 @@ maintenir sur un outil dont toute la valeur est de durer.
 """
 import argparse
 import html
-import io
 import json
 import os
+import subprocess
 import sys
 import threading
 import traceback
 import urllib.parse
-from contextlib import redirect_stdout, redirect_stderr
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import duckdb
@@ -51,6 +50,7 @@ import figer  # noqa: E402
 
 GABARITS = os.path.join(RACINE, "site", "gabarits")
 REDACTIONS = os.path.join(RACINE, "sortie", "redactions.json")
+PROPOSEES = os.path.join(RACINE, "sortie", "redactions_proposees.json")
 
 # Les cinq contrôles à relire après chaque collecte. Ils ne sont pas
 # décoratifs : un paramètre mesuré mais non apparié existe en base sans peser
@@ -103,22 +103,38 @@ class Tache:
         self.fini = False
         self.erreur = None
 
-    def lancer(self, titre, fonction):
+    def lancer(self, titre, etapes):
+        """
+        `etapes` : liste de (libellé, [argv]) exécutées en SOUS-PROCESSUS.
+
+        Pourquoi pas dans ce processus. Un serveur Python garde en mémoire le
+        code chargé à son démarrage. L'atelier étant lancé une fois et laissé
+        ouvert, une collecte déclenchée après une modification de `src/`
+        s'exécutait avec l'ANCIEN code — et cela s'est produit : un figeage a
+        reconstruit `verdicts_figes` sans les colonnes ajoutées le matin même,
+        en silence, et la publication suivante a échoué. Le sous-processus lit
+        les fichiers à chaque lancement : il ne peut pas être périmé.
+
+        Accessoirement, cela supprime le `redirect_stdout` global, qui
+        détournait aussi la sortie des autres fils.
+        """
         if not self.verrou.acquire(blocking=False):
             return False
         self.lignes, self.titre = [], titre
         self.en_cours, self.fini, self.erreur = True, False, None
 
         def executer():
-            flux = _FluxLignes(self.lignes)
             try:
-                with redirect_stdout(flux), redirect_stderr(flux):
-                    fonction()
-            except SystemExit as e:
-                self.erreur = f"interrompu (code {e.code})"
+                for libelle, argv in etapes:
+                    self.lignes.append(f"$ {libelle}")
+                    code = self._executer_un(argv)
+                    if code != 0:
+                        self.erreur = (f"« {libelle} » s'est arrêté avec le code "
+                                       f"{code}. Rien de plus n'a été lancé.")
+                        return
+                    self.lignes.append("")
             except Exception:
                 self.erreur = traceback.format_exc()
-                self.lignes.append(self.erreur)
             finally:
                 self.en_cours, self.fini = False, True
                 self.verrou.release()
@@ -126,30 +142,19 @@ class Tache:
         threading.Thread(target=executer, daemon=True).start()
         return True
 
+    def _executer_un(self, argv):
+        proc = subprocess.Popen(
+            [sys.executable, "-X", "utf8", "-u"] + argv,
+            cwd=RACINE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace")
+        for ligne in proc.stdout:
+            self.lignes.append(ligne.rstrip("\n"))
+        return proc.wait()
+
     def etat(self):
         return {"titre": self.titre, "en_cours": self.en_cours,
                 "fini": self.fini, "erreur": self.erreur,
                 "lignes": list(self.lignes)}
-
-
-class _FluxLignes(io.TextIOBase):
-    """Capture la sortie d'un script pour la montrer en direct dans la page."""
-
-    def __init__(self, cible):
-        self.cible = cible
-        self.tampon = ""
-
-    def write(self, s):
-        self.tampon += s
-        while "\n" in self.tampon:
-            ligne, self.tampon = self.tampon.split("\n", 1)
-            self.cible.append(ligne)
-        return len(s)
-
-    def flush(self):
-        if self.tampon:
-            self.cible.append(self.tampon)
-            self.tampon = ""
 
 
 TACHE = Tache()
@@ -158,6 +163,65 @@ TACHE = Tache()
 # ---------------------------------------------------------------------------
 # Lecture de l'état de la base
 # ---------------------------------------------------------------------------
+def circuit():
+    """
+    Où en est chaque commune dans la chaîne, et ce qui reste à faire.
+
+    Quatre étapes, et chacune peut être en retard sur la précédente :
+
+        collectée  ses mesures sont en base
+        figée      un verdict a été calculé contre le référentiel ACTUEL
+        publiée    elle a une page dans site/public/
+        rédigée    un texte de ta main, ou une proposition à relire
+
+    Rendre ce décalage visible est tout l'objet de cette vue : une commune
+    collectée et non publiée n'existe pour personne, et rien ne le signalait.
+    """
+    if not os.path.exists(DB_PATH):
+        return None
+    con = duckdb.connect(DB_PATH, read_only=True)
+    try:
+        tables = {r[0] for r in con.execute(
+            "SELECT table_name FROM information_schema.tables").fetchall()}
+        if "couverture_communes" not in tables:
+            return None
+        version = figer.version_referentiel()
+
+        collectees = {r[0]: r[1] for r in con.execute(
+            "SELECT DISTINCT p.code_insee, c.nom FROM prelevements p "
+            "JOIN communes c ON c.code_insee = p.code_insee").fetchall()}
+        couvertes = {r[0]: (r[1], r[2]) for r in con.execute(
+            "SELECT code_insee, commune, statut FROM couverture_communes "
+            "WHERE version_referentiel = ?", [version]).fetchall()}
+    finally:
+        con.close()
+
+    lire = lambda p: json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}  # noqa: E731
+    redigees = set(lire(REDACTIONS))
+    proposees = set(lire(PROPOSEES)) - {"_lisez_moi"}
+    public = os.path.join(RACINE, "site", "public", "commune")
+
+    a_figer = [(i, n) for i, n in collectees.items() if i not in couvertes]
+    a_publier, a_rediger = [], []
+    for insee, (nom, statut) in couvertes.items():
+        if statut == "non_documentee":
+            continue
+        if not os.path.exists(os.path.join(public, f"{insee}.html")):
+            a_publier.append((insee, nom))
+        if insee not in redigees and insee not in proposees:
+            a_rediger.append((insee, nom))
+
+    return {"version": version, "collectees": len(collectees),
+            "couvertes": len(couvertes),
+            "publiees": len([1 for i, (n, s) in couvertes.items()
+                             if s != "non_documentee"
+                             and os.path.exists(os.path.join(public, f"{i}.html"))]),
+            "redigees": len(redigees), "proposees": len(proposees),
+            "a_figer": sorted(a_figer, key=lambda x: x[1] or ""),
+            "a_publier": sorted(a_publier, key=lambda x: x[1] or ""),
+            "a_rediger": sorted(a_rediger, key=lambda x: x[1] or "")}
+
+
 def etat_base():
     if not os.path.exists(DB_PATH):
         return {"absente": True}
@@ -240,6 +304,21 @@ def page(titre, corps, courant, scripts=""):
   .bloc h4{{margin:0 0 8px;font-size:15px;color:var(--eau-deep);font-weight:800}}
   .bloc p{{margin:0 0 10px;font-size:13.5px;color:var(--ink-soft)}}
   .compte{{font-family:var(--mono);font-weight:700}}
+  .circuit{{display:grid;gap:2px}}
+  .etape{{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--line)}}
+  .etape:first-child{{border-top:none}}
+  .etape-n{{flex:none;width:26px;height:26px;border-radius:50%;background:var(--eau);
+    color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;
+    justify-content:center}}
+  .etape.en-retard .etape-n{{background:var(--ambre)}}
+  .etape-c{{flex:1}}
+  .etape-t{{font-size:14px;font-weight:700;display:flex;flex-wrap:wrap;
+    align-items:baseline;gap:8px}}
+  .etape-t a{{text-decoration:none}}
+  .etape-v{{font-family:var(--mono);font-size:17px;color:var(--eau-deep)}}
+  .etape-q{{font-weight:400;font-size:12.5px;color:var(--ink-soft)}}
+  .etape-a{{margin-top:6px;font-size:12.5px;background:var(--ambre-bg);
+    border:1px solid #EAD9AE;border-radius:8px;padding:9px 12px;color:#7a5209}}
 </style></head><body>
 <div class="atelier-avert">ATELIER LOCAL — 127.0.0.1 uniquement. Ce poste de pilotage
   ne fait pas partie du site public et ne doit jamais être déposé sur un hébergement.</div>
@@ -319,16 +398,72 @@ def page_etat():
         <p>L'empreinte porte sur le <b>contenu</b> des fichiers du référentiel, pas sur
           un commit : une modification non commitée doit rester identifiable.</p>
       </div>
-      <div class="bloc"><h4>Le circuit</h4>
-        <p>1. <a href="/collecte">Collecter</a> des communes &nbsp;→&nbsp;
-           2. relire les <a href="/controles">contrôles</a> &nbsp;→&nbsp;
-           3. écrire les <a href="/redactions">rédactions</a> &nbsp;→&nbsp;
-           4. <a href="/publier">publier</a>.</p>
+      {bloc_circuit()}
+      <div class="bloc"><h4>Rappel de méthode</h4>
         <p>Un prélèvement n'est retenu comme complet qu'au-delà de
           {SEUIL_COMPLET} paramètres. Une commune sans bulletin complet, ni pour elle ni
           pour son réseau, sort en « non documentée » : ce n'est ni conforme ni non
           conforme, et cela reste visible sur la carte.</p>
+        <p>La collecte va jusqu'au figeage toute seule. La <b>publication</b>, elle,
+          est un geste séparé : c'est elle qui fabrique les pages. Tant qu'elle n'a pas
+          eu lieu, une commune collectée n'existe pour personne.</p>
       </div>""", "/")
+
+
+def bloc_circuit():
+    """Les quatre étapes, et ce qui est en retard sur quoi."""
+    c = circuit()
+    if not c:
+        return ""
+
+    def liste(items, maxi=12):
+        noms = [h(n or i) for i, n in items[:maxi]]
+        reste = f" et {len(items) - maxi} autre(s)" if len(items) > maxi else ""
+        return ", ".join(noms) + reste
+
+    etapes = [
+        ("1", "Collecter", c["collectees"], "commune(s) ont des mesures en base",
+         "/collecte", None),
+        ("2", "Figer", c["couvertes"], "commune(s) notées contre le référentiel actuel",
+         "/publier",
+         (f"<b>{len(c['a_figer'])} commune(s) collectée(s) mais pas figée(s)</b> "
+          f"contre la version actuelle : {liste(c['a_figer'])}. Le référentiel a "
+          "changé depuis leur collecte — publie pour les recalculer."
+          ) if c["a_figer"] else None),
+        ("3", "Publier", c["publiees"], "commune(s) ont leur page dans site/public/",
+         "/publier",
+         (f"<b>{len(c['a_publier'])} commune(s) figée(s) sans page</b> : "
+          f"{liste(c['a_publier'])}. Elles sont en base et invisibles pour un "
+          "visiteur. Un seul geste : publier."
+          ) if c["a_publier"] else None),
+        ("4", "Rédiger", c["redigees"] + c["proposees"],
+         f"commune(s) avec une prose écrite ({c['redigees']} de ta main, "
+         f"{c['proposees']} proposée(s))", "/redactions",
+         (f"<b>{len(c['a_rediger'])} commune(s) sans prose écrite.</b> Elles ne sont "
+          "pas vides pour autant : leur fiche porte le texte <b>dérivé</b> de la base, "
+          "produit automatiquement et toujours à jour. Ce qui manque est la mise en "
+          "perspective — le territoire, l'histoire d'une substance."
+          ) if c["a_rediger"] else None),
+    ]
+
+    lignes = ""
+    for num, titre, n, quoi, url, alerte in etapes:
+        lignes += f"""
+        <div class="etape{' en-retard' if alerte else ''}">
+          <div class="etape-n">{num}</div>
+          <div class="etape-c">
+            <div class="etape-t"><a href="{url}">{titre}</a>
+              <span class="etape-v">{n}</span> <span class="etape-q">{quoi}</span></div>
+            {f'<div class="etape-a">{alerte}</div>' if alerte else ''}
+          </div>
+        </div>"""
+
+    return f"""
+      <div class="bloc"><h4>Le circuit, et où en sont tes communes</h4>
+        <p>Chaque étape peut être en retard sur la précédente. C'est normal, et
+          c'est justement ce qu'il faut voir.</p>
+        <div class="circuit">{lignes}</div>
+      </div>"""
 
 
 def page_collecte(message=""):
@@ -501,35 +636,32 @@ def action_collecte(champs):
     if not codes:
         raise ValueError("aucun code à collecter : donne un fichier ou colle une liste")
 
-    tous = champs.get("tous") == "1"
-    repli = champs.get("sans_repli") != "1"
-    import observer
+    argv = [os.path.join("src", "observer.py")] + codes
+    if champs.get("tous") == "1":
+        argv.append("--tous")
+    if champs.get("sans_repli") == "1":
+        argv.append("--sans-repli")
 
-    def travail():
-        print(f"{len(codes)} commune(s) à traiter : {', '.join(codes)}\n")
-        observer.observer(codes, tous=tous, repli=repli)
-        print("\ncollecte terminée. Relis les contrôles avant de publier.")
-
-    return TACHE.lancer(f"collecte de {len(codes)} commune(s)", travail)
+    return TACHE.lancer(
+        f"collecte de {len(codes)} commune(s)",
+        [(f"collecte de {len(codes)} commune(s) : {', '.join(codes[:8])}"
+          + (" …" if len(codes) > 8 else ""), argv)])
 
 
 def action_publier():
-    import build_fiche
-    import build_site
+    """
+    Refiger, reconstruire la vitrine et la fiche, puis CONTRÔLER.
 
-    def travail():
-        con = duckdb.connect(DB_PATH)
-        try:
-            version, n = figer.figer(con)
-            print(f"figé : {n} bulletin(s), référentiel version {version}\n")
-        finally:
-            con.close()
-        build_site.construire()
-        print()
-        build_fiche.construire()
-        print("\npublication terminée.")
-
-    return TACHE.lancer("publication", travail)
+    Le contrôle est dans la chaîne et non à côté : publier sans vérifier que la
+    version publiée est la bonne et que chaque compteur est d'accord avec son
+    détail, c'est exactement ce que l'outil reproche au reste du monde.
+    """
+    return TACHE.lancer("publication", [
+        ("refiger tous les bulletins", [os.path.join("src", "figer.py")]),
+        ("reconstruire la vitrine", [os.path.join("site", "build_site.py")]),
+        ("reconstruire la fiche autonome", [os.path.join("sortie", "build_fiche.py")]),
+        ("contrôler les sorties", [os.path.join("tests", "test_sorties.py")]),
+    ])
 
 
 def action_redactions(champs):
