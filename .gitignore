@@ -9,6 +9,17 @@ data/journal/
 # dérivés de la base, régénérés par src/etude_panel.py.
 data/etudes/
 
+# Les dossiers de faits envoyés en rédaction, et les réponses en attente
+# d'intégration. Entièrement dérivés de la base, refabriqués par
+# sortie/rediger_lot.py --dossiers ; ce qui compte finit dans
+# sortie/redactions_proposees.json, qui est versionné.
+data/dossiers/
+
+# La version longue du CLAUDE.md d'avant le dégraissage du 8 août 2026. Git
+# porte déjà l'original dans l'historique : ce fichier n'est qu'une commodité
+# de lecture locale, il n'a pas à être versionné deux fois.
+docs/_CLAUDE-avant-degraissage-*.md.bak
+
 # Sorties générées
 sortie/*.html
 !sortie/_template.html
