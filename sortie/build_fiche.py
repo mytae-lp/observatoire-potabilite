@@ -106,24 +106,38 @@ def charger_prose():
     return lire(REDACTIONS), lire(PROPOSEES)
 
 
-def pour_bulletin(prose, insee, date_iso):
+def pour_bulletin(prose, insee, date_iso, code_prelevement=None):
     """
-    La prose d'un bulletin précis.
+    La prose qui accompagne un bulletin, de la clé la plus précise à la plus
+    générale.
 
-    Deux clés possibles, la plus précise l'emporte :
-        "28068"              vaut pour tous les bulletins de la commune
-        "28068@2026-03-10"   ne vaut que pour ce prélèvement
+        "28068@2026-03-10"        cette commune, ce prélèvement
+        "28068"                   cette commune, tous ses prélèvements
+        "PREL:08100134523"        CE POINT D'EAU, ce prélèvement — partagé par
+                                  toutes les communes qu'il alimente
 
-    Défaut réel, trouvé le 8 août 2026 : la prose n'était indexée que par
-    commune. Challet a deux bulletins complets, 2022 et 2026 ; l'analyse écrite
-    pour celui de 2026 — « chlorothalonil R471811 à 1,662 µg/L » — s'affichait
-    aussi sous les chiffres de 2022, où cette valeur n'existe pas. Un texte qui
-    décrit un autre prélèvement que celui qu'il accompagne est exactement le
-    genre de dérive que le projet combat ailleurs.
+    La clé `PREL:` est la réponse à un fait de terrain : un même prélèvement
+    alimente jusqu'à huit communes. Écrire huit fois le même texte serait
+    absurde, et les huit versions divergeraient à la première correction. Un
+    texte par point d'eau, et les communes desservies en héritent.
+
+    Elle est indexée sur le `code_prelevement` et non sur
+    `code_installation_amont`, qui est vide sur un tiers des bulletins — et
+    parce qu'un texte citant « 1,662 µg/L » décrit un prélèvement daté, pas une
+    installation en général.
+
+    Défaut réel corrigé au passage : la prose n'était indexée que par commune.
+    Challet a deux bulletins complets, 2022 et 2026 ; l'analyse écrite pour
+    celui de 2026 s'affichait aussi sous les chiffres de 2022, où la valeur
+    citée n'existe pas.
     """
     if not prose:
         return None
-    return prose.get(f"{insee}@{date_iso}") or prose.get(insee)
+    for cle in (f"{insee}@{date_iso}", insee,
+                f"PREL:{code_prelevement}" if code_prelevement else None):
+        if cle and cle in prose:
+            return prose[cle]
+    return None
 
 
 def fusionner(auteur, propose, derive):
@@ -573,8 +587,10 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             d_iso = str(a["date_prelevement"])
             C[cle] = bloc_commune(
                 con, ligne, cols,
-                pour_bulletin(redactions, a["code_insee"], d_iso), version,
-                proposee=pour_bulletin(proposees, a["code_insee"], d_iso))
+                pour_bulletin(redactions, a["code_insee"], d_iso,
+                              a["code_prelevement"]), version,
+                proposee=pour_bulletin(proposees, a["code_insee"], d_iso,
+                                       a["code_prelevement"]))
             PARAMS[cle] = bloc_parametres(con, a["code_prelevement"], version)
             ORDER.append(cle)
 
@@ -590,9 +606,15 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             if not ligne:
                 continue
             cle = f"{insee}-rattachee"
-            C[cle] = bloc_commune(con, ligne, cols, redactions.get(insee),
-                                  version, rattachement=rat,
-                                  proposee=proposees.get(insee))
+            # Une commune rattachée hérite du texte du POINT D'EAU dont elle
+            # boit l'eau : c'est même le cas où la clé `PREL:` sert le plus.
+            d_iso = str(dict(zip(cols, ligne))["date_prelevement"])
+            C[cle] = bloc_commune(
+                con, ligne, cols,
+                pour_bulletin(redactions, insee, d_iso, rat["code_prelevement"]),
+                version, rattachement=rat,
+                proposee=pour_bulletin(proposees, insee, d_iso,
+                                       rat["code_prelevement"]))
             PARAMS[cle] = bloc_parametres(con, rat["code_prelevement"], version)
             ORDER.append(cle)
 

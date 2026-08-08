@@ -1,164 +1,596 @@
 {
  "_lisez_moi": {
-  "_": "PROPOSITIONS DE RÉDACTION — écrites par le modèle, non relues. Ce fichier ne contient QUE ce que la base ne sait pas : le territoire, l'histoire d'une substance, la mise en perspective d'une série. Tout ce qui se déduit des chiffres est produit à la volée par sortie/rediger.py et n'a rien à faire ici. Préséance : sortie/redactions.json (ta main) l'emporte champ par champ sur ce fichier, qui l'emporte sur le dérivé. Valider une proposition = la recopier dans redactions.json ; elle cesse alors d'être signalée comme non relue. La supprimer ici la fait disparaître de la fiche, qui retombe sur le texte dérivé. Aucune recommandation d'équipement, de filtration ou de produit ne doit jamais entrer ici (CLAUDE.md §2.2), et l'on interroge la norme, jamais les acteurs qui l'appliquent (§2.1)."
+  "_": "PROPOSITIONS DE RÉDACTION — écrites par le modèle, non relues. Un texte par POINT D'EAU : la clé « PREL:<code_prelevement> » vaut pour toutes les communes que ce prélèvement alimente. Le point d'eau de Saint-Christophe en dessert huit ; écrire huit fois le même texte serait absurde et les huit versions divergeraient à la première correction. Ce fichier ne contient QUE ce que la base ne sait pas : le territoire, l'histoire d'une substance, la lecture d'une série. Tout ce qui se déduit des chiffres est produit à la volée par sortie/rediger.py. Préséance : redactions.json (ta main) l'emporte champ par champ, puis ce fichier, puis le dérivé. Valider = recopier dans redactions.json. Aucune recommandation d'équipement, de traitement ou de filtration ne doit entrer ici (CLAUDE.md §2.2), et l'on interroge la norme, jamais les acteurs qui l'appliquent (§2.1)."
  },
 
- "28358": {
-  "nom": "Saint-Prest",
-  "sous_titre": "Eure-et-Loir (28) · vallée de l'Eure, nappe de Beauce",
-  "delta": "Les deux lectures <b>convergent</b> : l'ARS prononce elle-même la non-conformité. Ce que le bulletin ajoute, c'est l'ampleur — 1,698 µg/L, soit dix-sept fois la limite qui s'appliquait avant avril 2024.",
+ "PREL:02800129116": {
+  "_commune": "Challet (28) — 10 mars 2026",
+  "delta": "Ici les deux lectures <b>convergent</b> : l'administration prononce elle-même la non-conformité. Ce que le bulletin ajoute, c'est l'ampleur et le mécanisme.",
   "analyse": [
    {
-    "t": "Une station qui alimente plusieurs communes",
-    "x": "Ce prélèvement ne concerne pas la seule commune de Saint-Prest : c'est lui qui documente aussi Champhol, Mainvilliers et Poisvilliers, faute de bulletin complet propre à chacune. Un même point d'eau, quatre communes, un seul verdict. C'est la règle de repli du projet, et elle a une conséquence qu'il faut dire : l'habitant de Mainvilliers lit ici une analyse qui n'a pas été faite chez lui."
+    "t": "Le chlorothalonil, six ans après l'interdiction",
+    "x": "Le chlorothalonil est un fongicide interdit dans l'Union européenne depuis 2020. Ce qu'on mesure ici n'est pas la molécule mère mais ses produits de dégradation, qui persistent dans la nappe bien après l'arrêt des épandages. L'ANSES a examiné les deux principaux dans un même avis, le 29 avril 2024, et en a tiré deux conclusions opposées : le R471811 jugé non pertinent, avec une valeur indicative de 0,9 µg/L ; le R417888 jugé pertinent, avec une limite de qualité de 0,1 µg/L, au motif qu'on ne peut pas exclure un potentiel génotoxique. Les deux dépassent ici leur propre seuil."
    },
    {
-    "t": "Le chlorothalonil, dix ans après l'interdiction",
-    "x": "Le chlorothalonil est un fongicide interdit dans l'Union européenne depuis 2020. Ce qu'on mesure ici n'est pas la molécule mère mais ses produits de dégradation, le R471811 et le R417888, qui persistent dans les nappes bien après l'arrêt des épandages. L'ANSES les a examinés dans un même avis du 29 avril 2024 et en a tiré deux conclusions opposées : le R471811 jugé non pertinent, avec une valeur indicative de 0,9 µg/L ; le R417888 jugé pertinent, avec une limite de qualité de 0,1 µg/L, au motif qu'on ne peut pas exclure un potentiel génotoxique. Les deux dépassent ici leur propre seuil."
-   }
-  ]
- },
-
- "28379": {
-  "nom": "Soulaires",
-  "sous_titre": "Eure-et-Loir (28) · plateau beauceron, réseau des Portes Euréliennes",
-  "delta": "Les deux dépassements de ce bulletin sont <b>bactériologiques</b>, pas chimiques. Le signal réglementaire et le signal citoyen ne pointent donc pas le même problème.",
-  "analyse": [
-   {
-    "t": "Deux dépassements qui ne sont pas ceux qu'on attend",
-    "x": "Sur un plateau céréalier, on s'attend à des pesticides. Ici les deux dépassements du jour sont des indicateurs bactériologiques — Escherichia coli et entérocoques, à 5 pour 100 mL contre une exigence d'absence. C'est un événement ponctuel, de nature différente d'une contamination diffuse : il relève de l'intégrité du réseau ou du traitement, pas de la pollution de la ressource. Les deux lectures doivent rester distinctes."
+    "t": "Une eau conforme aux nitrates, et pourtant",
+    "x": "Les nitrates sont à quelques dixièmes de la limite de 50 mg/L : conformes, donc, et de peu. Le repère applicable aux eaux embouteillées portant la mention « convient à l'alimentation des nourrissons » est de 10 mg/L. Cette eau en est à près de cinq fois. Ce n'est pas une non-conformité — c'est un écart entre deux façons de fixer un seuil pour la même eau, selon qui la boit."
    },
    {
-    "t": "Et une bascule, silencieuse à côté",
-    "x": "Pendant que l'attention se porte sur la bactériologie, le chlorothalonil R471811 est mesuré à 0,579 µg/L. C'est conforme aujourd'hui, et ce ne l'était pas avant le 29 avril 2024. Cette ligne-là ne déclenche aucune alerte, n'apparaît dans aucune conclusion sanitaire, et c'est précisément ce que cet observatoire cherche à rendre visible."
+    "t": "Lecture territoriale",
+    "x": "Pleine Beauce céréalière, sur la nappe la plus sollicitée de France. La composition du cortège raconte l'assolement : chloridazone pour la betterave, métazachlore pour le colza, atrazine déséthyl pour un herbicide interdit depuis 2003 et toujours mesurable. Les molécules mères ont disparu des champs ; leurs métabolites restent dans l'eau."
    }
   ]
  },
 
- "28048": {
-  "nom": "La Bourdinière-Saint-Loup",
-  "sous_titre": "Eure-et-Loir (28) · sud chartrain, plaine céréalière",
+ "PREL:02800114091": {
+  "_commune": "Challet (28) — 12 janvier 2022",
   "analyse": [
    {
-    "t": "Le bulletin qui documente aussi Amilly et Cintray",
-    "x": "Ce prélèvement sert de référence à trois communes. Il porte 234 paramètres, soit le bas de la fourchette des analyses complètes : la couverture est bonne (92 %) mais l'effort de recherche est modeste au regard des 315 à 411 paramètres cherchés ailleurs dans le même corpus. Sur un panel plus large, on ne sait pas ce qu'on aurait trouvé — et c'est une information en soi."
-   }
-  ]
- },
-
- "28022": {
-  "nom": "Bailleau-l'Évêque",
-  "sous_titre": "Eure-et-Loir (28) · nord-ouest chartrain, nappe de Beauce",
-  "analyse": [
-   {
-    "t": "Deux prélèvements, deux verdicts, une même eau",
-    "x": "En juillet 2025, le chlorothalonil R471811 est à 1,607 µg/L et son homologue R417888 à 0,053 : un seul dépassement. En mars 2026, 1,268 et 0,117 : deux dépassements. La première molécule a baissé, la seconde a franchi son seuil. Lire un bulletin isolé conduirait à conclure dans un sens ou dans l'autre selon la date choisie ; c'est la série qui informe, pas le point."
+    "t": "Un bulletin antérieur au reclassement",
+    "x": "Ce prélèvement date de janvier 2022, plus de deux ans avant l'avis de l'ANSES du 29 avril 2024 qui a déplacé la limite du chlorothalonil R471811 de 0,1 à 0,9 µg/L. Aucun métabolite de chlorothalonil n'y est quantifié — mais l'analyse ne les cherchait pas tous. L'absence de recherche ne s'interprète jamais comme une absence de substance."
    },
    {
-    "t": "Ce que le second bulletin cherche en plus",
-    "x": "L'analyse de mars 2026 porte sur 315 paramètres contre 289 en juillet 2025, et fait apparaître cinq métabolites que la première ne recherchait pas — ESA et OXA métazachlore, ESA métolachlore, CGA 354742, flufénacet ESA. Ils n'étaient pas absents en 2025 : ils n'étaient pas cherchés. Comparer les deux comptes bruts de substances quantifiées n'aurait aucun sens."
+    "t": "Les perchlorates, et un avis qui vise les nourrissons",
+    "x": "La conclusion sanitaire de ce prélèvement signale une teneur en perchlorates supérieure à 4 µg/L et, conformément à l'avis de l'ANSES, recommande d'en limiter l'usage pour la préparation des biberons. C'est un cas rare et instructif : une eau déclarée <b>conforme à l'ensemble des paramètres mesurés</b>, et assortie d'une réserve explicite pour une partie de la population. Le mot « conforme » ne recouvre pas les mêmes usages selon qui boit."
    }
   ]
  },
 
- "28325": {
-  "nom": "Saint-Aubin-des-Bois",
-  "sous_titre": "Eure-et-Loir (28) · ouest chartrain, captage du Bois de Bailleau",
+ "PREL:02800129114": {
+  "_commune": "Bailleau-l'Évêque (28) — 10 mars 2026, dessert aussi Briconville et Fresnay-le-Gilmert",
   "analyse": [
    {
-    "t": "Le cortège complet des métabolites de grande culture",
-    "x": "Onze substances de synthèse quantifiées simultanément, et leur composition raconte l'assolement : métazachlore et son ESA pour le colza, métolachlore ESA pour le maïs, flufénacet ESA pour les céréales d'hiver, atrazine déséthyl pour un herbicide interdit depuis 2003. Aucune de ces molécules, prise seule, ne dépasse sa limite. La réglementation les note une par une ; le verre les contient toutes."
+    "t": "Un point d'eau pour trois communes",
+    "x": "Ce prélèvement documente Bailleau-l'Évêque, Briconville et Fresnay-le-Gilmert : la même eau, la même analyse, un seul verdict. Les habitants des deux dernières lisent ici un bulletin qui n'a pas été prélevé chez eux — c'est la règle de repli du projet, et elle doit être dite plutôt que masquée."
+   },
+   {
+    "t": "Deux métabolites du même fongicide, deux statuts",
+    "x": "Le R471811 et le R417888 viennent tous deux du chlorothalonil, interdit depuis 2020. L'ANSES les a séparés dans son avis du 29 avril 2024 : le premier non pertinent, jugé sur 0,9 µg/L ; le second pertinent, jugé sur 0,1, parce qu'un potentiel génotoxique ne peut pas être écarté. Ils dépassent ici l'un et l'autre. La différence de traitement réglementaire entre deux molécules issues de la même substance mère est ce que ce bulletin donne à voir."
+   },
+   {
+    "t": "Comparer avec le prélèvement précédent",
+    "x": "Le bulletin de juillet 2025 sur ce même réseau portait sur 289 paramètres, celui-ci sur 315 : cinq métabolites apparaissent qui n'étaient pas cherchés auparavant. Ils n'étaient pas absents, ils n'étaient pas recherchés. Comparer les deux comptes bruts de substances quantifiées n'aurait aucun sens."
    }
   ]
  },
 
- "28209": {
-  "nom": "Lèves",
-  "sous_titre": "Eure-et-Loir (28) · agglomération chartraine, usine de dénitrification",
+ "PREL:02800126961": {
+  "_commune": "Bailleau-l'Évêque (28) — 4 juillet 2025",
   "analyse": [
    {
-    "t": "Une usine de dénitrification, et ce qu'elle ne traite pas",
-    "x": "Le nom de l'installation amont dit ce qu'on a jugé nécessaire de traiter : les nitrates. Le bulletin porte pourtant la plus forte valeur de chlorothalonil R471811 de tout le corpus — 1,769 µg/L, presque le double de la limite. Un traitement conçu pour un polluant ne retient pas les autres, et l'existence d'une usine ne dit rien de ce qui la traverse. C'est un constat technique, pas un reproche : les métabolites de fongicides n'étaient pas dans le cahier des charges au moment de la construire."
+    "t": "Le prélèvement précédent du même secteur",
+    "x": "En juillet 2025, le R471811 est plus élevé qu'en mars 2026, et le R417888 reste sous sa limite : un seul dépassement au lieu de deux. Neuf mois plus tard, la première molécule a baissé et la seconde a franchi son seuil. Lire un bulletin isolé conduirait à conclure dans un sens ou dans l'autre selon la date choisie ; c'est la série qui informe, pas le point."
+   },
+   {
+    "t": "Les triazines, vingt ans après",
+    "x": "Atrazine, simazine et atrazine déséthyl sont quantifiées ensemble. L'atrazine et la simazine sont interdites en France depuis 2003. Ce n'est pas une pollution en cours : c'est la mémoire de la nappe de Beauce, et elle se mesure encore en dizaines de nanogrammes deux décennies après. La durée de vie d'une molécule dans un aquifère n'a rien à voir avec la durée de vie de son autorisation."
    }
   ]
  },
 
- "28034": {
-  "nom": "Berchères-Saint-Germain",
-  "sous_titre": "Eure-et-Loir (28) · nord chartrain, nappe de Beauce",
+ "PREL:02800129115": {
+  "_commune": "Berchères-Saint-Germain (28) — 10 mars 2026",
   "delta": "Bulletin <b>sans aucun dépassement</b> aujourd'hui, et qui n'aurait pas été conforme il y a dix ans. C'est le cas d'école du réétalonnage.",
   "analyse": [
    {
     "t": "Conforme aujourd'hui, non conforme en 2016",
-    "x": "Le chlorothalonil R471811 est mesuré à 0,552 µg/L. La limite qui s'applique est de 0,9 µg/L depuis l'avis de l'ANSES du 29 avril 2024 ; elle était de 0,1 µg/L auparavant, en application de l'instruction qui présume pertinent tout métabolite non reclassé. La même eau, le même jour, aurait été déclarée non conforme avant cette date. Rien n'a été fait sur la ressource entre les deux lectures."
+    "x": "Le chlorothalonil R471811 se situe entre les deux grilles : sous la valeur indicative de 0,9 µg/L en vigueur depuis l'avis de l'ANSES du 29 avril 2024, au-dessus des 0,1 µg/L qui s'appliquaient auparavant en application de l'instruction présumant pertinent tout métabolite non reclassé. La même eau, le même jour, aurait été déclarée non conforme avant cette date. Rien n'a été fait sur la ressource entre les deux lectures."
    },
    {
     "t": "Un perturbateur endocrinien, au sens réglementaire",
-    "x": "Le bisphénol A est quantifié à 0,088 µg/L, pour une limite de 2,5 µg/L. La valeur est faible et conforme, mais elle mérite d'être relevée pour une raison de vocabulaire : dans l'eau destinée à la consommation humaine, le bisphénol A est le seul perturbateur endocrinien reconnu comme tel par la réglementation européenne. Beaucoup de substances de ce bulletin sont décrites comme perturbateurs endocriniens dans la littérature scientifique ; aucune ne l'est au sens du droit. Les deux registres ne se confondent pas."
+    "x": "Le bisphénol A est quantifié, très en dessous de sa limite de 2,5 µg/L. La valeur est faible et conforme, mais elle mérite d'être relevée pour une raison de vocabulaire : dans l'eau destinée à la consommation humaine, le bisphénol A est le <b>seul</b> perturbateur endocrinien reconnu comme tel par la réglementation européenne. D'autres substances de ce bulletin le sont dans la littérature scientifique ; aucune ne l'est en droit. Les deux registres ne se confondent pas."
    }
   ]
  },
 
- "28201": {
-  "nom": "Jouy",
-  "sous_titre": "Eure-et-Loir (28) · vallée de l'Eure, nord de Chartres",
+ "PREL:02800129069": {
+  "_commune": "Saint-Prest (28) — 3 mars 2026, dessert aussi Champhol, Mainvilliers, Poisvilliers",
+  "delta": "Les deux lectures <b>convergent</b> : l'ARS prononce elle-même la non-conformité chimique.",
+  "analyse": [
+   {
+    "t": "Le point d'eau le plus partagé du secteur chartrain",
+    "x": "Ce prélèvement documente quatre communes, dont Mainvilliers, l'une des plus peuplées de l'agglomération. Un seul point d'eau, un seul verdict, et trois communes qui lisent ici une analyse prélevée ailleurs. Le lieu réel du prélèvement est indiqué sur chaque fiche : sans cela, un habitant croirait que l'analyse a eu lieu chez lui."
+   },
+   {
+    "t": "La valeur la plus élevée du corpus chartrain, ou presque",
+    "x": "Le chlorothalonil R471811 est ici près du double de sa valeur indicative. Sur l'ensemble du secteur — Lèves, Saint-Prest, Bailleau, La Bourdinière, Saint-Aubin, Soulaires, Berchères, Jouy — <b>toutes</b> les valeurs mesurées de cette molécule dépassent la limite de 0,1 µg/L qui s'appliquait avant avril 2024. Ce qui sépare une commune déclarée non conforme d'une commune déclarée conforme, dans ce paysage, est le franchissement d'un seuil fixé en 2024 au milieu du nuage de points."
+   }
+  ]
+ },
+
+ "PREL:02800129616": {
+  "_commune": "La Bourdinière-Saint-Loup (28) — 9 avril 2026, dessert aussi Amilly et Cintray",
+  "analyse": [
+   {
+    "t": "Un effort de recherche plus modeste que le voisinage",
+    "x": "Ce bulletin porte 234 paramètres, contre 315 à 316 ailleurs sur l'agglomération chartraine à la même période. C'est le bas de la fourchette des analyses complètes. La couverture est bonne, mais le panel est plus étroit : sur ce qui n'a pas été cherché, on ne sait rien. Deux dépassements sont pourtant relevés — ce qu'un panel plus large aurait montré n'est pas connaissable."
+   },
+   {
+    "t": "L'anthraquinone, une signature moins attendue",
+    "x": "Parmi les substances quantifiées figure l'anthraquinone, classée ici comme pesticide. Elle a un double statut : ancien répulsif à oiseaux pour les semences, et sous-produit de combustion ou de traitement du bois. Sa présence ne se lit donc pas comme une signature agricole aussi nette que celle des métabolites de métazachlore ou de métolachlore."
+   }
+  ]
+ },
+
+ "PREL:02800128409": {
+  "_commune": "Lèves (28) — 16 décembre 2025",
+  "analyse": [
+   {
+    "t": "Une usine de dénitrification, et ce qu'elle ne traite pas",
+    "x": "Le nom de l'installation dit ce qu'on a jugé nécessaire de traiter : les nitrates. Ce bulletin porte pourtant la plus forte valeur de chlorothalonil R471811 de tout le corpus, près du double de sa valeur indicative — et les nitrates y restent proches de la limite. Un traitement conçu pour un polluant ne retient pas les autres, et l'existence d'une usine ne dit rien de ce qui la traverse. C'est un constat technique, pas un reproche : les métabolites de fongicides n'étaient pas au cahier des charges au moment de la concevoir."
+   }
+  ]
+ },
+
+ "PREL:02800127585": {
+  "_commune": "Saint-Aubin-des-Bois (28) — 10 septembre 2025",
+  "analyse": [
+   {
+    "t": "Le cortège complet de la grande culture",
+    "x": "La composition raconte l'assolement mieux qu'un relevé parcellaire : métazachlore et ses deux métabolites ESA et OXA pour le colza, métolachlore ESA pour le maïs, flufénacet ESA pour les céréales d'hiver, atrazine déséthyl pour un herbicide interdit depuis 2003. Aucune de ces molécules, prise seule, ne dépasse sa limite. La réglementation les note une par une ; le verre les contient toutes."
+   },
+   {
+    "t": "Des PFAS mesurés, et donc présents",
+    "x": "Deux composés perfluorés sont quantifiés, à des niveaux très faibles. Ce qui compte ici n'est pas la valeur mais le fait : ils ont été cherchés, et ils ont été trouvés. Sur les bulletins qui ne les cherchent pas, l'absence d'information se lit trop facilement comme une absence de substance."
+   }
+  ]
+ },
+
+ "PREL:02800128053": {
+  "_commune": "Soulaires (28) — 17 octobre 2025, dessert aussi Coltainville et Gasville-Oisème",
+  "delta": "Les deux dépassements de ce bulletin sont <b>bactériologiques</b>, pas chimiques. Le signal réglementaire et le signal citoyen ne pointent pas le même problème.",
+  "analyse": [
+   {
+    "t": "Deux dépassements qui ne sont pas ceux qu'on attend",
+    "x": "Sur un plateau céréalier, on s'attend à des pesticides. Ici les deux dépassements du jour sont des indicateurs bactériologiques — Escherichia coli et entérocoques, pour lesquels la réglementation exige l'absence. C'est un événement ponctuel, de nature différente d'une contamination diffuse : il relève de l'intégrité du réseau ou du traitement, pas de la pollution de la ressource. L'ARS a demandé des actions correctives et programmé un recontrôle. Les deux lectures doivent rester distinctes."
+   },
+   {
+    "t": "Et une bascule, silencieuse à côté",
+    "x": "Pendant que l'attention se porte sur la bactériologie, le chlorothalonil R471811 se situe entre les deux grilles : conforme aujourd'hui, non conforme avant avril 2024. Cette ligne ne déclenche aucune alerte, n'apparaît dans aucune conclusion sanitaire, et c'est précisément ce que cet observatoire cherche à rendre visible."
+   }
+  ]
+ },
+
+ "PREL:02800129461": {
+  "_commune": "Jouy (28) — 17 avril 2026",
   "analyse": [
    {
     "t": "Une décrue, et ce qu'elle ne prouve pas",
-    "x": "Le chlorothalonil R471811 passe de 0,466 µg/L en février 2025 à 0,400 en avril 2026. La tendance est à la baisse et c'est une bonne nouvelle, mais deux points ne font pas une courbe : les concentrations en métabolites varient avec la pluviométrie et le débit de la nappe. Aux deux dates, la valeur reste au-dessus de la limite de 2016 — la bascule est là dans les deux cas."
-   }
-  ]
- },
-
- "28102": {
-  "nom": "Clévilliers",
-  "sous_titre": "Eure-et-Loir (28) · plateau beauceron, captage du bourg",
-  "analyse": [
-   {
-    "t": "Un bulletin de 2022, et ce que sa date implique",
-    "x": "Ce prélèvement date du 24 février 2022 : c'est le plus ancien du secteur chartrain dans ce corpus, et il est antérieur au reclassement du chlorothalonil. Aucun métabolite de chlorothalonil n'y est quantifié — mais l'analyse ne les cherchait pas encore, et l'absence de recherche ne s'interprète pas comme une absence de substance. Ce que ce bulletin documente réellement, c'est l'état des connaissances de 2022, pas celui de l'eau aujourd'hui."
+    "x": "Le chlorothalonil R471811 est plus bas qu'au prélèvement de février 2025 sur le même réseau. La tendance est à la baisse et c'est une bonne nouvelle, mais deux points ne font pas une courbe : les concentrations en métabolites varient avec la pluviométrie et le niveau de la nappe. Aux deux dates, la valeur reste au-dessus de la limite de 2016 — la bascule est là dans les deux cas."
    },
    {
-    "t": "L'atrazine, vingt ans après",
-    "x": "Atrazine, atrazine déséthyl et atrazine déséthyl déisopropyl sont quantifiées ensemble. L'atrazine est interdite en France depuis 2003. Ce n'est pas une pollution en cours : c'est la mémoire de la nappe, et elle se mesure encore en dizaines de nanogrammes deux décennies plus tard. La durée de vie d'une molécule dans un aquifère n'a rien à voir avec la durée de vie d'une autorisation."
+    "t": "Le bisphénol A, et le sens du mot « perturbateur »",
+    "x": "Le bisphénol A est quantifié, loin sous sa limite. C'est le seul perturbateur endocrinien reconnu comme tel par la réglementation européenne dans l'eau destinée à la consommation humaine. Le dire évite une confusion fréquente : beaucoup de substances de ce bulletin sont décrites comme perturbateurs endocriniens dans la littérature scientifique, aucune ne l'est au sens du droit."
    }
   ]
  },
 
- "81209": {
-  "nom": "Pont-de-Larn",
-  "sous_titre": "Tarn (81) · piémont de la Montagne Noire, socle granitique",
-  "delta": "Le contraste avec la Beauce est l'information principale : <b>411 paramètres cherchés, aucune substance de synthèse quantifiée</b>. Ce n'est pas le même sous-sol, et ce n'est pas la même agriculture.",
+ "PREL:02800125534": {
+  "_commune": "Jouy (28) — 11 février 2025",
+  "analyse": [
+   {
+    "t": "Un panel plus étroit que le suivant",
+    "x": "291 paramètres ici, 314 au prélèvement d'avril 2026 sur le même réseau. Trois substances de synthèse quantifiées contre sept. L'écart ne dit pas que l'eau s'est dégradée : il dit d'abord qu'on a cherché davantage. C'est la raison pour laquelle l'effort de recherche figure sur chaque fiche de cet observatoire."
+   }
+  ]
+ },
+
+ "PREL:02800114564": {
+  "_commune": "Clévilliers (28) — 24 février 2022",
+  "analyse": [
+   {
+    "t": "L'atrazine, vingt ans après son interdiction",
+    "x": "Atrazine, atrazine déséthyl et atrazine déséthyl déisopropyl sont quantifiées ensemble, avec la simazine. Ces deux herbicides sont interdits en France depuis 2003. Ce n'est pas une pollution en cours : c'est la mémoire de la nappe, et elle se mesure encore deux décennies plus tard. Le glyphosate figure au même bulletin, lui toujours autorisé — les deux générations d'herbicides coexistent dans le même verre."
+   },
+   {
+    "t": "Les perchlorates et l'avis nourrissons",
+    "x": "Comme à Challet la même année, la conclusion sanitaire signale des perchlorates au-delà de 4 µg/L et recommande, suivant l'avis de l'ANSES, de limiter l'usage de cette eau pour la préparation des biberons — tout en déclarant l'eau conforme à l'ensemble des paramètres mesurés. Les perchlorates de la Beauce sont attribués à des résidus de munitions de la Première Guerre mondiale autant qu'à des usages agricoles."
+   }
+  ]
+ },
+
+ "PREL:01700157759": {
+  "_commune": "Saintes (17) — 21 mai 2026",
+  "analyse": [
+   {
+    "t": "Une seule substance de synthèse quantifiée, et c'est celle-là",
+    "x": "Le bulletin est propre à une exception près : le chlorothalonil R471811, très en dessous de sa valeur indicative actuelle mais au niveau de l'ancienne limite. C'est le marqueur le plus répandu du corpus, retrouvé du bassin de la Charente à la Beauce et jusque dans le Ségala tarnais. Il ne dit rien d'un usage local : il dit qu'un fongicide interdit depuis 2020 a laissé une empreinte de longue durée dans des nappes très différentes."
+   },
+   {
+    "t": "Un panel resserré, une couverture excellente",
+    "x": "276 paramètres recherchés — le bas de la fourchette — mais 96 % d'entre eux ont pu être comparés à un seuil, le meilleur taux du corpus. Les deux nombres ne disent pas la même chose : le premier mesure ce qu'on a cherché, le second ce qu'on a su noter. Une couverture excellente sur un panel étroit reste une information étroite."
+   }
+  ]
+ },
+
+ "PREL:02200234822": {
+  "_commune": "Rostrenen (22) — 28 mai 2024",
+  "analyse": [
+   {
+    "t": "Bretagne granitique, et pourtant des nitrates",
+    "x": "Sur socle granitique, les nappes sont peu profondes et peu tamponnées. Les nitrates sont ici largement sous la limite de 50 mg/L, mais au-dessus du repère de 10 mg/L applicable aux eaux embouteillées portant la mention « convient aux nourrissons ». Le centre Bretagne a été l'un des premiers terrains français du contentieux européen sur les nitrates : la valeur mesurée aujourd'hui est le résultat de trente ans de politiques publiques, et elle reste au-dessus de ce repère-là."
+   },
+   {
+    "t": "Les sous-produits de chloration",
+    "x": "Les trihalométhanes atteignent la moitié de leur limite. Ils ne viennent pas de la ressource : ils se forment quand le chlore de désinfection réagit avec la matière organique naturellement présente dans l'eau — et le carbone organique total est ici le plus élevé du corpus après Trévien. C'est un effet du traitement qui rend l'eau potable, pas une pollution du captage."
+   }
+  ]
+ },
+
+ "PREL:01500123850": {
+  "_commune": "Ally (15) — 1er octobre 2025",
+  "analyse": [
+   {
+    "t": "Une eau très douce, et l'ARS le signale",
+    "x": "Conductivité et dureté sont parmi les plus basses du corpus : une eau de socle, très peu minéralisée. La conclusion sanitaire signale explicitement son caractère agressif — une eau peu minéralisée dissout les matériaux du réseau qu'elle traverse. Ce n'est pas un polluant de la ressource, c'est une propriété physico-chimique dont les conséquences se jouent dans les canalisations, entre le captage et le robinet."
+   },
+   {
+    "t": "Un métabolite signalé par l'ARS elle-même",
+    "x": "La conclusion mentionne la présence d'ESA métolachlore et demande au distributeur d'en identifier préventivement l'origine — alors même que l'eau est déclarée conforme. C'est un exemple de ce que la conformité ne recouvre pas : une administration peut demander une action sur une substance qui ne dépasse aucun seuil."
+   }
+  ]
+ },
+
+ "PREL:04600094910": {
+  "_commune": "Cabrerets (46) — 30 mars 2026",
+  "analyse": [
+   {
+    "t": "Karst du Quercy : aucune substance de synthèse quantifiée",
+    "x": "399 paramètres recherchés, pas une seule substance de synthèse au-dessus de la limite de quantification. Sur les Causses calcaires, les résurgences karstiques sont pourtant réputées vulnérables : l'eau y transite vite, sans filtration par le sol. Un résultat propre sur un tel terrain tient à l'occupation des sols du bassin d'alimentation, pas à une protection naturelle."
+   },
+   {
+    "t": "Une eau très dure, et un seul point aveugle",
+    "x": "La dureté est parmi les plus élevées du corpus — signature calcaire attendue, sans enjeu sanitaire. Le seul point qu'on ne sait pas trancher est l'hydrazide maléique, dont la limite de quantification du laboratoire est cinq fois au-dessus du seuil de comparaison. Sur un bulletin par ailleurs entièrement propre, c'est l'instrument et non l'eau qui fixe la limite de ce qu'on peut dire."
+   }
+  ]
+ },
+
+ "PREL:06900174677": {
+  "_commune": "Vourles (69) — 13 février 2026",
+  "analyse": [
+   {
+    "t": "Ce que la somme réglementaire des PFAS ne regarde pas",
+    "x": "Les PFAS sont ici quantifiés, ce qui est rare : sur la plupart des bulletins ils restent sous la limite de quantification. Et la répartition est instructive. La « somme de 4 » que la réglementation européenne met en avant — PFOA, PFNA, PFHxS, PFOS — ne contient que des chaînes longues, c'est-à-dire précisément celles dont l'usage est en cours d'interdiction. Or ce bulletin quantifie davantage de chaînes courtes que de longues, et pour une masse supérieure. Elles sont mesurées par le laboratoire et n'entrent dans aucun total opposable hormis la somme de 20. La mesure existe ; la norme ne la regarde pas."
+   },
+   {
+    "t": "Couloir chimique du sud lyonnais",
+    "x": "Vourles est en bordure du couloir de la chimie, l'un des secteurs français les plus documentés en matière de PFAS. Le contraste avec les autres communes du corpus est net : ailleurs les perfluorés sont recherchés et non quantifiés, ici ils sont trouvés. Ce n'est pas la même histoire industrielle."
+   },
+   {
+    "t": "Des métabolites de betterave, loin de la Beauce",
+    "x": "Chloridazone desphényl et chloridazone méthyl desphényl sont deux métabolites d'un herbicide de la betterave sucrière. Les retrouver au sud de Lyon, comme à Challet en Beauce, montre que la signature agricole ne suit pas les frontières régionales : elle suit les cultures."
+   }
+  ]
+ },
+
+ "PREL:08200091438": {
+  "_commune": "Montech (82) — 14 janvier 2026",
+  "delta": "Le cas emblématique : la même eau était non conforme selon la grille de 2016 et « conforme » aujourd'hui — parce que la règle a changé, pas l'eau.",
+  "analyse": [
+   {
+    "t": "Deux bascules dans un bulletin déclaré conforme",
+    "x": "L'ESA métolachlore et le chlorothalonil R471811 sont tous deux au-dessus de la limite de 0,1 µg/L qui s'appliquait avant leur reclassement en métabolites « non pertinents », et sous la valeur indicative de 0,9 µg/L qui s'applique depuis. Deux mesures, deux verdicts opposés selon la date à laquelle on les lit. C'est la démonstration matérielle du réétalonnage, dans un bulletin que l'administration déclare conforme aux limites de qualité."
+   },
+   {
+    "t": "Plaine céréalière de la Garonne",
+    "x": "Le cortège est celui du maïs irrigué : métolachlore et ses trois métabolites ESA, OXA et NOA 413173, propyzamide, chlortoluron, flufénacet ESA. Huit molécules agricoles co-présentes, chacune conforme isolément. La réglementation les évalue une à une ; les effets de mélange à faibles doses ne sont pas évalués."
+   },
+   {
+    "t": "Une eau agressive, signalée par l'ARS",
+    "x": "La conclusion sanitaire relève un déséquilibre calco-carbonique et demande de maintenir l'eau à l'équilibre. C'est la raison de la non-conformité aux références de qualité, et elle n'a rien à voir avec les pesticides : une eau agressive dissout les matériaux du réseau. Deux problèmes distincts dans un même bulletin, dont un seul apparaît dans la conclusion."
+   }
+  ]
+ },
+
+ "PREL:08200090364": {
+  "_commune": "Montech (82) — 16 septembre 2025",
+  "analyse": [
+   {
+    "t": "Quatre mois plus tôt, sur un autre point d'eau",
+    "x": "Ce prélèvement porte sur la station de Montech, celui de janvier 2026 sur l'unité de distribution. Une seule substance de synthèse quantifiée ici, huit là-bas, sur des panels comparables. Ce ne sont pas les mêmes eaux au même endroit du réseau : comparer les deux revient à comparer un point de production et un point de distribution, ce qui n'a pas le même sens."
+   }
+  ]
+ },
+
+ "PREL:08100134523": {
+  "_commune": "Saint-Christophe (81) — 15 décembre 2025, dessert 8 communes dont Cordes-sur-Ciel",
+  "analyse": [
+   {
+    "t": "Un seul point d'eau pour huit communes",
+    "x": "Le traitement du Moulin Galat documente Cordes-sur-Ciel, Labarthe-Bleys, Le Riols, Les Cabannes, Saint-Christophe, Saint-Martin-Laguépie, Tonnac et Vindrac-Alayrac. C'est le partage le plus large du corpus. Sept de ces huit communes lisent une analyse prélevée ailleurs — la même eau, mais pas le même robinet, et le réseau qui les sépare peut ajouter ce que le captage n'avait pas."
+   },
+   {
+    "t": "Une non-conformité bactériologique, pas chimique",
+    "x": "Le dépassement du jour porte sur Escherichia coli, pour lequel la réglementation exige l'absence. C'est un événement ponctuel qui relève de l'intégrité du traitement ou du réseau, et non d'une pollution de la ressource : sur 359 paramètres recherchés, aucune substance de synthèse n'est quantifiée. Le Ségala tarnais, sur socle, ne porte pas la signature de grande culture qu'on lit en Beauce."
+   }
+  ]
+ },
+
+ "PREL:08100130175": {
+  "_commune": "Sainte-Croix (81) — 13 janvier 2026, dessert aussi Amarens, Donnazac, Frausseilles, Noailles",
+  "analyse": [
+   {
+    "t": "411 paramètres, aucune substance de synthèse quantifiée",
+    "x": "C'est l'un des efforts de recherche les plus élevés du corpus, et il ne trouve rien au-dessus de la limite de quantification. Ce résultat vaut par son dénominateur : « rien trouvé » sur 411 paramètres est une information beaucoup plus forte que « rien trouvé » sur 234. C'est exactement la raison pour laquelle cet observatoire affiche l'effort de recherche partout — sans lui, les deux phrases se ressemblent."
+   },
+   {
+    "t": "Coteaux du Gaillacois, cinq communes sur un point",
+    "x": "Le vignoble gaillacois est une zone de traitements phytosanitaires intensifs, ce qui rend le résultat notable. Il porte sur cinq communes : Amarens, Donnazac, Frausseilles, Noailles et Sainte-Croix partagent la même ressource et le même verdict."
+   }
+  ]
+ },
+
+ "PREL:08100133360": {
+  "_commune": "Pont-de-Larn (81) — 30 mars 2026, dessert aussi Noailhac",
   "analyse": [
    {
     "t": "Le meilleur résultat du corpus, et pourquoi il l'est",
-    "x": "411 paramètres recherchés, l'effort le plus élevé de tout le corpus après Boissezon, et pas une seule substance de synthèse quantifiée. Sur socle granitique, à l'amont d'un bassin versant forestier et pastoral, il n'y a ni grande culture céréalière ni nappe libre exposée aux intrants. La comparaison avec la Beauce ne dit donc rien de la gestion de l'eau d'un côté ou de l'autre : elle dit ce que le territoire fait à la ressource."
+    "x": "411 paramètres recherchés, pas une substance de synthèse quantifiée. Sur le piémont granitique de la Montagne Noire, à l'amont d'un bassin versant forestier et pastoral, il n'y a ni grande culture céréalière ni nappe libre exposée aux intrants. La comparaison avec la Beauce ne dit donc rien de la gestion de l'eau d'un côté ou de l'autre : elle dit ce que le territoire fait à la ressource."
    },
    {
     "t": "Un « rien » qui n'est pas un zéro",
-    "x": "L'hydrazide maléique reste indéterminée : le laboratoire ne sait pas descendre sous 0,5 µg/L alors que le seuil de comparaison est à 0,1. On ne peut donc pas affirmer qu'elle respecte la limite — seulement qu'on ne sait pas. Sur un bulletin par ailleurs entièrement propre, c'est le seul endroit où l'instrument, et non l'eau, fixe la limite de ce qu'on peut dire."
+    "x": "L'hydrazide maléique reste indéterminée : la limite de quantification du laboratoire est cinq fois au-dessus du seuil de comparaison. On ne peut donc pas affirmer qu'elle respecte la limite — seulement qu'on ne sait pas. Sur un bulletin par ailleurs entièrement propre, c'est le seul endroit où l'instrument, et non l'eau, fixe la limite de ce qu'on peut dire. Cet indéterminé revient sur presque tous les bulletins du Tarn : c'est une caractéristique du laboratoire, pas du territoire."
    }
   ]
  },
 
- "81034": {
-  "nom": "Boissezon",
-  "sous_titre": "Tarn (81) · Montagne Noire, réseau du Pas des Bêtes",
+ "PREL:08100123392": {
+  "_commune": "Boissezon (81) — 25 juillet 2024",
+  "analyse": [
+   {
+    "t": "Une eau de socle, très peu minéralisée",
+    "x": "Conductivité et dureté très basses : signature du granite de la Montagne Noire. Aucune substance de synthèse quantifiée sur 369 paramètres. Les trihalométhanes sont en revanche présents à un niveau notable — ils ne viennent pas de la ressource mais de la réaction du chlore de désinfection avec la matière organique de l'eau, plus abondante sur les bassins forestiers."
+   }
+  ]
+ },
+
+ "PREL:08100122616": {
+  "_commune": "Boissezon (81) — 29 avril 2024, captage de Labro",
+  "analyse": [
+   {
+    "t": "Un autre captage de la même commune",
+    "x": "Boissezon est alimentée par plusieurs points d'eau, analysés séparément. Celui-ci est plus minéralisé que celui de la Peyrarque, prélevé trois mois plus tard : deux ressources distinctes sous une même commune. C'est la raison pour laquelle le projet analyse par point d'eau et non par commune — une moyenne communale mélangerait des eaux qui ne se mélangent pas forcément."
+   }
+  ]
+ },
+
+ "PREL:08100103595": {
+  "_commune": "Boissezon (81) — 22 juillet 2019, captage du Linas",
   "analyse": [
    {
     "t": "627 paramètres en 2019, 369 en 2024",
-    "x": "L'effort de recherche a été divisé par près de deux en cinq ans. Les trois bulletins sont exempts de substances de synthèse quantifiées, et il n'y a aucune raison de penser que l'eau se soit dégradée. Mais la démonstration de 2019 était plus forte que celle de 2024 : elle reposait sur 578 paramètres notés au lieu de 334. Dire « rien trouvé » n'a pas le même poids selon ce qu'on a cherché, et c'est pourquoi ce nombre figure sur chaque fiche de cet observatoire."
+    "x": "L'effort de recherche sur cette commune a été divisé par près de deux en cinq ans. Les trois bulletins sont exempts de substances de synthèse quantifiées, et rien n'indique une dégradation. Mais la démonstration de 2019 était plus forte que celle de 2024 : elle reposait sur 578 paramètres notés au lieu de 334. Dire « rien trouvé » n'a pas le même poids selon ce qu'on a cherché."
+   },
+   {
+    "t": "Une eau extrêmement douce",
+    "x": "La dureté est ici la plus basse de tout le corpus, moins d'un degré français — une eau presque déminéralisée. C'est aussi la conclusion de l'ARS qui retient l'attention : elle déclare l'eau non conforme sur un paramètre microbiologique tout en précisant que cela n'a pas nécessité de restriction de consommation."
    }
   ]
  },
 
- "81269": {
-  "nom": "Saint-Salvy-de-la-Balme",
-  "sous_titre": "Tarn (81) · Montagne Noire, régie communale",
+ "PREL:08100127873": {
+  "_commune": "Trévien (81) — 22 octobre 2025, dessert aussi Combefa et Le Ségur",
+  "analyse": [
+   {
+    "t": "Le carbone organique, et ce qu'il devient",
+    "x": "Le carbone organique total est ici le plus élevé du corpus, et le chlore libre également. Les deux sont liés : plus l'eau contient de matière organique, plus la désinfection en consomme, et plus elle forme de sous-produits de chloration. Ce n'est pas un défaut du captage — c'est la conséquence d'une ressource de surface ou peu profonde sur bassin versant boisé."
+   },
+   {
+    "t": "Ségala carmausin, trois communes sur un point",
+    "x": "L'unité de production de la Roucarie dessert Combefa, Le Ségur et Trévien. Une seule substance de synthèse est quantifiée sur 391 paramètres, très en dessous de son seuil : le chlorothalonil R471811, la même empreinte qu'on retrouve d'un bout à l'autre du corpus."
+   }
+  ]
+ },
+
+ "PREL:08100127882": {
+  "_commune": "Laparrouquial (81) — 24 octobre 2025, dessert aussi Saint-Marcel-Campes",
+  "analyse": [
+   {
+    "t": "391 paramètres, rien de quantifié",
+    "x": "La station de la Mafrésie alimente Laparrouquial et Saint-Marcel-Campes. Sur un panel large, aucune substance de synthèse n'est quantifiée. Les trihalométhanes sont en revanche présents à un niveau appréciable : ils se forment au traitement, pas dans la ressource, et leur niveau suit la teneur en matière organique de l'eau brute."
+   }
+  ]
+ },
+
+ "PREL:08100108106": {
+  "_commune": "Laparrouquial (81) — 23 septembre 2020",
+  "analyse": [
+   {
+    "t": "Cinq ans plus tôt, sur la même station",
+    "x": "Le bulletin de 2020 et celui de 2025 portent sur des panels comparables et donnent le même résultat : aucune substance de synthèse quantifiée. Deux points à cinq ans d'intervalle ne font pas une tendance, mais ils rendent le constat plus solide qu'un bulletin isolé — et c'est le genre de série que le contrôle sanitaire produit rarement sur une petite commune."
+   }
+  ]
+ },
+
+ "PREL:08100126259": {
+  "_commune": "Saint-Salvy-de-la-Balme (81) — 26 mars 2025",
   "analyse": [
    {
     "t": "Une petite régie, un panel large",
-    "x": "370 paramètres recherchés pour une commune qui gère son eau en direct : l'effort est comparable à celui des grands réseaux du corpus, et supérieur à celui de plusieurs communes de l'agglomération chartraine. Aucune substance de synthèse n'est quantifiée. C'est le genre de résultat que le nombre brut de dépassements ne saurait pas distinguer d'une eau simplement peu analysée."
+    "x": "370 paramètres recherchés pour une commune qui gère son eau en direct : l'effort est comparable à celui des grands réseaux du corpus, et supérieur à celui de plusieurs communes de l'agglomération chartraine. Aucune substance de synthèse n'est quantifiée. C'est le genre de résultat qu'un simple compte de dépassements ne saurait pas distinguer d'une eau peu analysée."
+   },
+   {
+    "t": "Les sous-produits de chloration, les plus élevés du corpus",
+    "x": "Les trihalométhanes atteignent ici la valeur la plus haute de tout le corpus, tout en restant nettement sous leur limite. Eau très peu minéralisée, matière organique appréciable, désinfection au chlore : la combinaison est classique sur les ressources de socle de la Montagne Noire. Le seul repère plus strict connu, retenu par le Danemark là où une chloration est pratiquée, est quatre fois plus bas que la limite française."
+   }
+  ]
+ },
+
+ "PREL:08100128137": {
+  "_commune": "Bournazel (81) — 24 novembre 2025",
+  "analyse": [
+   {
+    "t": "Une empreinte discrète, et un repère nourrissons franchi",
+    "x": "Une seule substance de synthèse quantifiée, très en dessous de son seuil. Les nitrates, eux, dépassent de peu le repère de 10 mg/L applicable aux eaux embouteillées portant la mention « convient aux nourrissons », tout en restant cinq fois sous la limite du robinet. L'écart entre ces deux valeurs pour la même eau tient à l'usage envisagé, pas à la qualité mesurée."
+   }
+  ]
+ },
+
+ "PREL:08100123717": {
+  "_commune": "Itzac (81) — 20 août 2024",
+  "analyse": [
+   {
+    "t": "Deux herbicides, dont un très ancien",
+    "x": "Le 2,4-MCPA est un herbicide de la famille des acides phénoxy, mis au point dans les années 1940 et toujours autorisé. L'anthraquinone a un double statut : ancien répulsif à oiseaux pour les semences, et sous-produit de combustion. Les deux sont très en dessous de leur limite. Sur les coteaux du Gaillacois, cette signature reste discrète au regard de l'intensité viticole du secteur."
+   }
+  ]
+ },
+
+ "PREL:08100115180": {
+  "_commune": "Lacapelle-Ségalar (81) — 9 septembre 2022",
+  "analyse": [
+   {
+    "t": "Une seule molécule, et c'est du maïs",
+    "x": "L'ESA métolachlore est le métabolite d'un herbicide du maïs, très soluble et très mobile dans les sols. Sa présence isolée, à un niveau faible, signale une pression agricole ponctuelle plutôt qu'un cortège de grande culture. La couverture de ce bulletin est excellente — 95 % des paramètres mesurés ont pu être comparés à un seuil."
+   }
+  ]
+ },
+
+ "PREL:08100127357": {
+  "_commune": "Livers-Cazelles (81) — 12 septembre 2025",
+  "delta": "Bulletin déclaré <b>conforme à l'ensemble des paramètres mesurés</b>, et portant une bascule : la même mesure était non conforme selon la grille antérieure.",
+  "analyse": [
+   {
+    "t": "Une bascule sur un métabolite du maïs",
+    "x": "L'ESA métolachlore se situe au-dessus de la limite de 0,1 µg/L qui s'appliquait avant son reclassement en métabolite « non pertinent », et sous la valeur indicative de 0,9 µg/L qui s'applique depuis. Son homologue OXA est quantifié au même bulletin : les deux viennent de la même molécule mère, un herbicide du maïs toujours autorisé sous sa forme S-métolachlore."
+   },
+   {
+    "t": "Le métaldéhyde, une signature moins connue",
+    "x": "Le métaldéhyde est un molluscicide — l'anti-limaces des cultures et des jardins. Il est très soluble et mal retenu par les traitements classiques, ce qui en fait un marqueur fréquent des eaux de surface. Sa présence à côté des métabolites du maïs dessine un bassin d'alimentation à usages mixtes."
+   }
+  ]
+ },
+
+ "PREL:08100126861": {
+  "_commune": "Loubers (81) — 26 juin 2025",
+  "analyse": [
+   {
+    "t": "L'eau la plus dure du corpus, ou presque",
+    "x": "Dureté et conductivité très élevées : signature d'un aquifère calcaire. Ce n'est pas un enjeu sanitaire — aucune valeur réglementaire ne porte sur la dureté — mais cela conditionne le comportement de l'eau dans le réseau, à l'inverse exact des eaux de socle du reste du département."
+   },
+   {
+    "t": "Un herbicide historique, toujours autorisé",
+    "x": "Le 2,4-D est un des plus anciens herbicides de synthèse, homologué depuis les années 1940 et toujours utilisé. Il est quantifié ici très en dessous de sa limite, aux côtés du chlorothalonil R471811. Les nitrates dépassent le repère nourrissons de 10 mg/L tout en restant loin de la limite du robinet."
+   }
+  ]
+ },
+
+ "PREL:08100126446": {
+  "_commune": "Loubers (81) — 3 avril 2025",
+  "analyse": [
+   {
+    "t": "Deux captages, deux teneurs en nitrates",
+    "x": "Ce point d'eau et celui de la Bouyssounade, prélevé trois mois plus tard, présentent des teneurs en nitrates sensiblement différentes — l'une et l'autre au-dessus du repère nourrissons, l'une et l'autre très en dessous de la limite du robinet. Deux ressources d'une même petite commune peuvent différer nettement : c'est ce que masquerait une moyenne communale."
+   }
+  ]
+ },
+
+ "PREL:08100127249": {
+  "_commune": "Marnaves (81) — 29 août 2025",
+  "analyse": [
+   {
+    "t": "L'eau la plus minéralisée du corpus",
+    "x": "Dureté et conductivité sont ici sans équivalent dans le corpus, et les sulfates dépassent le repère de 140 mg/L applicable aux eaux embouteillées « convient aux nourrissons » tout en restant sous la limite du robinet. Ces valeurs signent une ressource au contact de formations évaporitiques — c'est une propriété géologique de l'aquifère, pas une pollution."
+   },
+   {
+    "t": "Deux repères nourrissons franchis, aucune non-conformité",
+    "x": "Sulfates et nitrates dépassent tous deux leur repère nourrissons, et l'eau est parfaitement conforme aux limites du robinet. C'est le cas le plus net du corpus pour illustrer la différence entre les deux référentiels : la même eau, deux verdicts, selon qu'on la boit adulte ou qu'on prépare un biberon avec."
+   }
+  ]
+ },
+
+ "PREL:08100126496": {
+  "_commune": "Milhars (81) — 7 avril 2025",
+  "analyse": [
+   {
+    "t": "Deux métabolites du même herbicide",
+    "x": "L'ESA métolachlore bascule d'une grille à l'autre, et le NOA 413173 — un autre produit de dégradation de la même molécule mère — est quantifié au même bulletin. Deux marqueurs d'un même herbicide du maïs, dans une vallée du Cérou où l'agriculture est pourtant peu intensive. Les métabolites voyagent plus loin et plus longtemps que les molécules dont ils viennent."
+   }
+  ]
+ },
+
+ "PREL:08100113648": {
+  "_commune": "Monestiés (81) — 1er février 2022",
+  "analyse": [
+   {
+    "t": "Une valeur exactement à la limite",
+    "x": "L'ESA métolachlore est mesuré au niveau exact de 0,1 µg/L. À cette date, ce seuil était celui qui s'appliquait ; il a depuis été porté à 0,9 µg/L par reclassement du métabolite. La même valeur, aujourd'hui, serait neuf fois sous sa limite. Rien n'a changé dans l'eau."
+   },
+   {
+    "t": "Un indéterminé plus large qu'ailleurs",
+    "x": "La limite de quantification de l'hydrazide maléique est ici de 2,5 µg/L, contre 0,5 sur les bulletins plus récents du même département — soit vingt-cinq fois le seuil de comparaison. Les performances analytiques progressent, et ce qu'on peut affirmer d'un bulletin ancien est mécaniquement plus limité."
+   }
+  ]
+ },
+
+ "PREL:08100134524": {
+  "_commune": "Montrosier (81) — 24 septembre 2025",
+  "analyse": [
+   {
+    "t": "Un PFAS quantifié dans un secteur rural",
+    "x": "Le PFOS est quantifié à un niveau très faible. C'est notable non par la valeur mais par le lieu : les composés perfluorés sont associés aux zones industrielles, et on les retrouve ici dans un secteur rural du Quercy-Rouergue. Leur surnom de « polluants éternels » tient à leur absence de dégradation — ils circulent loin de leur source."
+   },
+   {
+    "t": "Un indéterminé à cinquante fois le seuil",
+    "x": "La limite de quantification du diquat est ici cinquante fois supérieure au seuil de comparaison. Sur ce paramètre, l'analyse ne peut rien affirmer : ni conformité, ni dépassement. C'est le troisième état de verdict, et il n'est pas rassurant par défaut."
+   }
+  ]
+ },
+
+ "PREL:08100115588": {
+  "_commune": "Mouzieys-Panens (81) — 14 novembre 2022",
+  "analyse": [
+   {
+    "t": "Une empreinte de maïs, très discrète",
+    "x": "Une seule substance de synthèse quantifiée, l'ESA métolachlore, très en dessous de son seuil actuel comme de l'ancien. La couverture est excellente — 95 % des paramètres mesurés ont pu être comparés à un seuil. Sur les coteaux du Gaillacois, c'est un résultat sobre."
+   }
+  ]
+ },
+
+ "PREL:08100115273": {
+  "_commune": "Salles (81) — 23 septembre 2022",
+  "analyse": [
+   {
+    "t": "Deux métabolites, deux cultures",
+    "x": "L'ESA métolachlore vient d'un herbicide du maïs, l'ESA métazachlore d'un herbicide du colza. Leur présence conjointe, à des niveaux faibles, dessine un bassin d'alimentation à assolement mixte. À la date de ce prélèvement, l'ESA métolachlore était jugé sur 0,1 µg/L ; il l'est aujourd'hui sur 0,9."
+   }
+  ]
+ },
+
+ "PREL:08100131238": {
+  "_commune": "Souel (81) — 21 mai 2026",
+  "analyse": [
+   {
+    "t": "Une bascule, et une décrue par rapport à 2025",
+    "x": "Le chlorothalonil R471811 est nettement plus bas qu'au prélèvement de septembre 2025 sur la même commune, mais il reste au-dessus de la limite de 0,1 µg/L antérieure au reclassement : la bascule est là dans les deux cas. Le nombre de substances quantifiées a également diminué de moitié — sur des panels comparables, cette fois, ce qui rend la comparaison recevable."
+   },
+   {
+    "t": "Le terbuméton-déséthyl, mémoire de la vigne",
+    "x": "Le terbuméton est une triazine utilisée en désherbage de la vigne, interdite en France depuis le début des années 2000. Son métabolite déséthyl est encore mesurable, comme l'atrazine déséthyl déisopropyl présente au même bulletin. Sur les coteaux gaillacois, ce sont les traces d'un désherbage viticole abandonné depuis vingt ans."
+   }
+  ]
+ },
+
+ "PREL:08100127570": {
+  "_commune": "Souel (81) — 1er septembre 2025",
+  "analyse": [
+   {
+    "t": "Le cortège des triazines viticoles",
+    "x": "Terbuméton-déséthyl, terbuthylazine déséthyl, hydroxyterbuthylazine, atrazine déséthyl déisopropyl, simazine : cinq marqueurs de triazines, toutes interdites depuis le début des années 2000. S'y ajoutent le métolachlore et son métabolite ESA, herbicides du maïs toujours autorisés. Deux générations de désherbants coexistent dans le même verre, à vingt ans d'écart d'autorisation."
+   },
+   {
+    "t": "Huit substances, et une couverture de 99 %",
+    "x": "Presque tous les paramètres mesurés ont pu être comparés à un seuil : c'est l'une des meilleures couvertures du corpus. Le nombre de substances quantifiées y est donc particulièrement significatif — il ne doit rien à un défaut d'appariement."
+   }
+  ]
+ },
+
+ "PREL:08100115497": {
+  "_commune": "Virac (81) — 7 octobre 2022",
+  "analyse": [
+   {
+    "t": "Une couverture de 99,7 %",
+    "x": "Sur 305 paramètres mesurés, un seul n'a pas pu être comparé à un seuil : c'est la meilleure couverture du corpus. Une seule substance de synthèse est quantifiée, l'ESA métolachlore, très en dessous de son seuil. Quand la couverture est presque totale, le constat de propreté vaut pour l'ensemble du panel et non pour une fraction."
    }
   ]
  }

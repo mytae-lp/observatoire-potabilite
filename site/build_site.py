@@ -894,9 +894,11 @@ def fiches_communes(con, version, lignes, public):
             d_iso = str(a["date_prelevement"])
             C[cle] = BF.bloc_commune(
                 con, ligne, cols,
-                BF.pour_bulletin(redactions, insee, d_iso), version,
+                BF.pour_bulletin(redactions, insee, d_iso,
+                                 a["code_prelevement"]), version,
                 rattachement=rattachement,
-                proposee=BF.pour_bulletin(proposees, insee, d_iso))
+                proposee=BF.pour_bulletin(proposees, insee, d_iso,
+                                          a["code_prelevement"]))
             PARAMS[cle] = BF.bloc_parametres(con, a["code_prelevement"], version)
             ORDER.append(cle)
         # Le plus récent d'abord : c'est ce que l'habitant vient chercher.
