@@ -1,0 +1,26 @@
+# LE CORPUS DU LIVRE — confirmé par Yannick le 8 août 2026.
+#
+# Ces sept communes sont celles retenues pour le livre, et ce sont les seules
+# qui portent une rédaction dans sortie/redactions.json. Le dépôt est distinct
+# du livre (CLAUDE.md §1) mais il partage ce corpus : une commune ajoutée ici
+# n'entre pas au livre pour autant, et une commune du livre retirée d'ici
+# perdrait sa fiche rédigée.
+#
+# Le panel est construit sur des terrains contrastés — grande culture, chimie
+# industrielle, karst, granit, montagne — et non sur la sévérité des résultats.
+#
+#   py -X utf8 src/observer.py --csv data/communes_a_collecter.csv
+#
+# « code » accepte indifféremment un code postal (17100) ou un code INSEE
+# (17415) : la résolution se fait à la collecte. Le « motif » n'est pas utilisé
+# par le programme — il sert à ce que cette liste reste lisible dans six mois.
+# Une ligne vide ou commençant par « # » est ignorée, et un code présent deux
+# fois n'est collecté qu'une seule fois.
+code;motif
+17415;Saintes (17) — bassin de la Charente, ESA métolachlore
+28068;Challet (28) — Beauce céréalière, non-conformité ARS sur le R417888
+82125;Montech (82) — plaine de la Garonne, deux bascules sur bulletin conforme
+69268;Vourles (69) — couloir chimique sud de Lyon
+15003;Ally (15) — ressource de montagne, Massif central
+46040;Cabrerets (46) — Causses calcaires du Quercy
+22266;Rostrenen (22) — Bretagne granitique

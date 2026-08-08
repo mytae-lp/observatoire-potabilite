@@ -201,6 +201,118 @@ def parse_limite(v):
     return (float(m.group(1).replace(",", ".")), (m.group(2).strip() or None))
 
 
+# --- Listes de communes à collecter ---------------------------------------
+# Colonnes acceptées comme portant le code, dans l'ordre de préférence. Un
+# code postal et un code INSEE se ressemblent (cinq caractères) : la
+# résolution tranche à la collecte, pas ici.
+_COLONNES_CODE = ("code", "code_insee", "insee", "code_postal", "cp",
+                  "codepostal", "code postal")
+
+
+def lire_liste_communes(chemin):
+    """
+    Fichier CSV -> [(code, motif)], pour piloter une collecte par lots.
+
+    Format attendu, séparateur « ; » ou « , », en-tête facultatif :
+
+        code;motif
+        17415;Saintes — cas ESA métolachlore
+        28068;Challet — R417888, non-conformité ARS
+        31520
+
+    Le `motif` n'est pas utilisé par la collecte : il sert à ce que la liste
+    reste lisible six mois plus tard, et à ce qu'on sache pourquoi une commune
+    y figure. Une ligne vide ou commençant par « # » est ignorée.
+
+    Les codes en double sont retirés en conservant le premier motif rencontré :
+    la collecte est idempotente, mais retélécharger deux fois la même commune
+    reste une charge inutile sur un service public gratuit (CLAUDE.md §3.2).
+    """
+    import csv as _csv
+
+    with open(chemin, encoding="utf-8-sig", newline="") as fh:
+        texte = fh.read()
+    if not texte.strip():
+        raise ValueError(f"{chemin} : fichier vide")
+
+    lignes = [l for l in texte.splitlines()
+              if l.strip() and not l.lstrip().startswith("#")]
+    separateur = ";" if lignes[0].count(";") >= lignes[0].count(",") else ","
+    lecteur = list(_csv.reader(lignes, delimiter=separateur))
+
+    # En-tête ? Seulement si la première cellule n'est pas elle-même un code.
+    tete = [c.strip().lower() for c in lecteur[0]]
+    i_code, i_motif = 0, 1
+    if not re.fullmatch(r"[0-9][0-9AB][0-9]{3}", lecteur[0][0].strip().upper()):
+        trouve = next((i for i, c in enumerate(tete) if c in _COLONNES_CODE), None)
+        if trouve is None:
+            raise ValueError(
+                f"{chemin} : ni code en première cellule, ni colonne parmi "
+                f"{', '.join(_COLONNES_CODE)}")
+        i_code = trouve
+        i_motif = next((i for i, c in enumerate(tete)
+                        if c in ("motif", "raison", "commentaire", "note")), None)
+        lecteur = lecteur[1:]
+
+    sortie, vus = [], set()
+    for n, ligne in enumerate(lecteur, 1):
+        if len(ligne) <= i_code:
+            continue
+        code = ligne[i_code].strip().upper()
+        if not code:
+            continue
+        if not re.fullmatch(r"[0-9][0-9AB][0-9]{3}", code):
+            raise ValueError(
+                f"{chemin}, ligne {n} : « {code} » n'est ni un code postal ni un "
+                "code INSEE (cinq caractères, éventuellement 2A/2B pour la Corse)")
+        if code in vus:
+            continue
+        vus.add(code)
+        motif = (ligne[i_motif].strip()
+                 if i_motif is not None and len(ligne) > i_motif else "")
+        sortie.append((code, motif))
+
+    if not sortie:
+        raise ValueError(f"{chemin} : aucun code exploitable")
+    return sortie
+
+
+_PLAGE = re.compile(
+    r"^\s*>\s*=?\s*(-?[0-9]+(?:[.,][0-9]+)?)\s*(?:et)?\s*"
+    r"<\s*=?\s*(-?[0-9]+(?:[.,][0-9]+)?)\s*(.*)$", re.I)
+
+
+def parse_plage(v):
+    """
+    Référence encadrée par le HAUT et par le BAS -> (mini, maxi, unite).
+
+    '>=6,5 et <=9 unité pH'      -> (6.5, 9.0, 'unité pH')
+    '>=200 et <=1100 µS/cm'      -> (200.0, 1100.0, 'µS/cm')
+    '<=2 mg(C)/L'                -> (None, None, None)   -- borne haute seule,
+                                    c'est le domaine de parse_limite()
+
+    Le modèle du projet ne connaît que le « dépassement par le haut » : une eau
+    trop peu minéralisée ou trop acide sort de la référence de qualité sans
+    qu'aucun seuil ne soit franchi au sens de `parse_limite()`, qui abandonne
+    dès qu'une chaîne commence par « > ». Ces paramètres — pH, conductivité —
+    disparaissaient donc de toute lecture. Ils décrivent le caractère de l'eau,
+    pas sa pollution, et une eau agressive est un vrai sujet : elle dissout les
+    matériaux du réseau qu'elle traverse.
+
+    La plage n'est pas inventée ici : elle est **déclarée par la source avec la
+    mesure**, dans `reference_brute`. Elle ne dit donc rien de 2016 ni du seuil
+    le plus strict au monde — comme toute limite déclarée (§2.8).
+    """
+    if v is None or str(v).strip() == "":
+        return (None, None, None)
+    m = _PLAGE.match(str(v).strip())
+    if not m:
+        return (None, None, None)
+    return (float(m.group(1).replace(",", ".")),
+            float(m.group(2).replace(",", ".")),
+            (m.group(3).strip() or None))
+
+
 def f(x):
     """Cellule CSV -> float ou None (vide, espace ou tiret = absence de seuil)."""
     if x is None:

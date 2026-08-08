@@ -4,6 +4,7 @@ Collecte Hub'Eau pour une liste de communes précises.
 
     python3 src/fetch_hubeau.py 17415 31446        # codes INSEE
     python3 src/fetch_hubeau.py 31520              # code postal (résolu en INSEE)
+    python3 src/fetch_hubeau.py --csv lot.csv      # une liste de communes
     python3 src/fetch_hubeau.py --tous 17415       # tous les bulletins complets de chaque point
 
 Pour un département entier, utiliser src/fetch_departement.py, qui ajoute
@@ -16,14 +17,14 @@ bulletins sont collectés.
 Ce script fait des requêtes HTTP : environnement avec accès réseau depuis le
 shell (ta machine, Claude Code), pas un bac à sable — voir CLAUDE.md §3.1.
 """
-import sys
+import argparse
 import time
 
 import duckdb
 
 import ingest
 import hubeau
-from common import DB_PATH, SEUIL_COMPLET
+from common import DB_PATH, SEUIL_COMPLET, lire_liste_communes
 
 
 def resoudre(code):
@@ -68,8 +69,19 @@ def run(codes, tous=False, db=DB_PATH):
 
 
 if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    if not args:
-        print("Usage: python3 src/fetch_hubeau.py [--tous] <code_insee|code_postal> [...]")
-        sys.exit(1)
-    run(args, tous="--tous" in sys.argv)
+    p = argparse.ArgumentParser(
+        description="Collecte Hub'Eau pour une liste de communes (sans figer)")
+    p.add_argument("codes", nargs="*", help="codes INSEE ou codes postaux")
+    p.add_argument("--csv", help="fichier CSV de communes (colonne « code »)")
+    p.add_argument("--tous", action="store_true",
+                   help="tous les bulletins complets de chaque point d'eau")
+    a = p.parse_args()
+
+    codes = list(a.codes)
+    if a.csv:
+        lot = lire_liste_communes(a.csv)
+        print(f"lot lu depuis {a.csv} : {len(lot)} commune(s)\n")
+        codes += [c for c, _ in lot if c not in codes]
+    if not codes:
+        p.error("donne au moins un code, ou un fichier avec --csv")
+    run(codes, tous=a.tous)

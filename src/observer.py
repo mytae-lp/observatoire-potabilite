@@ -4,6 +4,7 @@ Point d'entrée du projet : « je veux travailler sur la commune 31520 ».
 
     python3 src/observer.py 31520
     python3 src/observer.py 31520 17415 31446      # codes postaux ou INSEE mêlés
+    python3 src/observer.py --csv mes_communes.csv # un lot, piloté par un fichier
     python3 src/observer.py 31520 --sans-repli     # pas de rattachement au réseau
 
 Enchaînement complet :
@@ -38,7 +39,7 @@ import duckdb
 import figer
 import hubeau
 import ingest
-from common import DB_PATH, SEUIL_COMPLET
+from common import DB_PATH, SEUIL_COMPLET, lire_liste_communes
 
 
 def resoudre(code):
@@ -110,7 +111,7 @@ def observer(codes, depuis=None, tous=False, repli=True, db=DB_PATH):
 
     con = duckdb.connect(db)
     try:
-        con.execute(figer.SCHEMA_FIGE)
+        figer.assurer_schema(con)
         version = figer.version_referentiel()
         print(f"référentiel : version {version}\n")
 
@@ -200,14 +201,30 @@ def _restituer(con, version, insees):
 def main():
     p = argparse.ArgumentParser(
         description="Analyser une commune par son code postal ou son code INSEE")
-    p.add_argument("codes", nargs="+", help="codes postaux ou codes INSEE")
+    p.add_argument("codes", nargs="*", help="codes postaux ou codes INSEE")
+    p.add_argument("--csv", help="fichier CSV de communes à traiter par lot "
+                                 "(colonne « code », colonne « motif » facultative)")
     p.add_argument("--depuis", help="année minimale de prélèvement (ex. 2020)")
     p.add_argument("--tous", action="store_true",
                    help="tous les bulletins complets de chaque point d'eau")
     p.add_argument("--sans-repli", action="store_true",
                    help="ne pas rattacher au réseau si la commune n'a pas de bulletin")
     a = p.parse_args()
-    observer(a.codes, depuis=a.depuis, tous=a.tous, repli=not a.sans_repli)
+
+    codes = list(a.codes)
+    if a.csv:
+        lot = lire_liste_communes(a.csv)
+        print(f"lot lu depuis {a.csv} : {len(lot)} commune(s)")
+        for code, motif in lot:
+            print(f"  {code}" + (f"  — {motif}" if motif else ""))
+        print()
+        # Les codes donnés en ligne de commande viennent en premier : ils sont
+        # tapés à la main, donc voulus tout de suite.
+        codes += [c for c, _ in lot if c not in codes]
+    if not codes:
+        p.error("donne au moins un code, ou un fichier avec --csv")
+
+    observer(codes, depuis=a.depuis, tous=a.tous, repli=not a.sans_repli)
 
 
 if __name__ == "__main__":
