@@ -20,6 +20,11 @@ Enchaînement complet :
 
 Règle de couverture (décidée le 7 août 2026)
 --------------------------------------------
+Elle n'est plus écrite ici : elle vit dans `src/collecte.py`, avec le passage
+par le cache brut, et `fetch_departement.py` appelle la même fonction. Les deux
+chemins de collecte en portaient chacun leur version, et elles avaient déjà
+divergé — seul celui-ci écrivait `couverture_communes` et figeait.
+
 1. bulletin complet propre à la commune                  -> `analysee`
 2. sinon, bulletin complet du même réseau prélevé dans
    une commune voisine, la commune de prélèvement étant
@@ -36,10 +41,10 @@ import sys
 
 import duckdb
 
+import collecte
 import figer
 import hubeau
-import ingest
-from common import DB_PATH, SEUIL_COMPLET, lire_liste_communes
+from common import DB_PATH, lire_liste_communes
 
 
 def resoudre(code):
@@ -52,56 +57,10 @@ def resoudre(code):
     return [hubeau.commune_par_insee(code)]
 
 
-def _ingerer(con, insee, commune, rows, dept):
-    meta = hubeau.bulletin_meta(insee, commune.get("nom"), dept, rows)
-    meta.update({"codes_postaux": commune.get("codes_postaux"),
-                 "lon": commune.get("lon"), "lat": commune.get("lat")})
-    return meta, ingest.ingest_bulletin(con, meta, rows)
-
-
-def traiter(con, commune, depuis=None, tous=False, repli=True):
+def traiter(con, commune, depuis=None, tous=False, repli=True, cache=True):
     """Collecte, ingère et renvoie (statut, [code_prelevement], commune_prelevement)."""
-    insee = commune["code_insee"]
-    dept = insee[:2]
-    nom = commune.get("nom") or insee
-
-    bulletins = hubeau.derniers_bulletins_complets(insee, depuis=depuis, tous=tous)
-    if bulletins:
-        codes = []
-        for _cp, rows in bulletins.items():
-            meta, (code_prel, nb, complet) = _ingerer(con, insee, commune, rows, dept)
-            codes.append(code_prel)
-            print(f"  {meta['date_prelevement']}  "
-                  f"{meta.get('nom_installation_amont') or 'installation non renseignée'}"
-                  f"  — {nb} paramètres")
-        return "analysee", codes, None
-
-    if not repli:
-        return "non_documentee", [], None
-
-    # Repli : la même eau, prélevée ailleurs sur le même réseau.
-    #
-    # Le prélèvement est ingéré sous la commune où il a RÉELLEMENT eu lieu.
-    # L'attacher à la commune étudiée serait faux, et ferait se disputer la
-    # même clé par deux communes dès que la voisine serait analysée à son
-    # tour. Le rattachement vit dans couverture_communes, pas dans le fait.
-    reseaux = hubeau.reseaux_de_la_commune(insee, depuis=depuis)
-    for code_reseau, nom_reseau in reseaux.items():
-        trouve = hubeau.bulletin_du_reseau(code_reseau, depuis=depuis)
-        if not trouve:
-            continue
-        rows, insee_prel, _nom_prel = trouve
-        commune_prel = hubeau.commune_par_insee(insee_prel)
-        meta, (code_prel, nb, _complet) = _ingerer(
-            con, insee_prel, commune_prel, rows, insee_prel[:2])
-        libelle = commune_prel.get("nom") or insee_prel
-        print(f"  {meta['date_prelevement']}  réseau {nom_reseau or code_reseau}"
-              f"  — {nb} paramètres, prélevé à {libelle}")
-        return "rattachee_reseau", [code_prel], libelle
-
-    print(f"  aucun bulletin complet (> {SEUIL_COMPLET} paramètres), "
-          f"ni pour la commune ni pour son réseau")
-    return "non_documentee", [], None
+    return collecte.traiter_commune(con, commune, depuis=depuis, tous=tous,
+                                    repli=repli, cache=cache)
 
 
 def observer(codes, depuis=None, tous=False, repli=True, db=DB_PATH):

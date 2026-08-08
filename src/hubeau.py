@@ -149,6 +149,35 @@ def communes_geo(dept):
     return {c["code"]: c.get("nom") for c in j}
 
 
+def communes_departement(dept):
+    """
+    Toutes les communes du département, **avec leurs centroïdes**, en UN appel.
+
+    `communes_geo` ne demande que `code,nom` : à l'échelle du département, il
+    fallait ensuite un `commune_par_insee` par commune pour obtenir lon/lat et
+    les codes postaux — soit ~315 appels supplémentaires pour le Tarn, alors que
+    l'API sait tout rendre d'un coup. Or `couverture_communes` porte les
+    coordonnées, et **c'est ce que colorie la carte** (§8bis, obligation 4) :
+    sans elles, une commune non documentée n'a nulle part où s'afficher.
+
+    Retourne {code_insee: {code_insee, nom, population, lon, lat, codes_postaux}}.
+    """
+    j = _get(GEO.format(dept=dept),
+             {"fields": "code,nom,codesPostaux,population,centre"})
+    out = {}
+    for c in j or []:
+        centre = (c.get("centre") or {}).get("coordinates") or [None, None]
+        out[c["code"]] = {
+            "code_insee": c["code"],
+            "nom": c.get("nom"),
+            "population": c.get("population"),
+            "lon": centre[0],
+            "lat": centre[1],
+            "codes_postaux": "|".join(c.get("codesPostaux") or []) or None,
+        }
+    return out
+
+
 def communes_hubeau(dept):
     """
     Communes rattachées à une UDI dans ce département, selon Hub'Eau.
@@ -260,23 +289,38 @@ def selectionner_bulletins(inventaire, tous=False, seuil=SEUIL_COMPLET):
 # ---------------------------------------------------------------------------
 # 2. Rapatriement d'un bulletin, entier
 # ---------------------------------------------------------------------------
-def fetch_bulletin(insee, code_prelevement, date):
+def fetch_bulletin(code_prelevement):
     """
     Toutes les lignes d'UN prélèvement, et de lui seul.
 
-    Bornage à J+1 : `date_max_prelevement` est comparé à un horodatage, donc
-    borner au jour même renvoie zéro ligne (vérifié). On filtre ensuite sur
-    code_prelevement, parce qu'une commune peut avoir plusieurs prélèvements
-    le même jour, sur des points différents — les fusionner produirait un
-    faux bulletin (CLAUDE.md §2.3 : une analyse porte sur UN prélèvement).
+    **`code_prelevement` EST un filtre valide de l'API** — vérifié le 8 août
+    2026 : `count` revient exactement égal au nombre de paramètres du bulletin,
+    la réponse ne contient qu'un seul prélèvement, et l'appel coûte 0,1 s. C'est
+    la voie la plus directe, et celle qui pèse le moins sur le service.
+
+    Ce que faisait la version précédente, et pourquoi elle a été remplacée : on
+    demandait toute la commune sur une fenêtre de deux jours, puis on écartait
+    côté client ce qui n'était pas le bon prélèvement — une commune peut en
+    porter plusieurs le même jour, sur des points différents, et les fusionner
+    produirait un faux bulletin (§2.3). C'était juste, mais cela rapatriait des
+    lignes pour les jeter, et à l'échelle d'un département cela se paie.
+
+    Le savoir qui justifiait ce détour reste vrai et reste utile ailleurs :
+    `date_max_prelevement` est comparé à un horodatage, donc **borner au jour
+    même renvoie zéro ligne** ; il faut borner à J+1 (cf. l'en-tête du module).
     """
-    d = datetime.date.fromisoformat(date[:10])
-    lendemain = (d + datetime.timedelta(days=1)).isoformat()
     rows = []
-    for data in _pages(BASE, {"code_commune": insee,
-                              "date_min_prelevement": d.isoformat(),
-                              "date_max_prelevement": lendemain}):
-        rows += [r for r in data if str(r.get("code_prelevement")) == str(code_prelevement)]
+    for data in _pages(BASE, {"code_prelevement": code_prelevement}):
+        rows += data
+    # Garde-fou : si l'API cessait un jour d'honorer ce filtre — c'est
+    # exactement ce que fait `communes_udi` — on ingérerait le contenu d'autres
+    # prélèvements sans rien voir. Le contrôle coûte une comparaison.
+    etrangeres = [r for r in rows
+                  if str(r.get("code_prelevement")) != str(code_prelevement)]
+    if etrangeres:
+        raise RuntimeError(
+            f"filtre code_prelevement non honoré : {len(etrangeres)} ligne(s) "
+            f"étrangères sur {len(rows)} pour {code_prelevement}")
     return rows
 
 
@@ -346,7 +390,7 @@ def bulletin_du_reseau(code_reseau, depuis=None):
     if not retenus:
         return None
     e = max(retenus, key=lambda x: x["date"])
-    rows = fetch_bulletin(e["code_commune"], e["code_prelevement"], e["date"])
+    rows = fetch_bulletin(e["code_prelevement"])
     if not rows:
         return None
     return rows, e["code_commune"], e.get("nom_commune")
@@ -362,7 +406,7 @@ def derniers_bulletins_complets(insee, depuis=None, tous=False):
     inv = inventaire_prelevements(insee, depuis=depuis)
     out = {}
     for e in selectionner_bulletins(inv, tous=tous):
-        rows = fetch_bulletin(insee, e["code_prelevement"], e["date"])
+        rows = fetch_bulletin(e["code_prelevement"])
         if rows:
             out[e["code_prelevement"]] = rows
         time.sleep(PAUSE)

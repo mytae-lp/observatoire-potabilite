@@ -12,15 +12,25 @@ fichier-ci ne dit que ce que `CLAUDE.md` ne peut pas dire : l'état du chantier
 > les 45 propositions sont validées, la clé de Challet est corrigée, le corpus
 > est confirmé et destiné à croître, et le journal des abandons de paramètres
 > est construit.
+>
+> **Mise à jour du 8 août 2026, en soirée.** Trois commits sont arrivés depuis :
+> C4 + C5 + C7 livrés d'un bloc, `sortie/rediger_lot.py` écrit, et `CLAUDE.md`
+> ramené de 1 246 à ~400 lignes. Les §1, §4.1 et §4.3 ci-dessous ont été
+> corrigés en conséquence. **Le chantier C6 — ÉCHELLE est en cours** : voir
+> `docs/CHANTIERS.md`.
 
 ---
 
 ## 1. Où en est le dépôt
 
-**Branche `chantier-interface`**, 13 commits en avant de `master`, arbre de
+**Branche `chantier-interface`**, 16 commits en avant de `master`, arbre de
 travail propre. `master` est intact et n'a pas été touché.
 
 ```
+1d2e186  docs: CLAUDE.md ramené à sa charge utile, l'argumentaire en documents appelés
+66ec049  feat: rédiger en lot — dossiers de faits, et contrôle avant intégration
+6a9bd6e  feat: le plafond analytique, les territoires nommés, le mélange dénombré
+029d7d3  docs: passage de main — etat du chantier, circuit de travail, corpus reimportable
 4b1b141  feat: commenter une proposition plutot que la valider ou la jeter
 d5d997d  feat: une page pour relire et valider les redactions proposees
 e733fa2  feat: une redaction par POINT D'EAU, et les 45 bulletins rediges
@@ -100,18 +110,21 @@ la quatrième étape du bouton « Publier ».
 
 ## 4. Ce qui attend une décision de Yannick
 
-### 4.1 Les 45 propositions de rédaction
+### 4.1 Les 45 propositions de rédaction — validées
 
-`sortie/redactions_proposees.json` porte **45 textes**, un par point d'eau,
-tous marqués « proposition, à relire », **aucun validé, aucun commenté**.
+**Fait.** `sortie/redactions.json` porte désormais **52 clés** : 45 `PREL:`
+(les propositions validées), 6 codes INSEE et 1 `INSEE@date` — la clé de
+Challet corrigée. `sortie/redactions_proposees.json` est vide (il ne garde que
+son `_lisez_moi`), et **aucun bulletin n'est sans prose** :
 
-Le geste attendu est sur <http://127.0.0.1:8760/valider> : valider en bloc,
-valider à l'unité, ou **commenter** ce qui doit être réécrit. Un commentaire
-vaut « pas encore » et suspend la validation.
+```bash
+py -X utf8 sortie/rediger_lot.py --etat
+```
 
-`sortie/redactions.json` garde les **7 rédactions de la main de Yannick** —
-Ally, Saintes, Rostrenen, Challet, Cabrerets, Vourles, Montech. Elles priment
-partout et n'apparaissent pas sur la page de validation.
+La machinerie de rédaction en lot est écrite depuis (`sortie/rediger_lot.py`,
+consigne versionnée dans `sortie/CONSIGNE_REDACTION.md`) : elle choisit,
+fabrique les dossiers de faits, **contrôle avant d'écrire**, et n'appelle
+aucune API — la rédaction se fait par agents de fond dans Claude Code.
 
 ### 4.2 Deux points signalés, non corrigés
 
@@ -129,12 +142,18 @@ Le contrôle est volontairement **non bloquant** pour la prose d'auteur : un
 outil qui censure son auteur ne serait pas un garde-fou. **La décision lui
 revient.**
 
-### 4.3 Le corpus lui-même
+### 4.3 Le corpus lui-même — tranché
 
-Les 53 communes hors livre ont été collectées pour éprouver l'interface, puis
-conservées parce que trois d'entre elles portent la thèse (Berchères-Saint-
-Germain, Jouy ×2, aux côtés de Montech). Yannick n'a pas tranché s'il les garde
-dans le corpus publié.
+**On garde tout, et le corpus a vocation à croître d'un ordre de grandeur.**
+
+> « mon idée est d'avoir plusieurs milliers de communes, pour avoir une data
+> significative. Je construis un outil citoyen. »
+
+C'est le chantier **C6 — ÉCHELLE**, en cours, qui commence par le **Tarn**.
+Quatre décisions prises le 8 août 2026 : tous les bulletins complets de chaque
+point d'eau sans borne de date ; un cache brut sur disque pour que la base se
+reconstruise sans retoucher Hub'Eau ; prose dérivée partout, proposée seulement
+sur les cas de thèse. Détail dans `docs/CHANTIERS.md` §C6.
 
 ---
 

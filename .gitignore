@@ -5,6 +5,13 @@ data/*.duckdb.wal
 data/*.sqlite
 data/journal/
 
+# Le cache brut : ce que Hub'Eau a répondu, tel quel (src/brut.py). Non
+# versionné — un département pèse ~80 Mo — mais c'est le SEUL objet du dépôt
+# qu'on ne peut pas refabriquer tout seul, puisque le refabriquer voudrait dire
+# redemander des milliers de bulletins à un service public gratuit (§3.2).
+# À conserver et à sauvegarder hors git.
+data/brut/
+
 # Le journal des abandons et les autres matériaux d'étude : entièrement
 # dérivés de la base, régénérés par src/etude_panel.py.
 data/etudes/

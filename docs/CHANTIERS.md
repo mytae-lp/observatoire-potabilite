@@ -26,7 +26,7 @@ un, ici ou dans une autre session.
 | **C3** | ÉVOLUTION | comparer les bulletins successifs d'un même point d'eau | en attente de C7 |
 | **C4** | LQ | la finesse du laboratoire, et le biais qu'elle crée entre communes | **fait**, règle inscrite au §8bis |
 | **C5** | TERRITOIRES | ne comparer qu'à des zones nommées, dont on a les données | **fait**, règle inscrite au §2.11 |
-| **C6** | ÉCHELLE | passer de 60 à plusieurs milliers de communes | décidé, non planifié |
+| **C6** | ÉCHELLE | passer de 60 à plusieurs milliers de communes | **en cours** — outillé et mesuré, le Tarn attend le feu vert |
 | **C7** | CAPTAGE | la dilution comme mode de gestion — hypothèse à instruire | **premier livrable posé** |
 | **C8** | ATELIER | comprendre et fiabiliser le back-office | **prêt à lancer** |
 
@@ -49,6 +49,7 @@ tableau dit qui écrit où — à relire avant d'en lancer deux ensemble.
 | C5 TERRITOIRES | `sortie/redactions.json`, `tests/test_sorties.py` (contrôle 8), `CLAUDE.md` §2.11 | C4, C8 |
 | C7 CAPTAGE | `src/build_db.py` (vues de mélange), `src/etude_melange.py`, `docs/METHODE_DILUTION.md` | C3 ; **C2 sur `build_db.py`** |
 | C8 ATELIER | `atelier/atelier.py`, `tests/` | tous, en lecture |
+| C6 ÉCHELLE | `src/collecte.py`, `src/brut.py`, `src/fetch_departement.py`, `src/hubeau.py`, `src/observer.py` | **tous, par le corpus** — une collecte change les chiffres de chaque chantier |
 
 Trois règles pour que ça tienne :
 
@@ -764,13 +765,169 @@ grandeur.** Le point 4.3 de `docs/REPRISE.md` est clos.
 
 - les chantiers 2 et 4 ne prennent leur sens qu'à cette échelle : une direction
   commune dans les paramètres abandonnés ne se voit pas sur 45 bulletins ;
-- `fetch_departement.py` est prêt et n'a jamais servi en entier. C'est le
-  prochain pas naturel, et il donnera aussi les communes « non documentées »,
-  qui n'existent aujourd'hui que dans les tests ;
 - l'étiquette envers Hub'Eau (§3.2) devient une contrainte réelle et non plus
   théorique : un département = plusieurs milliers d'appels ;
 - la vitrine statique approche 1,7 Go à l'échelle nationale et demandera d'être
   découpée par département (§8ter). Ce n'est pas bloquant avant d'y être.
+
+### Quatre décisions de Yannick — 8 août 2026
+
+| Question | Tranché |
+|---|---|
+| par où commencer | **le Tarn (81)** |
+| profondeur | **tous les bulletins complets de chaque point d'eau, sans borne de date** |
+| cache brut des réponses Hub'Eau | **oui**, un `.jsonl.gz` par bulletin |
+| prose à l'échelle | **dérivée partout, proposée seulement sur les cas de thèse** |
+
+Le Tarn n'était pas le choix proposé — le carnet penchait pour le 28, plus
+dense. Il est meilleur : **les deux seuls mélanges entièrement reconstitués du
+corpus y sont** (LOUBERS 80/20, VALLEE DU CEROU 50/50, chantier C7), et **les
+trois valeurs de LQ de l'hydrazide maléique** — 0,05 / 0,5 / 2,5 µg/L, le
+facteur 50 du chantier C4 — sont tarnaises toutes les trois. Un seul
+département nourrit donc C2, C4 et C7 en même temps.
+
+### Ce que « `fetch_departement.py` est prêt » cachait
+
+Le carnet écrivait que le script était prêt et n'avait jamais servi. C'était
+vrai de la collecte brute, et faux de tout le reste : **le dépôt portait deux
+chemins de collecte qui ne faisaient pas la même chose.**
+
+| | `observer.py` | `fetch_departement.py` |
+|---|---|---|
+| repli sur le réseau | oui | **non** |
+| écrit `couverture_communes` | oui | **non** |
+| fige | oui | **non** |
+| journal de reprise | **non** | oui |
+
+Lancé tel quel sur le Tarn, il aurait rempli `prelevements` et `mesures` sans
+produire **une seule ligne figée ni une seule commune sur la carte** — donc
+aucune page publiable, et pas de « non documentée » alors que c'est précisément
+ce qu'un département entier devait enfin montrer. C'est la leçon du chantier C8
+rencontrée une seconde fois : une règle recopiée à deux endroits diverge, et
+rien ne le signale.
+
+La règle de couverture vit désormais dans **`src/collecte.py`**, appelée par les
+deux points d'entrée. Chacun garde ce qui lui est propre — `observer.py` résout
+un code postal et restitue, `fetch_departement.py` énumère, journalise et fige.
+
+### Ce que la sonde a établi sur l'API — 8 août 2026
+
+Quatre faits mesurés, aucun documenté par Hub'Eau. Ils commandent la collecte :
+
+| Ce qui a été testé | Résultat |
+|---|---|
+| `code_departement` | **honoré** — 1 024 569 lignes pour le Tarn contre 130 042 089 sans filtre |
+| `nom_departement` | **ignoré en silence**, renvoie la France entière — le piège de `communes_udi`, à l'identique |
+| `code_prelevement` | **honoré exactement** — `count` = le nombre de paramètres du bulletin, **0,1 s** |
+| pagination par page | tient jusqu'au bout (205 pages), ordre stable, `sort=asc/desc` accepté |
+
+**La voie départementale est pourtant la mauvaise**, et c'est contre-intuitif :
+les pages profondes coûtent quatre fois plus que les premières — 4,6 s pour la
+page 3, 20,6 s pour la page 100 — parce que le serveur balaie l'offset.
+L'inventaire du Tarn en un balayage départemental prendrait ~45 min ; commune
+par commune, où chaque jeu de résultats reste petit, **17 min**. Le filtre reste
+utile pour compter, pas pour collecter.
+
+Deux conséquences dans le code :
+
+- `fetch_bulletin` interroge désormais `code_prelevement` directement, au lieu
+  de demander toute la commune sur une fenêtre de deux jours et d'écarter le
+  reste côté client. Un **garde-fou** lève une erreur si une ligne étrangère
+  apparaît : si l'API cessait un jour d'honorer ce filtre — ce que fait déjà
+  `communes_udi` — on ingérerait le contenu d'autres prélèvements sans rien voir ;
+- `communes_departement()` rapporte les **centroïdes en un seul appel**, là où
+  il fallait un `commune_par_insee` par commune. `couverture_communes` porte les
+  coordonnées, et sans elles une commune non documentée n'a nulle part où
+  s'afficher sur la carte (§8bis, obligation 4).
+
+### Le cache brut — `src/brut.py`
+
+`data/brut/<dept>/<code_prelevement>.jsonl.gz`. Un bulletin de 317 paramètres
+pèse 421 Ko en JSON et **16 à 20 Ko gzippé**.
+
+Il sépare deux gestes qui étaient confondus : **collecter** — une fois, en
+ligne, poliment — et **ingérer** — autant de fois qu'on veut, hors ligne. Sans
+lui, corriger un bug d'ingestion ou ajouter une colonne obligerait à redemander
+des milliers de bulletins à un service public gratuit, c'est-à-dire exactement
+la charge abusive que le §3.2 interdit, et entièrement évitable : la réponse ne
+change pas, c'est notre lecture qui change.
+
+Il garde la réponse de la source, pas notre interprétation : aucun champ écarté,
+aucune valeur convertie, écriture atomique par fichier temporaire renommé — un
+`.gz` tronqué serait relu comme un bulletin valide, et un bulletin amputé qui
+passe sous `SEUIL_COMPLET` disparaît de l'analyse sans que rien ne le signale
+(§2.3). Ni verdict ni seuil n'y entrent : ceux-là dépendent du référentiel daté
+et vivent dans les tables figées avec leur version (§8bis).
+
+Non versionné, **mais c'est le seul objet du dépôt qu'on ne peut pas
+refabriquer seul.** À sauvegarder hors git.
+
+### L'essai mesuré — 10 communes du Tarn, 8 août 2026
+
+```bash
+py -X utf8 src/fetch_departement.py --dept 81 --limite 10 --tous
+```
+
+| | |
+|---|---|
+| durée | 4,5 min — **27 s par commune** |
+| bulletins rapatriés | 51 du réseau, 1 relu au cache |
+| cache | 1,0 Mo pour 51 bulletins |
+| statuts | 4 `analysee`, **6 `rattachee_reseau`**, 0 `non_documentee` |
+| inscrites d'office | 7 communes, qui servent de repli à une voisine |
+
+**Six communes sur dix n'ont aucun bulletin complet à elles.** Sur 45 bulletins
+le repli réseau était un cas particulier ; à l'échelle, c'est le cas majoritaire,
+et l'obligation d'affichage n° 5 du §8bis — dire où l'analyse a été prélevée —
+devient la règle plutôt que l'exception.
+
+Le corpus passe de 45 à **94 bulletins** et de 15 617 à **35 191 mesures**, sur
+dix communes seulement.
+
+### Ce que dix communes ont déjà débloqué
+
+**Le verrou du chantier C3 saute.** Le carnet écrivait : « aucune paire ne
+partage un `code_installation_amont` ; zéro installation du corpus porte deux
+bulletins complets ». Il y en a maintenant **trois**, et Albi porte à elle
+seule 29 bulletins de 2021 à 2026, dont une longue série sur STATION CAUSSELS.
+C'est exactement l'objet de C3 — l'évolution d'un même point d'eau — et il
+n'attendait que le volume.
+
+**Le signal du chantier C2 devient lisible sur un point d'eau suivi.** Albine :
+627 paramètres en 2016, 2017, 2018 et 2019 ; 345 à 409 depuis 2020. Sur la même
+installation, dix ans de suite.
+
+**Le barème de LQ a bougé, comme annoncé.** L'hydrazide maléique passe d'une
+base de 29 bulletins à **71**, sur 5 départements, étendue inchangée (0,05 à
+2,5 µg/L). Les fiches publiées affichent donc une base périmée tant qu'on n'a
+pas republié — c'est le §2.14 qui joue exactement comme prévu, et c'est la
+raison pour laquelle la base s'affiche avec le barème. Les mesures aveugles
+passent de 46 sur 39 bulletins à **90 sur 81**.
+
+### Ce que le contrôle a attrapé, et qui n'est pas un défaut
+
+`tests/test_sorties.py` échoue : **« 72 communes couvertes, 12 sans page »**.
+C'est le contrôle qui fait son travail — publier est un geste séparé de
+collecter (§8quater bis), et c'est cette confusion qui avait laissé 28 communes
+invisibles le 8 août au matin. Les 12 communes le resteront jusqu'à une
+publication, qui refera aussi tous les barèmes de LQ.
+
+### Ce qui reste à faire
+
+1. **Le Tarn en entier** — extrapolation de l'essai : ~315 communes, **~2 h 20**,
+   de l'ordre de 1 400 à 1 600 bulletins et ~30 Mo de cache. Reprenable par la
+   même commande ; `--figer` termine sans réseau si la collecte est coupée.
+2. **Republier**, ce qui refait les 12 pages manquantes et met à jour toutes les
+   bases de barème. À faire après la collecte, pas pendant.
+3. **Le coût du figeage** : `figer.figer()` recalcule tout le corpus à chaque
+   appel, bulletin par bulletin en Python. Invisible à 94 bulletins, à mesurer
+   à 1 500. C'est le prochain goulot, pas la collecte.
+4. **`v_parametres_non_apparies` passe à 103 libellés.** Le diagnostic du §4
+   grossit avec le corpus : un paramètre sans seuil existe en base et ne pèse
+   sur aucun verdict. À relire avant de publier le département.
+5. **La prose** : `rediger_lot.py` fabrique déjà les dossiers et contrôle les
+   réponses. Il lui manque un critère de sélection « cas de thèse », sinon
+   `--dossiers` en produirait un par bulletin du département.
 
 ---
 
@@ -1110,3 +1267,28 @@ Repris de `docs/REPRISE.md` §4, mis à jour :
   Note de session : `src/build_db.py` étant en cours de modification par C2, le
   calcul a été porté dans `src/figer.py`, où vivent déjà les indicateurs dérivés
   du bulletin.
+- **8 août 2026, C6 outillé et mesuré** — quatre décisions prises (le Tarn, tous
+  les bulletins sans borne de date, cache brut, prose dérivée par défaut), puis
+  la découverte qui commandait le chantier : **`fetch_departement.py` n'était
+  pas « prêt »**. Il collectait sans repli réseau, sans couverture et sans
+  figeage — lancé sur un département, il n'aurait produit ni page ni carte. La
+  règle de couverture vit maintenant dans `src/collecte.py`, appelée par les
+  deux points d'entrée ; c'est la leçon de C8 rencontrée une seconde fois.
+  Quatre faits mesurés sur l'API, aucun documenté : `code_departement` est
+  honoré, **`nom_departement` est ignoré en silence** (le piège de
+  `communes_udi`), `code_prelevement` est honoré exactement — d'où un
+  rapatriement à 0,1 s au lieu d'une fenêtre de deux jours filtrée côté client,
+  avec un garde-fou si l'API cessait de l'honorer —, et **les pages profondes
+  coûtent 4× les premières**, ce qui disqualifie le balayage départemental
+  (45 min) au profit de la voie commune par commune (17 min).
+  `src/brut.py` pose le cache brut : 16 à 20 Ko par bulletin, écriture atomique,
+  et surtout la séparation entre collecter une fois et ingérer autant qu'on veut.
+  Essai sur 10 communes : 4,5 min, 27 s par commune, **6 communes sur 10 sans
+  bulletin propre** — le repli réseau devient le cas majoritaire. Le corpus passe
+  à 94 bulletins et 35 191 mesures, et dix communes suffisent à **débloquer C3** :
+  trois installations portent plusieurs bulletins là où le corpus entier n'en
+  portait aucune, Albi en aligne 29 de 2021 à 2026. Albine donne à C2 son premier
+  point d'eau suivi dix ans : 627 paramètres de 2016 à 2019, 345 à 409 depuis.
+  Le barème de LQ passe de 29 à 71 bulletins de base, comme le §2.14 le prévoyait.
+  `tests/test_sorties.py` signale 12 communes couvertes sans page : c'est le
+  contrôle qui fonctionne, publier restant un geste séparé.
