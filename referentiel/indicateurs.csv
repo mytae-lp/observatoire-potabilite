@@ -1,0 +1,54 @@
+cle;groupe;ordre;libelle;source;reference;unite;lecture
+# ===========================================================================
+# INDICATEURS DE LA FICHE — quoi montrer, dans quel ordre, et comment le lire.
+#
+# Fichier VERSIONNÉ, comme le référentiel de seuils : ce qu'on choisit de
+# mettre en avant est une décision éditoriale, elle se discute et elle doit
+# laisser une trace datée. Il est lu par sortie/indicateurs.py ; aucun libellé
+# ni aucun ordre n'est écrit en dur dans le code.
+#
+# CE FICHIER NE CONTIENT AUCUN SEUIL. Les valeurs de comparaison viennent
+# toutes de referentiel_seuils.csv (seuil applicable à la date, seuil 2016,
+# seuil strict) ou de la limite que la source déclare avec la mesure. Inscrire
+# un seuil ici créerait une deuxième source de vérité, et elles finiraient par
+# se contredire.
+#
+# colonnes
+#   cle        identifiant stable
+#   groupe     polluants | eau | lecture   (cf. sortie/indicateurs.py)
+#   ordre      rang d'affichage dans le groupe
+#   libelle    intitulé affiché
+#   source     mesure  -> `reference` liste des libellés candidats, séparés
+#                         par « | », premier trouvé retenu
+#              analyse -> `reference` est une colonne de analyses_figees
+#   unite      unité d'affichage quand la source n'en fournit pas
+#   lecture    la phrase qui dit ce que l'indicateur veut dire ET son piège.
+#              Sans elle, un nombre nu se lit comme une note sur 20.
+# ===========================================================================
+
+# --- CE QU'ON A TROUVÉ -----------------------------------------------------
+pesticides_somme;polluants;10;Pesticides — somme mesurée;mesure;Total des pesticides analysés;µg/L;Somme des pesticides quantifiés, telle que le laboratoire la déclare. La limite de 0,5 µg/L porte sur ce total, alors que chaque substance est par ailleurs limitée à 0,1 : une eau peut donc rester conforme au total tout en accumulant de nombreuses molécules sous leur seuil individuel.
+pesticides_nb;polluants;20;Substances de synthèse quantifiées;analyse;nb_synthese_quantifiees;;Nombre de pesticides, métabolites, PFAS et composés organiques effectivement mesurés au-dessus de la limite de quantification. Ce compte dépend de ce que le laboratoire a cherché : il se lit avec l'effort de recherche, jamais seul.
+pfas_20;polluants;30;PFAS — somme de 20;mesure;Somme de 20 substances perfluoroalkylées (PFAS);µg/L;Les « polluants éternels » : composés fluorés qui ne se dégradent pas dans l'environnement. La somme de 20 est la valeur réglementaire européenne. Un bulletin qui ne les cherche pas n'en montre aucun.
+pfas_4;polluants;40;PFAS — somme de 4;mesure;Somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS);µg/L;Les quatre PFAS les mieux documentés. Aucune limite réglementaire française ne porte sur ce total ; le repère le plus strict au monde est danois, à 0,002 µg/L. Les laboratoires quantifient rarement en dessous de 0,004 : le résultat est alors indéterminé, jamais conforme.
+nitrates;polluants;50;Nitrates;mesure;Nitrates (en NO3);mg/L;Limite de qualité à 50 mg/L. Le repère de 10 mg/L n'est pas une limite réglementaire : c'est la valeur en dessous de laquelle l'eau est considérée comme appropriée pour la préparation des biberons.
+thm;polluants;60;Sous-produits de chloration;mesure;Trihalométhanes (4 substances);µg/L;Formés par la réaction du chlore de désinfection avec la matière organique de l'eau. Limite à 100 µg/L ; le repère le plus strict retenu ici est de 25. Ils ne viennent pas de la ressource mais du traitement qui la rend potable.
+# Le bisphénol A n'a plus de tuile propre : il est le seul PE avéré au sens
+# réglementaire, et il figure à ce titre dans le bloc « Perturbateurs
+# endocriniens », avec les suspectés et les non documentés. Une tuile isolée
+# laissait croire qu'il était le seul concerné.
+cocktail;polluants;80;Effet cocktail — indice de danger;analyse;indice_danger;;Somme des rapports concentration/seuil des seules substances de synthèse. C'est un raisonnement destiné à classer des bulletins entre eux, jamais une mesure de risque sanitaire ni un verdict de potabilité. La réglementation note chaque substance séparément ; le corps boit le mélange.
+charge;polluants;90;Charge de synthèse cumulée;analyse;charge_synthese_ug_l;µg/L;Masse totale des substances de synthèse quantifiées, toutes familles confondues. C'est un plancher : ce qui n'a pas été quantifié y compte pour zéro, ce qu'il n'est pas.
+
+# --- QUELLE EAU C'EST ------------------------------------------------------
+ph;eau;10;pH;mesure;pH;unité pH;Acidité de l'eau. La référence de qualité l'encadre entre 6,5 et 9. Une eau trop acide est dite agressive : elle dissout les matériaux du réseau qu'elle traverse, et ce qu'elle en dissout se retrouve au robinet.
+conductivite;eau;20;Conductivité à 25 °C;mesure;Conductivité à 25°C;µS/cm;Mesure indirecte de la minéralisation totale : plus l'eau contient de sels dissous, mieux elle conduit. C'est le meilleur substitut disponible au résidu sec, que le contrôle sanitaire ne mesure pas.
+durete;eau;30;Dureté (titre hydrotimétrique);mesure;Titre hydrotimétrique;°f;Teneur en calcium et magnésium, en degrés français. Aucune valeur réglementaire : ce n'est pas un enjeu sanitaire. Une eau douce est en revanche plus agressive pour les canalisations.
+cot;eau;40;Carbone organique total;mesure;Carbone organique total;mg(C)/L;Matière organique dissoute. Référence de qualité à 2 mg/L. Elle n'est pas dangereuse en soi, mais c'est elle qui réagit avec le chlore pour former les sous-produits de chloration.
+turbidite;eau;50;Turbidité;mesure;Turbidité néphélométrique NFU;NFU;Présence de particules en suspension. Indicateur de bon fonctionnement du traitement plus que de qualité de la ressource.
+chlore;eau;60;Chlore libre;mesure;Chlore libre;mg(Cl2)/L;Reliquat de désinfection au moment du prélèvement. Aucune limite de qualité : sa présence atteste que le réseau est protégé, son absence n'est pas en soi un défaut.
+
+# --- CE QUE VAUT CETTE LECTURE ---------------------------------------------
+effort;lecture;10;Effort de recherche;analyse;nb_parametres;paramètres;Nombre de paramètres réellement recherchés. Ce n'est pas un indicateur de qualité de l'eau mais de transparence, et il se lit à l'envers : une eau correcte sur 200 paramètres est une information plus faible qu'une eau moyenne sur 700.
+couverture;lecture;20;Couverture de l'analyse;analyse;pct_couverture;%;Part des paramètres mesurés qui ont pu être comparés à un seuil. Le reste existe en base et ne pèse sur aucun verdict : c'est le dénominateur de toute affirmation de conformité.
+indetermines;lecture;30;Indéterminés;analyse;nb_indetermines;;Paramètres pour lesquels la limite de quantification du laboratoire se situe au-dessus du seuil de comparaison. On ne peut pas affirmer que le seuil est respecté, seulement qu'on ne sait pas. Un indéterminé n'est jamais un conforme.

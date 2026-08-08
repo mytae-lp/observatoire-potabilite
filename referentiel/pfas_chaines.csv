@@ -1,0 +1,60 @@
+code_cas;sigle;libelle_norm;type;carbones;chaine;sources;fiabilite
+# ===========================================================================
+# LONGUEUR DE CHAÎNE DES PFAS — fichier versionné et sourcé.
+#
+# Pourquoi cette distinction figure dans le projet
+# ------------------------------------------------
+# La « somme de 4 » que la réglementation européenne met en avant — PFOA,
+# PFNA, PFHxS, PFOS — ne contient QUE des chaînes longues, c'est-à-dire
+# précisément celles dont l'usage est en cours d'interdiction. Les chaînes
+# courtes, qui les remplacent et qui sont plus mobiles dans l'eau, sont
+# mesurées par les laboratoires et n'entrent dans aucun total opposable autre
+# que la somme de 20. L'indicateur réglementaire regarde donc ce qui disparaît.
+#
+# C'est le même mécanisme que le réétalonnage : la mesure existe, la norme ne
+# la regarde pas.
+#
+# CE FICHIER NE SERT À AUCUNE RECOMMANDATION. Il ne dit rien d'un traitement,
+# d'un équipement ou d'un procédé, et l'interface ne doit jamais l'utiliser
+# pour en suggérer un (CLAUDE.md §2.2).
+#
+# Convention retenue (OCDE, ENV/JM/MONO(2018)7)
+# ---------------------------------------------
+#   acides perfluorocarboxyliques (PFCA)  : chaîne longue à partir de 8 carbones
+#   acides perfluorosulfoniques   (PFSA)  : chaîne longue à partir de 6 carbones
+# Le nombre de carbones est une donnée de structure, vérifiable par le numéro
+# CAS. Le point de coupure, lui, est une convention : elle est donc sourcée et
+# marquée « a_verifier » tant que le document de l'OCDE n'a pas été relu ici
+# (CLAUDE.md §2.7 — ne jamais arrondir un a_verifier en verifie par confort).
+#
+# colonnes
+#   code_cas      identifiant chimique, clé d'appariement la plus sûre
+#   libelle_norm  libellé normalisé tel qu'il apparaît dans les bulletins
+#   type          carboxylique | sulfonique
+#   carbones      longueur totale de la chaîne carbonée
+#   chaine        longue | courte
+# ===========================================================================
+
+# --- acides perfluorocarboxyliques : longue à partir de C8 ------------------
+375-22-4;PFBA;acide perfluorobutanoique;carboxylique;4;courte;PFAS-09;a_verifier
+2706-90-3;PFPeA;acide perfluoropentanoique;carboxylique;5;courte;PFAS-09;a_verifier
+307-24-4;PFHxA;acide perfluorohexanoique;carboxylique;6;courte;PFAS-09;a_verifier
+375-85-9;PFHpA;acide perfluoroheptanoique;carboxylique;7;courte;PFAS-09;a_verifier
+335-67-1;PFOA;acide perfluoro-octanoique;carboxylique;8;longue;PFAS-09;a_verifier
+375-95-1;PFNA;acide perfluoro-nonanoique;carboxylique;9;longue;PFAS-09;a_verifier
+335-76-2;PFDA;acide perfluoro-decanoique;carboxylique;10;longue;PFAS-09;a_verifier
+2058-94-8;PFUnA;acide perfluoro undecanoique;carboxylique;11;longue;PFAS-09;a_verifier
+307-55-1;PFDoDA;acide perfluorododecanoique;carboxylique;12;longue;PFAS-09;a_verifier
+72629-94-8;PFTrDA;acide perfluoro tridecanoique;carboxylique;13;longue;PFAS-09;a_verifier
+
+# --- acides perfluorosulfoniques : longue à partir de C6 --------------------
+375-73-5;PFBS;acide sulfonique de perfluorobutane;sulfonique;4;courte;PFAS-09;a_verifier
+2706-91-4;PFPeS;acide perfluoropentane sulfonique;sulfonique;5;courte;PFAS-09;a_verifier
+355-46-4;PFHxS;perfluorohexane sulfonate;sulfonique;6;longue;PFAS-09;a_verifier
+375-92-8;PFHpS;acide perfluoroheptane sulfonique;sulfonique;7;longue;PFAS-09;a_verifier
+1763-23-1;PFOS;acide sulfonique de perfluorooctane;sulfonique;8;longue;PFAS-09;a_verifier
+68259-12-1;PFNS;acide perfluorononane sulfonique;sulfonique;9;longue;PFAS-09;a_verifier
+335-77-3;PFDS;acide perfluorodecane sulfonique;sulfonique;10;longue;PFAS-09;a_verifier
+749786-16-1;PFUnDS;acide perfluoro undecane sulfonique;sulfonique;11;longue;PFAS-09;a_verifier
+79780-39-5;PFDoDS;acide perfluorododecane sulfonique;sulfonique;12;longue;PFAS-09;a_verifier
+791563-89-8;PFTrDS;acide perfluoro tridecane sulfonique;sulfonique;13;longue;PFAS-09;a_verifier

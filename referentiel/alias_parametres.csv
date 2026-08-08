@@ -70,3 +70,4 @@ radon;Radon 222;libelle court
 dose totale indicative;Dose indicative (DI);ordre inverse
 dti;Dose indicative (DI);sigle - libelle supprime par l arrete du 09/12/2015
 dose indicative totale;Dose indicative (DI);libelle anterieur a l arrete du 09/12/2015
+total des pesticides analyses;Pesticides totaux;libelle Hub'Eau reel - sans cet alias la somme des pesticides n est notee que par la limite declaree, donc sans grille 2016 ni bascule possible, et elle est comptee comme une substance
