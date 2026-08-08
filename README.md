@@ -105,6 +105,7 @@ site/                            LA VITRINE — le seul objet publié
 atelier/                         LE POSTE DE PILOTAGE — ne se publie jamais
   atelier.py                     import CSV, collecte, contrôles, rédactions, publication
 docs/
+  REPRISE.md                     état du chantier et passage de main — À LIRE AU DÉBUT
   Plan_Projet_...md              plan d'ensemble du projet
   INDEX_SOURCES.md              index des sources (codes FAMILLE-NN)
   Note_Comparative_...md         analyse comparative d'un projet voisin

@@ -914,6 +914,66 @@ disparaître : la fiche retombe alors sur le texte dérivé, jamais sur du vide.
 
 ---
 
+## 8quater bis. Le circuit de travail, et la clé de la prose
+
+### Quatre étapes, et la troisième s'oublie
+
+```
+1. COLLECTER  →  2. FIGER  →  3. PUBLIER  →  4. RÉDIGER
+   (réseau)      (automatique)  (un geste)     (proposé, puis validé)
+```
+
+**Collecter et figer ne font qu'un** : `observer.py` enchaîne jusqu'au figeage.
+**Publier est un geste séparé, et c'est lui qui fabrique les pages.** Erreur
+réellement commise le 8 août 2026 : 28 communes collectées et figées, sans
+page, donc invisibles pour tout visiteur — et rien ne le signalait. La page
+d'état de l'atelier affiche désormais les quatre étapes et ce qui est en retard
+sur quoi.
+
+### La prose s'indexe par POINT D'EAU
+
+`sortie/redactions.json` et `redactions_proposees.json` acceptent trois formes
+de clé, de la plus précise à la plus générale :
+
+| Clé | Portée |
+|---|---|
+| `28068@2026-03-10` | cette commune, ce prélèvement |
+| `28068` | cette commune, tous ses prélèvements |
+| `PREL:08100134523` | **ce point d'eau** — partagé par toutes les communes qu'il alimente |
+
+La clé `PREL:` répond à un fait de terrain : le traitement du Moulin Galat
+alimente **huit** communes. Écrire huit fois le même texte serait absurde, et
+les huit versions divergeraient à la première correction. Sur 60 communes
+couvertes, il n'y a que 45 bulletins.
+
+Indexée sur `code_prelevement` et non sur `code_installation_amont`, vide sur
+un tiers des bulletins — et parce qu'un texte citant une valeur décrit un
+prélèvement daté, pas une installation en général.
+
+### Valider, commenter, ou ne rien faire
+
+L'onglet **Valider** de l'atelier porte les trois gestes. Un **commentaire**
+(`_commentaire` dans le fichier des propositions) vaut « pas encore » : la
+proposition passe « à revoir », sa case se décoche, et « tout valider »
+l'ignore en le disant. Les commentaires ne sont jamais publiés — `fusionner()`
+ne connaît que les champs de prose, et un champ préfixé par un souligné n'en
+fait pas partie.
+
+### L'atelier lance des sous-processus
+
+Un serveur Python garde en mémoire le code chargé à son démarrage. L'atelier
+étant lancé une fois et laissé ouvert, une collecte déclenchée après une
+modification de `src/` s'exécutait avec l'**ancien** code — un figeage a ainsi
+reconstruit `verdicts_figes` sans trois colonnes ajoutées le matin même, en
+silence. Collecte et publication passent donc par des sous-processus. **Ne pas
+revenir à un appel en direct.**
+
+La publication enchaîne quatre étapes et la dernière est le contrôle :
+refiger → vitrine → fiche → `tests/test_sorties.py`. Publier sans vérifier
+serait exactement ce que l'outil reproche au reste du monde.
+
+---
+
 ## 8quinquies. Les indicateurs de la fiche
 
 Refonte du 8 août 2026. Les six indicateurs d'origine parlaient tous de
