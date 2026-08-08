@@ -1,0 +1,692 @@
+/* ===========================================================================
+   Rendu d'une fiche de bulletin. Partagé par la fiche autonome et par la
+   vitrine, pour que les deux disent exactement la même chose.
+
+   Attend trois variables globales, produites par le générateur Python :
+     KPI_LABELS  les six libellés d'indicateurs, dans l'ordre
+     C           un bulletin par clé : identité, verdicts, traçabilité
+     PARAMS      le détail paramètre par paramètre
+     ORDER       l'ordre d'affichage des clés
+
+   Ce fichier ne calcule aucun verdict. Il en affiche. Tout ce qu'il montre
+   vient des tables figées, estampillées de la version de référentiel qui les
+   a produites (CLAUDE.md §8bis : « ne jamais recalculer un verdict à la volée
+   dans l'interface »).
+   =========================================================================== */
+
+let CUR = ORDER[0], detOnly = false, sigOnly = false;
+
+function el(t, c, h){ const e = document.createElement(t); if(c) e.className = c;
+  if(h != null) e.innerHTML = h; return e; }
+function txt(t, c, s){ const e = document.createElement(t); if(c) e.className = c;
+  e.textContent = s == null ? "" : s; return e; }
+function byId(i){ return document.getElementById(i); }
+function setPill(id, level, s){ const p = byId(id);
+  p.className = "pill " + (level || "gris");
+  p.querySelector("span:last-child").textContent = s; }
+
+/* Les trois états, dans l'ordre où ils priment l'un sur l'autre : un
+   dépassement l'emporte sur une bascule, une bascule sur un indéterminé. La
+   ligne porte l'information la plus forte, jamais la plus rassurante. */
+function etat(r){
+  if(r.x) return ["dep", "Dépassement"];
+  if(r.b) return ["bas", "Bascule"];
+  if(r.i) return ["ind", "Indéterminé"];
+  if(r.d) return ["det", "Quantifiée"];
+  return ["ok", "Sous la LQ"];
+}
+
+const GRILLE = {"2016":"grille 2016 — applicable à cette date",
+                "2026":"grille en vigueur", "declare":"limite déclarée par la source",
+                "aucune":"aucun seuil de comparaison"};
+
+function renderTable(){
+  const rows = PARAMS[CUR].params;
+  const f = (byId("bfilter").value || "").toLowerCase();
+  const tb = byId("btable");
+  tb.innerHTML = "";
+  let shown = 0, aVerifier = 0;
+  rows.forEach(r => {
+    if(detOnly && !r.d) return;
+    if(sigOnly && !(r.x || r.b || r.i)) return;
+    if(f && !r.p.toLowerCase().includes(f)) return;
+    shown++;
+    if(r.a) aVerifier++;
+    const [cls, libelle] = etat(r);
+    const tr = el("tr", cls);
+
+    const tdp = txt("td", null, r.p);
+    if(r.a){ const s = txt("span", "av", " ⚠");
+      s.title = "Valeur de seuil non confirmée sur source primaire (fiabilite = a_verifier)";
+      tdp.appendChild(s); }
+    tr.appendChild(tdp);
+
+    tr.appendChild(txt("td", "num", r.v));
+
+    const tds = txt("td", "num", r.s || "—");
+    if(r.g) tds.appendChild(txt("span", "grille", GRILLE[r.g] || r.g));
+    if(r.b && r.s16) tds.appendChild(txt("span", "grille", "en 2016 : " + r.s16));
+    tr.appendChild(tds);
+
+    const tde = el("td");
+    tde.appendChild(txt("span", "etat " + cls, libelle));
+    tr.appendChild(tde);
+
+    tb.appendChild(tr);
+  });
+
+  const av = byId("bAVerifier");
+  av.innerHTML = "";
+  if(aVerifier){
+    av.appendChild(txt("div", "flag-a-verifier",
+      "⚠ " + aVerifier + " ligne(s) affichée(s) reposent sur un seuil marqué "
+      + "« à vérifier » : la valeur est plausible mais n'a pas été confirmée sur une "
+      + "source primaire. Elle est signalée ici plutôt que présentée comme acquise."));
+  }
+  byId("bnote").textContent =
+    shown + " ligne(s) affichée(s) sur " + rows.length + " paramètres du prélèvement. "
+    + "Un paramètre sans seuil de comparaison figure quand même : le taire reviendrait "
+    + "à masquer ce qu'on ne sait pas noter.";
+}
+
+function toCsv(){
+  const rows = PARAMS[CUR].params, d = C[CUR];
+  const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"';
+  let out = "# Observatoire de la potabilite reglementaire — bulletin " + d.name
+          + " (" + d.insee + "), preleve le " + d.date_iso + "\n"
+          + "# referentiel " + d.version_referentiel + ", calcule le " + d.calcule_le
+          + " — donnees Hub'Eau/SISE-Eaux (Licence Ouverte), referentiel ODbL 1.0\n"
+          + "# le seuil est celui APPLICABLE A LA DATE du prelevement, pas celui du jour\n"
+          + "Parametre;Valeur mesuree;Seuil applicable a la date;Grille;Etat;Seuil a verifier\n";
+  rows.forEach(r => {
+    out += [q(r.p), q(r.v), q(r.s), q(r.g), q(etat(r)[1]), q(r.a ? "oui" : "non")].join(";") + "\n";
+  });
+  const blob = new Blob(["﻿" + out], {type: "text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "bulletin_" + d.name.replace(/[^\w-]/g, "_") + "_" + d.insee
+             + "_" + d.date_iso + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ---------------------------------------------------------------------------
+   LE BANDEAU DE TÊTE
+
+   Le projet tient en une phrase : « ce n'est pas l'eau qui est devenue
+   potable, c'est la limite qui a bougé ». Cette phrase doit être la première
+   chose lue, et elle doit être démontrée sur place — pas illustrée.
+
+   D'où la règle graduée : une mesure au-dessus de la limite du jour, on le dit
+   d'abord ; sinon une bascule, et on montre la mesure entre ses deux seuils
+   sur une même échelle ; sinon un indéterminé, qui n'est pas un conforme ;
+   sinon rien, et on le dit sans triompher — l'absence de dépassement porte sur
+   ce qui a été cherché, pas sur ce qui existe.
+   --------------------------------------------------------------------------- */
+function jauge(valeur, s16, sApplicable, unite){
+  /* Trois repères sur une même règle : la limite de 2016, la mesure, la limite
+     d'aujourd'hui. L'échelle va jusqu'à 1,15 fois la plus grande des trois,
+     pour que le déplacement se voie sans écraser la mesure contre le bord.
+
+     La même jauge sert aux bascules ET aux dépassements. Pour un dépassement,
+     elle montre de combien la mesure franchit son seuil — et souvent, de
+     beaucoup plus loin encore, l'ancienne limite. */
+  const v = parseFloat(String(valeur).replace(",", ".")),
+        a = s16 == null ? NaN : parseFloat(String(s16).replace(",", ".")),
+        b = parseFloat(String(sApplicable).replace(",", "."));
+  if(!isFinite(v) || !isFinite(b) || b <= 0) return null;
+  const u = unite ? " " + unite : "";
+
+  const bornes = [v, b].concat(isFinite(a) ? [a] : []);
+  const max = Math.max.apply(null, bornes) * 1.15;
+  const pc = x => Math.max(0, Math.min(100, (x / max) * 100));
+
+  const g = el("div", "jauge" + (v > b ? " depasse" : ""));
+  const piste = el("div", "piste");
+  if(isFinite(a) && a < b){
+    /* La zone violette est l'écart entre les deux grilles : tout ce qui tombe
+       dedans était non conforme hier et ne l'est plus. */
+    const zone = el("div", "zone-bascule");
+    zone.style.left = pc(a) + "%";
+    zone.style.width = Math.max(0, pc(b) - pc(a)) + "%";
+    piste.appendChild(zone);
+  }
+  if(v > b){
+    const excede = el("div", "zone-depasse");
+    excede.style.left = pc(b) + "%";
+    excede.style.width = Math.max(0, pc(v) - pc(b)) + "%";
+    piste.appendChild(excede);
+  }
+  g.appendChild(piste);
+
+  const rep = (x, cls, lab) => {
+    const m = el("div", "repere " + cls);
+    m.style.left = pc(x) + "%";
+    m.appendChild(el("i"));
+    m.appendChild(txt("span", null, lab));
+    g.appendChild(m);
+  };
+  if(isFinite(a) && a !== b) rep(a, "s16", s16 + " en 2016");
+  rep(b, "sapp", sApplicable + " aujourd'hui");
+  rep(v, "mesure", valeur + u);
+  return g;
+}
+
+function renderHero(d){
+  const zone = byId("hero");
+  if(!zone) return;
+  zone.innerHTML = "";
+  const h = d.hero || {};
+  const bloc = el("section", "hero " + (h.niveau || "gris"));
+
+  let titre, sous;
+  if(h.nb_depassements){
+    titre = h.nb_depassements + (h.nb_depassements > 1
+      ? " paramètres dépassaient le seuil applicable ce jour-là"
+      : " paramètre dépassait le seuil applicable ce jour-là");
+    sous = "Le verdict est rendu contre la grille en vigueur <b>à la date du "
+         + "prélèvement</b> : un reclassement n'est pas rétroactif.";
+  } else if(h.nb_bascules){
+    titre = "Conforme aujourd'hui. Ne l'aurait pas été il y a dix ans.";
+    sous = h.nb_bascules + (h.nb_bascules > 1
+      ? " mesures ont changé de statut sans que l'eau change."
+      : " mesure a changé de statut sans que l'eau change.")
+      + " Ce n'est pas la ressource qui s'est améliorée : c'est la limite qui a bougé.";
+  } else if(h.nb_indetermines){
+    titre = "Aucun dépassement, et " + h.nb_indetermines
+      + (h.nb_indetermines > 1 ? " paramètres indéterminés" : " paramètre indéterminé");
+    sous = "Pour ceux-là, la limite de quantification du laboratoire se situe "
+         + "au-dessus du seuil de comparaison : on ne peut pas affirmer que le seuil "
+         + "est respecté. <b>Un indéterminé n'est pas un conforme.</b>";
+  } else {
+    titre = "Aucun dépassement, aucune bascule";
+    sous = "Sur ce qui a été cherché. Une eau n'est jamais déclarée pure ici : "
+         + "elle est déclarée conforme <b>aux paramètres recherchés ce jour-là</b>.";
+  }
+
+  bloc.appendChild(txt("div", "eyebrow", "Ce que dit ce bulletin"));
+  bloc.appendChild(txt("h3", null, titre));
+  bloc.appendChild(el("p", null, sous));
+
+  const cas = (h.nb_depassements ? h.depassements : h.bascules) || [];
+  if(cas.length){
+    const liste = el("div", "hero-cas");
+    cas.forEach(c => {
+      const carte = el("div", "cas");
+      const t = el("div", "cas-t");
+      t.appendChild(txt("b", null, c.p));
+      t.appendChild(txt("span", "cas-v", c.v + " " + c.u));
+      carte.appendChild(t);
+
+      const g = jauge(c.v, c.s16, c.s, c.u);
+      if(g) carte.appendChild(g);
+
+      if(c.datee !== undefined){
+        /* bascule */
+        carte.appendChild(txt("div", "cas-n",
+          "Au-dessus de la limite de " + c.s16 + " en vigueur en 2016, sous celle de "
+          + c.s + " appliquée aujourd'hui."
+          + (c.datee ? " Le déplacement est daté : la même valeur, la veille, "
+                     + "n'était pas conforme." : "")));
+      } else {
+        /* dépassement */
+        const f = parseFloat(c.v.replace(",", ".")) / parseFloat(c.s.replace(",", "."));
+        let n = "Seuil applicable à la date : " + c.s + " " + c.u
+              + (isFinite(f) ? " — la mesure vaut " + (Math.round(f * 100) / 100)
+                                 .toString().replace(".", ",") + " fois ce seuil." : ".");
+        if(c.s16 && c.s16 !== c.s){
+          const f16 = parseFloat(c.v.replace(",", ".")) / parseFloat(c.s16.replace(",", "."));
+          if(isFinite(f16)) n += " Contre la limite de " + c.s16 + " en vigueur en 2016, "
+            + "elle en vaut " + (Math.round(f16 * 10) / 10).toString().replace(".", ",")
+            + " fois.";
+        }
+        if(c.g === "2016") n += " C'est la grille de 2016 qui s'appliquait encore à cette date.";
+        carte.appendChild(txt("div", "cas-n", n));
+      }
+      liste.appendChild(carte);
+    });
+    zone.appendChild(bloc);
+    bloc.appendChild(liste);
+  } else {
+    zone.appendChild(bloc);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   LES INDICATEURS
+
+   Un nombre nu ne se lit pas : « 0,493 µg/L » ne dit rien, « 99 % de la
+   limite » dit tout. Chaque indicateur porte donc sa valeur, son seuil, et une
+   barre qui situe l'une par rapport à l'autre.
+   --------------------------------------------------------------------------- */
+const ETATS = {
+  depassement: ["dep", "dépasse le seuil"],
+  bascule:     ["bas", "bascule"],
+  indetermine: ["ind", "indéterminé"],
+  hors_plage:  ["amb", "hors de la référence"],
+  conforme:    ["ok", "sous le seuil"],
+  sous_lq:     ["lq", "sous la limite de quantification"],
+  absent:      ["abs", "non recherché"],
+  neutre:      ["neu", ""],
+};
+
+function renderIndicateurs(d){
+  const zone = byId("indicateurs");
+  if(!zone) return;
+  zone.innerHTML = "";
+
+  (d.groupes || []).forEach(([cle, titre, chapeau]) => {
+    const liste = (d.ind || {})[cle] || [];
+    if(!liste.length) return;
+
+    const g = el("div", "grp grp-" + cle);
+    const tete = el("div", "grp-tete");
+    tete.appendChild(txt("h4", null, titre));
+    tete.appendChild(el("p", null, chapeau));
+    g.appendChild(tete);
+
+    const grille = el("div", "grp-grille");
+    liste.forEach(i => {
+      const [cls, libEtat] = ETATS[i.etat] || ETATS.neutre;
+      const c = el("div", "ind ind-" + cls);
+
+      const lab = el("div", "ind-lab");
+      lab.appendChild(document.createTextNode(i.libelle));
+      if(i.a_verifier){
+        const s = txt("span", "av", " ⚠");
+        s.title = "Seuil non confirmé sur source primaire (fiabilite = a_verifier)";
+        lab.appendChild(s);
+      }
+      c.appendChild(lab);
+      c.appendChild(txt("div", "ind-val", i.texte));
+
+      if(i.part != null && isFinite(i.part)){
+        const b = el("div", "ind-barre");
+        const r = el("div", "rempli");
+        r.style.width = Math.max(2, Math.min(100, i.part * 100)) + "%";
+        b.appendChild(r);
+        c.appendChild(b);
+        if(i.seuil != null && !i.plage)
+          c.appendChild(txt("div", "ind-pct",
+            Math.round(i.part * 100) + " % du seuil applicable"));
+      }
+      if(i.detail) c.appendChild(txt("div", "ind-det", i.detail));
+      if(libEtat) c.appendChild(txt("span", "ind-etat", libEtat));
+      c.appendChild(txt("p", "ind-lecture", i.lecture));
+      grille.appendChild(c);
+    });
+    g.appendChild(grille);
+    zone.appendChild(g);
+
+    /* Les lectures qui ne tiennent pas dans une tuile viennent s'ajouter au
+       groupe auquel elles appartiennent. */
+    if(cle === "polluants"){
+      renderPE(d, zone);
+      renderNourrissons(d, zone);
+      renderPfas(d, zone);
+      renderDanger(d, zone);
+    }
+  });
+}
+
+/* Perturbateurs endocriniens — trois registres, jamais fusionnés.
+   Le statut réglementaire et le statut scientifique ne disent pas la même
+   chose, et « non documenté » ne dit pas « non ». Écrire qu'une substance
+   « est un perturbateur endocrinien » sans préciser le registre est une faute
+   vérifiable qui décrédibilise l'ensemble (CLAUDE.md §2.6). */
+function renderPE(d, zone){
+  const p = d.pe;
+  if(!p) return;
+  const total = p.avere.length + p.suspecte.length + p.non_documente.length;
+  if(!total) return;
+
+  const b = el("div", "bloc-lecture" + (p.avere.length ? " en-alerte" : ""));
+  b.appendChild(txt("h5", null, "Perturbateurs endocriniens"));
+  b.appendChild(el("p", null,
+    "Ces trois listes ne disent pas la même chose et ne se remplacent pas. "
+    + "Dans l'eau destinée à la consommation humaine, <b>le seul perturbateur "
+    + "endocrinien avéré au sens de la réglementation européenne est le bisphénol "
+    + "A</b>. D'autres substances le sont dans la littérature scientifique sans "
+    + "l'être en droit. Et pour beaucoup, la question n'a tout simplement pas été "
+    + "instruite : <b>« non documenté » ne veut pas dire « non »</b>."));
+
+  const registres = [
+    ["avere", "Avérés au sens réglementaire",
+     "reconnus comme perturbateurs endocriniens par le droit européen", "dep"],
+    ["suspecte", "Suspectés par la littérature scientifique",
+     "des travaux publiés le rapportent, sans reconnaissance réglementaire", "bas"],
+    ["non_documente", "Statut non documenté",
+     "aucun statut renseigné au référentiel du projet — ce n'est pas une absence "
+     + "de propriété, c'est une absence d'instruction", "ind"],
+  ];
+
+  const cols = el("div", "pe-cols");
+  registres.forEach(([cle, titre, sous, etat]) => {
+    const liste = p[cle] || [];
+    const c = el("div", "pe-col pe-" + etat);
+    const t = el("div", "pe-t");
+    t.appendChild(document.createTextNode(titre));
+    t.appendChild(txt("span", "etat " + etat, String(liste.length)));
+    c.appendChild(t);
+    c.appendChild(txt("div", "pe-s", sous));
+    if(!liste.length){
+      c.appendChild(txt("div", "pe-vide", "aucune substance quantifiée dans ce registre"));
+    } else {
+      const ul = el("ul", "pe-liste");
+      liste.slice(0, 12).forEach(x => {
+        const li = el("li");
+        li.appendChild(txt("b", null, x.libelle));
+        li.appendChild(txt("span", "pe-v", x.texte));
+        if(x.famille) li.appendChild(txt("span", "pe-f", x.famille));
+        if(x.mention && cle === "suspecte")
+          li.appendChild(txt("span", "pe-m", x.mention));
+        ul.appendChild(li);
+      });
+      if(liste.length > 12)
+        ul.appendChild(txt("li", "pe-vide",
+          "et " + (liste.length - 12) + " autre(s) — le bulletin complet est plus bas"));
+      c.appendChild(ul);
+    }
+    cols.appendChild(c);
+  });
+  b.appendChild(cols);
+  b.appendChild(el("p", "pe-note",
+    "Seules les substances effectivement quantifiées figurent ici. Une substance "
+    + "recherchée et non quantifiée n'apparaît pas : cela ne signifie pas qu'elle "
+    + "est absente, mais qu'elle est sous la limite de quantification du laboratoire."
+    + (p.hors_referentiel
+       ? " S'y ajoutent <b>" + p.hors_referentiel + " substance(s) quantifiée(s)</b> "
+         + "que le référentiel du projet ne décrit pas encore : elles ne sont "
+         + "rattachées à aucun des trois registres, faute d'en savoir quoi que ce "
+         + "soit."
+       : "")));
+  zone.appendChild(b);
+}
+
+/* Repères nourrissons.
+   Ce ne sont PAS des limites au robinet : ils viennent de la réglementation
+   des eaux embouteillées autorisées à porter la mention « convient à
+   l'alimentation des nourrissons ». La comparaison est légitime — un biberon
+   se prépare avec l'eau qu'on a sous la main — mais ce n'est pas un test de
+   conformité, et le bloc doit le dire à chaque fois. */
+function renderNourrissons(d, zone){
+  const liste = d.nourrissons || [];
+  if(!liste.length) return;
+  const alerte = liste.filter(x => x.au_dessus);
+
+  const b = el("div", "bloc-lecture" + (alerte.length ? " en-alerte" : ""));
+  b.appendChild(txt("h5", null, "Repères « nourrissons »"));
+  b.appendChild(el("p", null,
+    "Ces valeurs ne sont <b>pas des limites au robinet</b>. Ce sont les repères que "
+    + "doit respecter une eau embouteillée pour porter la mention « convient à "
+    + "l'alimentation des nourrissons » (arrêté du 14 mars 2007). Une eau parfaitement "
+    + "conforme peut se situer au-dessus : cela ne la rend pas non conforme, cela dit "
+    + "seulement qu'elle ne serait pas vendue sous cette mention."));
+
+  const t = el("table", "tab-lecture");
+  t.innerHTML = "<thead><tr><th>Paramètre</th><th>Mesure</th>"
+              + "<th>Repère nourrissons</th><th>Limite au robinet</th><th></th></tr></thead>";
+  const tb = el("tbody");
+  liste.forEach(x => {
+    const tr = el("tr", x.au_dessus ? "au-dessus" : "");
+    tr.appendChild(txt("td", null, x.libelle));
+    tr.appendChild(txt("td", "num", x.texte));
+    tr.appendChild(txt("td", "num", x.repere + " " + (x.unite || "")));
+    tr.appendChild(txt("td", "num", x.limite != null ? x.limite + " " + (x.unite || "") : "—"));
+    const etat = el("td");
+    if(x.conforme_mais_au_dessus){
+      etat.appendChild(txt("span", "etat bas", "conforme, au-dessus du repère"));
+    } else if(x.au_dessus){
+      etat.appendChild(txt("span", "etat dep", "au-dessus du repère"));
+    } else {
+      etat.appendChild(txt("span", "etat ok", "sous le repère"));
+    }
+    tr.appendChild(etat);
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  b.appendChild(t);
+  zone.appendChild(b);
+}
+
+/* PFAS par longueur de chaîne.
+   L'objet de ce bloc est réglementaire, et lui seul : montrer que la « somme
+   de 4 » mise en avant par la réglementation ne contient que des chaînes
+   longues — celles dont l'usage est en cours d'interdiction. Il ne dit rien
+   d'un traitement, d'un procédé ou d'un équipement (CLAUDE.md §2.2). */
+function renderPfas(d, zone){
+  const p = d.pfas;
+  if(!p) return;
+  const b = el("div", "bloc-lecture");
+  b.appendChild(txt("h5", null, "PFAS — ce que la somme réglementaire regarde"));
+  b.appendChild(el("p", null,
+    "La <b>somme de 4</b> mise en avant par la réglementation européenne — PFOA, PFNA, "
+    + "PFHxS, PFOS — ne contient que des <b>chaînes longues</b>, c'est-à-dire "
+    + "précisément celles dont l'usage est en cours d'interdiction. Les <b>chaînes "
+    + "courtes</b> qui les remplacent sont mesurées par le laboratoire et n'entrent "
+    + "dans aucun total opposable, hormis la somme de 20. La mesure existe ; la norme "
+    + "ne la regarde pas."));
+
+  const cols = el("div", "pfas-cols");
+  [["longue", "Chaînes longues", "celles que vise la somme de 4"],
+   ["courte", "Chaînes courtes", "mesurées, hors de la somme de 4"]].forEach(([k, t, s]) => {
+    const g = p[k];
+    if(!g) return;
+    const c = el("div", "pfas-col");
+    c.appendChild(txt("div", "pfas-t", t));
+    c.appendChild(txt("div", "pfas-s", s));
+    c.appendChild(txt("div", "pfas-n",
+      g.quantifiees + " quantifiée(s) sur " + g.cherchees + " recherchée(s)"));
+    if(g.somme != null)
+      c.appendChild(txt("div", "pfas-somme", "somme ≥ " + String(g.somme).replace(".", ",")
+        + " µg/L"));
+    const ul = el("ul", "pfas-liste");
+    g.substances.filter(x => x.quantifie).forEach(x => {
+      const li = el("li");
+      li.appendChild(txt("b", null, x.sigle));
+      li.appendChild(txt("span", "pfas-c", " C" + x.carbones + " · " + x.type));
+      li.appendChild(txt("span", "pfas-v", x.texte));
+      ul.appendChild(li);
+    });
+    if(!g.substances.some(x => x.quantifie))
+      ul.appendChild(txt("li", "pfas-vide",
+        "aucune quantifiée — ce qui ne veut pas dire aucune présente : "
+        + "sous la limite de quantification du laboratoire, on ne sait pas"));
+    c.appendChild(ul);
+    cols.appendChild(c);
+  });
+  b.appendChild(cols);
+  zone.appendChild(b);
+}
+
+/* De quoi l'indice de danger est fait. Le nombre seul ne se lit pas ; la somme
+   des fractions de seuil, si. */
+function renderDanger(d, zone){
+  const dg = d.danger || {};
+  if(dg.total == null || !(dg.parts || []).length) return;
+  const b = el("div", "bloc-lecture");
+  b.appendChild(txt("h5", null, "De quoi l'indice de danger est fait"));
+  b.appendChild(el("p", null,
+    "Pour chaque substance de synthèse quantifiée, on calcule la <b>fraction de sa "
+    + "propre limite</b> qu'elle occupe, et on additionne. Le total vaut <b>"
+    + String(dg.total.toFixed ? dg.total.toFixed(2) : dg.total).replace(".", ",")
+    + "</b> sur " + dg.n + " substance(s). Autrement dit : si l'on raisonnait sur le "
+    + "mélange plutôt que substance par substance, cette eau se situerait à ce "
+    + "multiple du repère. <b>C'est un raisonnement, pas une mesure de risque</b> — "
+    + "les seuils additionnés n'ont pas tous la même nature, et aucun facteur "
+    + "d'ajustement de mélange n'est appliqué."));
+
+  const ul = el("div", "parts");
+  dg.parts.forEach(x => {
+    const l = el("div", "part");
+    l.appendChild(txt("span", "part-p", x.p));
+    const barre = el("div", "part-b");
+    const r = el("div", "rempli");
+    r.style.width = Math.min(100, (x.part / Math.max(1, dg.parts[0].part)) * 100) + "%";
+    barre.appendChild(r);
+    l.appendChild(barre);
+    l.appendChild(txt("span", "part-v",
+      String(x.part).replace(".", ",") + " × sa limite"));
+    l.appendChild(txt("span", "part-d", x.v + " " + x.u + " pour " + x.s));
+    ul.appendChild(l);
+  });
+  b.appendChild(ul);
+  zone.appendChild(b);
+}
+
+function render(k){
+  CUR = k; detOnly = false; sigOnly = false;
+  const d = C[k];
+  document.querySelectorAll("#switch button")
+    .forEach(b => b.setAttribute("aria-pressed", b.dataset.k === k));
+
+  byId("communeName").textContent = d.name;
+  byId("communeSub").textContent = d.sub;
+  byId("idEyebrow").textContent =
+    "Commune · INSEE " + d.insee + " · prélèvement du " + d.date;
+
+  const meta = byId("meta");
+  meta.innerHTML = "";
+  d.meta.forEach(([kk, v]) => { const c = el("div");
+    c.appendChild(txt("span", "k", kk)); c.appendChild(txt("span", "v", v));
+    meta.appendChild(c); });
+
+  byId("concl").textContent = d.official.concl;
+  const axes = byId("axes");
+  axes.innerHTML = "";
+  d.official.axes.forEach(([n, val, lvl]) => {
+    const a = el("div", "axe " + (lvl || "gris"));
+    a.appendChild(el("span", "d"));
+    a.appendChild(txt("span", "n", n + " :"));
+    a.appendChild(txt("b", null, val));
+    axes.appendChild(a);
+  });
+
+  /* Bandeaux — ce que l'habitant doit savoir avant de lire les chiffres. */
+  const bx = byId("bandeaux");
+  bx.innerHTML = "";
+  if(d.rattachee){
+    const b = el("div", "bandeau reseau");
+    b.appendChild(txt("span", "ic", "↔"));
+    b.appendChild(el("div", null, "<b>Analyse empruntée au réseau.</b> Aucun bulletin "
+      + "complet n'a été prélevé dans cette commune. Celui présenté ici porte sur la "
+      + "même eau, prélevée à <b>" + d.commune_prelevement + "</b> le " + d.date
+      + " sur le réseau qui alimente les deux communes."));
+    bx.appendChild(b);
+  }
+  if(!d.complet){
+    const b = el("div", "bandeau incomplet");
+    b.appendChild(txt("span", "ic", "⚠"));
+    b.appendChild(el("div", null, "<b>Bulletin incomplet.</b> Ce prélèvement porte moins de "
+      + "200 paramètres : il ne remplit pas la règle de méthode du projet et ne peut "
+      + "pas fonder une conclusion sur la qualité de l'eau."));
+    bx.appendChild(b);
+  }
+  /* D'OÙ VIENT CE QUI EST ÉCRIT. Trois origines possibles, et le lecteur doit
+     pouvoir les distinguer : c'est la règle du sourçage (§2.7) appliquée à la
+     prose, et elle vaut d'autant plus que le texte est produit par une
+     machine. Une phrase dont on ignore l'auteur n'a rien à faire ici. */
+  const org = d.origines || {};
+  const natures = new Set(Object.values(org));
+  if(natures.size && !(natures.size === 1 && natures.has("auteur"))){
+    const b = el("div", "bandeau nonredige");
+    b.appendChild(txt("span", "ic", "✎"));
+    const parts = [];
+    if(natures.has("derive"))
+      parts.push("<b>dérivées de la base</b> — composées à partir des mesures et des "
+        + "seuils de cette fiche, sans aucune connaissance extérieure : chaque nombre "
+        + "y vient d'une requête, et le texte se recalcule si le référentiel bouge");
+    if(natures.has("propose"))
+      parts.push("<b>proposées par le modèle</b> — elles ajoutent un contexte qui n'est "
+        + "pas dans la base (territoire, historique d'une substance) et n'ont pas encore "
+        + "été relues");
+    b.appendChild(el("div", null,
+      (natures.has("auteur") ? "Cette fiche mêle des sections écrites à la main et des "
+        + "sections " : "Les lectures de cette fiche sont ")
+      + parts.join(", et des sections ")
+      + ". Chaque section porte son origine. Les chiffres, eux, sont dans tous les cas "
+      + "dérivés de la base et vérifiables."));
+    bx.appendChild(b);
+  }
+
+  setPill("adminPill", d.admin.level, d.admin.v);
+  byId("adminDetail").textContent = d.admin.d;
+  /* La bande de bascule entre les deux lectures est la phrase de Yannick qui
+     dit ce qui SÉPARE le verdict administratif du verdict citoyen. Sans texte,
+     il n'y a rien à séparer : on retire la bande plutôt que d'afficher une
+     flèche seule, qui laisserait croire à un contenu manquant. */
+  byId("deltaText").innerHTML = d.delta || "";
+  byId("deltaText").closest(".delta").style.display = d.delta ? "" : "none";
+  setPill("citPill", d.cit.level, d.cit.v);
+  byId("citDetail").textContent = d.cit.d;
+
+  renderHero(d);
+  renderIndicateurs(d);
+
+  const an = byId("analyse");
+  an.innerHTML = "";
+  if(d.analyse.length){
+    d.analyse.forEach(p => {
+      const c = el("div", "apart");
+      const h = txt("h4", null, p.t);
+      const lib = (d.libelles_origine || {})[p.o];
+      if(lib) h.appendChild(txt("span", "origine " + p.o, lib));
+      c.appendChild(h);
+      c.appendChild(txt("p", null, p.x));
+      an.appendChild(c);
+    });
+  } else {
+    an.appendChild(txt("div", "apart",
+      "Aucune analyse n'est disponible pour cette commune. Les indicateurs "
+      + "ci-dessus et le bulletin ci-dessous restent entièrement consultables."));
+  }
+
+  byId("bcount").textContent = PARAMS[k].params.length + " paramètres";
+  byId("bfilter").value = "";
+  byId("btnDet").setAttribute("aria-pressed", "false");
+  byId("btnSig").setAttribute("aria-pressed", "false");
+  renderTable();
+
+  const vd = byId("verdict");
+  vd.className = "verdict " + d.verdict.level;
+  byId("verdictText").textContent = d.verdict.t;
+
+  byId("hubeauUrl").textContent =
+    d.src || ("hubeau.eaufrance.fr/api/v1/qualite_eau_potable/resultats_dis" + d.hubeau);
+
+  /* Traçabilité — obligation 9. Un écran qui ne dit pas contre quelle grille il
+     a été calculé reproduirait, à l'intérieur de l'outil, le défaut dénoncé. */
+  const tr = byId("tracab");
+  tr.innerHTML = "";
+  [["Version du référentiel", d.version_referentiel],
+   ["Calculé le", d.calcule_le],
+   ["Prélèvement", d.date],
+   ["Code INSEE", d.insee]].forEach(([kk, v]) => {
+    const s = el("span"); s.appendChild(txt("b", null, kk + " : "));
+    s.appendChild(document.createTextNode(v)); tr.appendChild(s);
+  });
+}
+
+byId("bfilter").addEventListener("input", renderTable);
+byId("btnCsv").addEventListener("click", toCsv);
+byId("btnDet").addEventListener("click", function(){
+  detOnly = !detOnly; this.setAttribute("aria-pressed", String(detOnly)); renderTable(); });
+byId("btnSig").addEventListener("click", function(){
+  sigOnly = !sigOnly; this.setAttribute("aria-pressed", String(sigOnly)); renderTable(); });
+
+/* Le sélecteur de commune n'existe que sur la fiche autonome, qui rassemble
+   plusieurs bulletins dans un seul fichier. Sur la vitrine, chaque commune a
+   son adresse : il n'y a rien à commuter. */
+const sw = byId("switch");
+if(sw){
+  ORDER.forEach(k => {
+    const d = C[k];
+    const b = el("button");
+    b.dataset.k = k;
+    b.appendChild(el("span", "sdot " + d.dot));
+    b.appendChild(document.createTextNode(d.name + " · " + d.date_courte));
+    b.addEventListener("click", () => render(k));
+    sw.appendChild(b);
+  });
+}
+render(ORDER[0]);

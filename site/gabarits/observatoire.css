@@ -1,0 +1,491 @@
+/* ===========================================================================
+   Observatoire de la potabilité réglementaire — feuille de style unique.
+
+   Un seul fichier pour deux sorties, afin qu'elles ne divergent jamais :
+     - la fiche autonome (sortie/_template.html) l'INLINE, pour rester un
+       fichier unique qu'on peut archiver ou transmettre ;
+     - la vitrine (site/public/) la SERT, pour la mettre en cache.
+
+   Les couleurs portent du sens, et ce sens est fixé par la méthode :
+     vert     conforme
+     rouge    dépassement du seuil applicable À LA DATE du prélèvement
+     violet   bascule — au-dessus de la limite de 2016, sous celle de 2026
+     gris     indéterminé, et « non documenté » : ni conforme, ni non conforme
+     ambre    signal d'attention — effort faible, seuil « à vérifier »
+   Gris n'est pas une absence de couleur : c'est le troisième état de verdict,
+   et il doit être aussi lisible que les deux autres (CLAUDE.md §2.4).
+   =========================================================================== */
+
+:root{
+  --ink:#12263A;--ink-soft:#41566B;--paper:#EEF2F5;--card:#FFFFFF;--line:#D7DEE4;
+  --eau:#0E7C86;--eau-deep:#0B3B57;
+  --vert:#2F8F5B;--vert-bg:#E7F3EC;--ambre:#B9770E;--ambre-bg:#FBF0DC;
+  --rouge:#B23A2E;--rouge-bg:#F7E4E1;--gris:#5C6B78;--gris-bg:#E8ECEF;
+  --bascule:#6B4E9E;--bascule-bg:#EFEAF7;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+  --sans:system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--eau);font-weight:700}
+a{color:var(--eau)} a:hover{color:var(--eau-deep)}
+:focus-visible{outline:3px solid #7FD4DA;outline-offset:2px}
+
+/* --- Bandeau de tête ----------------------------------------------------- */
+.masthead{background:var(--eau-deep);color:#fff;padding:26px 0 22px}
+.masthead .eyebrow{color:#7FD4DA}
+.masthead h1{margin:.15em 0 .1em;font-size:25px;font-weight:800;letter-spacing:-.01em}
+.masthead p{margin:0;color:#B9CBD8;font-size:14px;max-width:64ch}
+.masthead a{color:#7FD4DA}
+.formule{margin-top:12px;font-size:15px;font-style:italic;color:#7FD4DA;font-weight:600}
+.method{margin-top:14px;background:rgba(255,255,255,.07);border:1px solid rgba(127,212,218,.35);
+  border-radius:10px;padding:11px 14px;font-size:12.5px;color:#DCE7EE;max-width:72ch}
+.method b{color:#fff}
+
+/* Navigation du site (absente de la fiche autonome, qui n'a nulle part où aller) */
+.nav{background:#08304a;border-bottom:1px solid rgba(127,212,218,.22)}
+.nav ul{display:flex;flex-wrap:wrap;gap:2px;list-style:none;margin:0;padding:0}
+.nav a{display:block;padding:11px 15px;font-size:13px;font-weight:600;color:#B9CBD8;
+  text-decoration:none;border-bottom:3px solid transparent}
+.nav a:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav a[aria-current="page"]{color:#fff;border-bottom-color:#7FD4DA}
+
+.switch{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.switch button{font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid rgba(255,255,255,.28);background:transparent;color:#DCE7EE;
+  padding:8px 13px;border-radius:999px;transition:.15s;display:flex;align-items:center;gap:7px}
+.switch button:hover{border-color:#7FD4DA}
+.switch button[aria-pressed="true"]{background:#fff;color:var(--eau-deep);border-color:#fff}
+.sdot{width:8px;height:8px;border-radius:50%;flex:none}
+.sdot.vert{background:#57c98a}.sdot.ambre{background:#e0a53a}
+.sdot.rouge{background:#e07a6c}.sdot.gris{background:#9fb0bb}
+.sdot.bascule{background:#a58ad1}
+
+/* --- Carte d'identité de la commune -------------------------------------- */
+.identity{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:22px 24px;margin-top:-16px;box-shadow:0 6px 22px rgba(11,59,87,.07)}
+.identity h2{margin:.1em 0 .05em;font-size:29px;font-weight:800;letter-spacing:-.02em}
+.identity .sub{color:var(--ink-soft);font-size:14px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 26px;margin-top:14px;font-size:13px}
+.meta div{display:flex;flex-direction:column}
+.meta .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--eau)}
+.meta .v{font-weight:600}
+.official{margin-top:16px;border-top:1px solid var(--line);padding-top:14px;font-size:13.5px}
+.official .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--eau);font-weight:700}
+.official .concl{margin-top:4px}
+.axes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.axe{font-size:12px;display:flex;align-items:center;gap:7px;border:1px solid var(--line);
+  border-radius:8px;padding:5px 10px;background:#fff}
+.axe .n{color:var(--ink-soft)} .axe b{font-weight:700}
+.axe.vert b{color:var(--vert)} .axe.rouge b{color:var(--rouge)}
+.axe.ambre b{color:var(--ambre)} .axe.gris b{color:var(--gris)}
+.axe .d{width:9px;height:9px;border-radius:50%;flex:none}
+.axe.vert .d{background:var(--vert)} .axe.rouge .d{background:var(--rouge)}
+.axe.ambre .d{background:var(--ambre)} .axe.gris .d{background:var(--gris)}
+
+.bandeau{margin-top:12px;border-radius:10px;padding:10px 14px;font-size:13px;
+  display:flex;gap:10px;align-items:flex-start}
+.bandeau .ic{flex:none;font-size:15px;line-height:1.3}
+.bandeau.reseau{background:#E9F1F5;border:1px solid #BCD3DF;color:#204a63}
+.bandeau.incomplet{background:var(--ambre-bg);border:1px solid #EAD9AE;color:#7a5209}
+.bandeau.nonredige{background:var(--gris-bg);border:1px solid #c8d2d8;color:#43535e}
+.bandeau b{font-weight:700}
+
+/* --- Sections ------------------------------------------------------------ */
+section{margin-top:26px}
+h3.sec{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+  margin:0 0 12px;font-weight:700;display:flex;align-items:center;gap:12px}
+h3.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.double{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.lect{display:grid;grid-template-columns:190px 1fr}
+.lect .side{padding:18px 20px;display:flex;flex-direction:column;justify-content:center;
+  border-right:1px solid var(--line)}
+.lect .side .tag{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700}
+.lect .side .who{font-size:12px;color:var(--ink-soft);margin-top:3px}
+.lect .body{padding:18px 20px}
+.pill{display:inline-flex;align-items:center;gap:9px;font-weight:800;font-size:15px;
+  padding:7px 14px;border-radius:999px;width:fit-content}
+.pill .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.pill.vert{background:var(--vert-bg);color:var(--vert)}.pill.vert .dot{background:var(--vert)}
+.pill.ambre{background:var(--ambre-bg);color:var(--ambre)}.pill.ambre .dot{background:var(--ambre)}
+.pill.rouge{background:var(--rouge-bg);color:var(--rouge)}.pill.rouge .dot{background:var(--rouge)}
+.pill.gris{background:var(--gris-bg);color:var(--gris)}.pill.gris .dot{background:var(--gris)}
+.lect .body p{margin:10px 0 0;font-size:14px}
+.lect.admin{border-bottom:1px solid var(--line)}
+.delta{background:#0B3B57;color:#EAF3F6;padding:12px 20px;font-size:13.5px;
+  display:flex;gap:12px;align-items:flex-start}
+.delta .arrow{font-size:18px;color:#7FD4DA;flex:none}.delta b{color:#fff}
+
+/* ===========================================================================
+   LE BANDEAU DE TÊTE — le sujet du projet, avant tout le reste.
+   =========================================================================== */
+.hero{margin-top:22px;border-radius:14px;padding:22px 24px;border:1px solid var(--line);
+  background:var(--card)}
+.hero .eyebrow{margin-bottom:6px}
+.hero h3{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.hero p{margin:9px 0 0;font-size:14.5px;color:var(--ink-soft);max-width:74ch}
+.hero.rouge{background:var(--rouge-bg);border-color:#e6b8b0}
+.hero.rouge h3{color:var(--rouge)}
+.hero.ambre{background:var(--bascule-bg);border-color:#cdbde6}
+.hero.ambre h3{color:var(--bascule)}
+.hero.vert{background:var(--vert-bg);border-color:#bfe0cc}
+.hero.vert h3{color:var(--vert)}
+.hero.gris{background:var(--gris-bg);border-color:#c8d2d8}
+
+.hero-cas{display:grid;gap:12px;margin-top:18px}
+.cas{background:rgba(255,255,255,.72);border:1px solid rgba(18,38,58,.09);
+  border-radius:11px;padding:14px 16px}
+.cas-t{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;font-size:14.5px}
+.cas-v{font-family:var(--mono);font-weight:700;font-size:17px;margin-left:auto}
+.cas-n{font-size:12.5px;color:var(--ink-soft);margin-top:9px}
+
+/* La jauge : la limite de 2016, la mesure, la limite d'aujourd'hui, sur une
+   même règle. C'est la démonstration du réétalonnage, pas son illustration. */
+/* La mesure est étiquetée AU-DESSUS de la règle, les deux seuils EN DESSOUS.
+   Sans cette séparation, la mesure et la limite de 2016 se chevauchent dès
+   qu'elles sont proches — c'est-à-dire dans le cas le plus fréquent, et le
+   plus intéressant : celui où l'eau frôle l'ancienne limite. */
+.jauge{position:relative;margin:34px 0 40px;height:8px}
+.jauge .piste{position:absolute;inset:0;background:#DFE6EA;border-radius:99px}
+.jauge .zone-bascule{position:absolute;top:0;bottom:0;background:var(--bascule);
+  opacity:.22;border-radius:99px}
+.jauge .repere{position:absolute;transform:translateX(-50%);text-align:center}
+.jauge .repere i{display:block;width:2px;background:var(--ink-soft)}
+.jauge .repere span{display:block;font-size:10px;white-space:nowrap;
+  color:var(--ink-soft);font-family:var(--mono)}
+
+.jauge .repere.s16,.jauge .repere.sapp{top:0}
+.jauge .repere.s16 i,.jauge .repere.sapp i{height:15px;margin:0 auto}
+.jauge .repere.s16 span,.jauge .repere.sapp span{margin-top:3px}
+.jauge .repere.s16 i{background:var(--rouge)}
+.jauge .repere.s16 span{color:var(--rouge)}
+.jauge .repere.sapp i{background:var(--vert)}
+.jauge .repere.sapp span{color:var(--vert)}
+
+.jauge .repere.mesure{bottom:0;display:flex;flex-direction:column-reverse}
+.jauge .repere.mesure i{height:16px;width:3px;margin:0 auto;background:var(--bascule)}
+.jauge .repere.mesure span{color:var(--bascule);font-weight:800;font-size:12.5px;
+  margin-bottom:3px}
+
+/* ===========================================================================
+   LES INDICATEURS — trois groupes, trois poids visuels.
+   =========================================================================== */
+.grp{margin-bottom:22px}
+.grp-tete h4{margin:0 0 4px;font-size:16px;font-weight:800;color:var(--eau-deep)}
+.grp-tete p{margin:0 0 12px;font-size:13px;color:var(--ink-soft);max-width:78ch}
+.grp-grille{display:grid;gap:12px;grid-template-columns:repeat(3,1fr)}
+.grp-eau .grp-grille,.grp-lecture .grp-grille{grid-template-columns:repeat(3,1fr)}
+
+.ind{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:14px 15px;border-left:4px solid var(--line);display:flex;flex-direction:column}
+.ind-lab{font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-soft);font-weight:700;min-height:28px}
+.ind-val{font-family:var(--mono);font-size:21px;font-weight:600;letter-spacing:-.02em;
+  margin-top:4px}
+.ind-barre{height:6px;background:#E4EAEE;border-radius:99px;overflow:hidden;margin-top:9px}
+.ind-barre .rempli{height:100%;background:var(--eau);border-radius:99px}
+.ind-pct{font-size:11px;color:var(--ink-soft);margin-top:5px;font-family:var(--mono)}
+.ind-det{font-size:11.5px;color:var(--ink-soft);margin-top:5px}
+.ind-etat{align-self:flex-start;margin-top:8px;font-size:10px;font-weight:800;
+  letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.ind-lecture{font-size:11.5px;line-height:1.5;color:var(--ink-soft);margin:10px 0 0;
+  padding-top:9px;border-top:1px dashed var(--line)}
+
+.ind-dep{border-left-color:var(--rouge)}
+.ind-dep .ind-val{color:var(--rouge)}
+.ind-dep .ind-barre .rempli{background:var(--rouge)}
+.ind-dep .ind-etat{background:var(--rouge);color:#fff}
+.ind-bas{border-left-color:var(--bascule)}
+.ind-bas .ind-val{color:var(--bascule)}
+.ind-bas .ind-barre .rempli{background:var(--bascule)}
+.ind-bas .ind-etat{background:var(--bascule);color:#fff}
+.ind-ind{border-left-color:var(--gris)}
+.ind-ind .ind-etat{background:var(--gris);color:#fff}
+.ind-amb{border-left-color:var(--ambre)}
+.ind-amb .ind-val{color:var(--ambre)}
+.ind-amb .ind-barre .rempli{background:var(--ambre)}
+.ind-amb .ind-etat{background:var(--ambre);color:#fff}
+.ind-ok{border-left-color:var(--vert)}
+.ind-ok .ind-barre .rempli{background:var(--vert)}
+.ind-ok .ind-etat{background:var(--vert-bg);color:var(--vert)}
+.ind-lq{border-left-color:#9fb0bb}
+.ind-lq .ind-val{color:var(--ink-soft)}
+.ind-lq .ind-etat{background:var(--gris-bg);color:var(--gris)}
+.ind-abs{border-left-color:#D7DEE4;background:#F7F9FA}
+.ind-abs .ind-val{color:var(--gris);font-size:15px;font-style:italic}
+.ind-abs .ind-etat{background:var(--gris-bg);color:var(--gris)}
+.ind-neu{border-left-color:var(--eau)}
+
+/* --- Les lectures qui ne tiennent pas dans une tuile ---------------------- */
+.bloc-lecture{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;margin-top:12px}
+.bloc-lecture.en-alerte{border-color:#cdbde6;background:#FBF9FE}
+.bloc-lecture h5{margin:0 0 8px;font-size:15px;font-weight:800;color:var(--eau-deep)}
+.bloc-lecture>p{margin:0 0 14px;font-size:13px;color:var(--ink-soft);max-width:80ch}
+
+.tab-lecture{font-size:13px}
+.tab-lecture thead th{background:#F4F7F8;border-bottom:1px solid var(--line)}
+.tab-lecture tr.au-dessus td{background:var(--bascule-bg)}
+
+/* Trois registres côte à côte, de même largeur : aucun n'est subordonné aux
+   autres, et surtout pas « non documenté ». */
+.pe-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pe-col{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:#FBFCFD}
+.pe-col.pe-dep{border-color:#e6b8b0;background:#FDF7F6}
+.pe-col.pe-bas{border-color:#cdbde6;background:#FBF9FE}
+.pe-t{font-size:13px;font-weight:800;color:var(--eau-deep);display:flex;
+  align-items:baseline;justify-content:space-between;gap:8px}
+.pe-s{font-size:11px;color:var(--ink-soft);margin-top:3px;line-height:1.45}
+.pe-vide{font-size:11.5px;color:var(--ink-soft);font-style:italic;margin-top:9px;display:block}
+.pe-liste{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:7px}
+.pe-liste li{font-size:12.5px;padding-bottom:7px;border-bottom:1px dashed var(--line);
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
+.pe-liste li:last-child{border-bottom:none}
+.pe-v{margin-left:auto;font-family:var(--mono);font-weight:700;white-space:nowrap}
+.pe-f{font-size:10.5px;color:var(--ink-soft);width:100%}
+.pe-m{font-size:10.5px;color:var(--ink-soft);width:100%;font-style:italic;line-height:1.45}
+.pe-note{font-size:11.5px;color:var(--ink-soft);margin:14px 0 0}
+
+.pfas-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pfas-col{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:#FBFCFD}
+.pfas-t{font-size:13.5px;font-weight:800;color:var(--eau-deep)}
+.pfas-s{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.pfas-n{font-family:var(--mono);font-size:12.5px;margin-top:8px}
+.pfas-somme{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--eau)}
+.pfas-liste{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:5px}
+.pfas-liste li{display:flex;flex-wrap:wrap;align-items:baseline;gap:7px;font-size:12.5px;
+  padding-bottom:5px;border-bottom:1px dashed var(--line)}
+.pfas-liste li:last-child{border-bottom:none}
+.pfas-c{font-size:11px;color:var(--ink-soft)}
+.pfas-v{margin-left:auto;font-family:var(--mono);font-weight:700}
+.pfas-vide{font-size:12px;color:var(--ink-soft);font-style:italic;display:block}
+
+.parts{display:grid;gap:9px}
+.part{display:grid;grid-template-columns:minmax(140px,1.4fr) minmax(70px,1fr) auto;
+  gap:10px;align-items:center;font-size:12.5px}
+.part-p{font-weight:600}
+.part-b{height:8px;background:#E4EAEE;border-radius:99px;overflow:hidden}
+.part-b .rempli{height:100%;background:var(--bascule);border-radius:99px}
+.part-v{font-family:var(--mono);font-weight:700;white-space:nowrap;color:var(--bascule)}
+.part-d{grid-column:1/-1;font-size:11px;color:var(--ink-soft);margin-top:-4px}
+
+/* La jauge sert aussi aux dépassements : la portion au-delà du seuil est
+   peinte, et elle se lit avant même qu'on ait lu les chiffres. */
+.jauge .zone-depasse{position:absolute;top:0;bottom:0;background:var(--rouge);
+  opacity:.28;border-radius:99px}
+.jauge.depasse .repere.mesure i{background:var(--rouge)}
+.jauge.depasse .repere.mesure span{color:var(--rouge)}
+
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px;
+  border-top:3px solid var(--eau)}
+.kpi.rouge{border-top-color:var(--rouge)}.kpi.ambre{border-top-color:var(--ambre)}
+.kpi.vert{border-top-color:var(--vert)}.kpi.gris{border-top-color:var(--gris)}
+.kpi .lab{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  font-weight:700;min-height:26px}
+.kpi .val{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:6px;letter-spacing:-.02em}
+.kpi .note{font-size:11.5px;color:var(--ink-soft);margin-top:5px}
+
+.analyse{display:grid;gap:12px}
+.apart{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.apart h4{margin:0 0 7px;font-size:14px;color:var(--eau-deep);font-weight:800;
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+.apart p{margin:0;font-size:14px}
+
+/* L'origine d'un texte. Discrète mais toujours présente : une prose produite
+   par une machine ne doit pas pouvoir se faire passer pour une prose d'auteur,
+   et une prose d'auteur n'a rien à signaler. */
+.origine{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 8px;border-radius:999px;white-space:nowrap}
+.origine.derive{background:var(--gris-bg);color:var(--gris)}
+.origine.propose{background:var(--ambre-bg);color:var(--ambre)}
+
+/* --- Le bulletin, ligne à ligne ------------------------------------------ */
+details.bulletin{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+details.bulletin>summary{cursor:pointer;padding:14px 18px;font-weight:700;font-size:13.5px;
+  color:var(--eau-deep);list-style:none;display:flex;align-items:center;gap:10px}
+details.bulletin>summary::-webkit-details-marker{display:none}
+details.bulletin>summary .chev{transition:transform .2s;color:var(--eau);font-size:12px}
+details.bulletin[open]>summary .chev{transform:rotate(90deg)}
+details.bulletin>summary .count{margin-left:auto;font-weight:500;color:var(--ink-soft);font-size:12px}
+.btoolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:0 18px 12px}
+.btoolbar input{flex:1;min-width:160px;font-family:var(--sans);font-size:13px;padding:8px 11px;
+  border:1px solid var(--line);border-radius:8px}
+.btoolbar input:focus-visible{outline:2px solid var(--eau);border-color:var(--eau)}
+.btn{font-family:var(--sans);font-size:12.5px;font-weight:700;cursor:pointer;
+  border:1px solid var(--eau);background:var(--eau);color:#fff;padding:8px 13px;
+  border-radius:8px;transition:.15s;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--eau-deep);border-color:var(--eau-deep);color:#fff}
+.btn.sec2{background:#fff;color:var(--eau)}
+.btn.sec2[aria-pressed="true"]{background:var(--eau);color:#fff}
+
+.legende{display:flex;flex-wrap:wrap;gap:6px 16px;padding:0 18px 12px;font-size:11.5px;color:var(--ink-soft)}
+.legende span{display:flex;align-items:center;gap:6px}
+/* Barres et non carrés : un carré de 11px avec un liseré se lit comme une case
+   à cocher, et le lecteur cherche à cliquer dessus. */
+.legende i{width:22px;height:11px;border-radius:3px;display:inline-block;flex:none;font-style:normal}
+.sw-dep{background:var(--rouge-bg);border:1px solid var(--rouge)}
+.sw-ind{background:var(--gris-bg);border:1px solid var(--gris)}
+.sw-bas{background:var(--bascule-bg);border:1px solid var(--bascule)}
+.sw-det{background:#FBF5E7;border:1px solid #d9c48c}
+.sw-ok{background:#fff;border:1px solid var(--line)}
+
+.btable-scroll{max-height:460px;overflow:auto;margin:0 18px 16px;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;background:#F0F4F6;text-align:left;padding:9px 10px;font-size:10px;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;
+  border-bottom:1px solid var(--line);z-index:1}
+tbody td{padding:8px 10px;border-bottom:1px solid #E7ECEF;vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);white-space:nowrap}
+tr.det td{background:#FBF5E7}
+tr.det td.num{font-weight:700}
+tr.bas td{background:var(--bascule-bg)}
+tr.ind td{background:var(--gris-bg)}
+tr.dep td{background:var(--rouge-bg)}
+tr.dep td.num{font-weight:800;color:var(--rouge)}
+.etat{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;white-space:nowrap}
+.etat.dep{background:var(--rouge);color:#fff}
+.etat.ind{background:var(--gris);color:#fff}
+.etat.bas{background:var(--bascule);color:#fff}
+.etat.det{background:#E4D2A4;color:#6b5313}
+.etat.ok{background:var(--vert-bg);color:var(--vert)}
+.grille{font-size:10.5px;color:var(--ink-soft);display:block;margin-top:2px}
+.av{color:var(--ambre);font-weight:800;cursor:help}
+.bnote{font-size:12px;color:var(--ink-soft);padding:0 18px 16px;margin:0}
+.flag-a-verifier{margin:0 18px 16px;font-size:12px;background:var(--ambre-bg);
+  border:1px solid #EAD9AE;border-radius:8px;padding:9px 12px;color:#7a5209}
+
+.verdict{border-radius:14px;padding:18px 22px;border:1px solid var(--line)}
+.verdict.rouge{background:var(--rouge-bg);border-color:#e6b8b0}
+.verdict.ambre{background:var(--ambre-bg);border-color:#EAD9AE}
+.verdict.vert{background:var(--vert-bg);border-color:#bfe0cc}
+.verdict.gris{background:var(--gris-bg);border-color:#c8d2d8}
+.verdict .vlab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+.verdict.rouge .vlab{color:var(--rouge)}.verdict.ambre .vlab{color:var(--ambre)}
+.verdict.vert .vlab{color:var(--vert)}.verdict.gris .vlab{color:var(--gris)}
+.verdict p{margin:7px 0 0;font-size:15px;font-weight:600;line-height:1.55}
+
+.gardefou{margin-top:20px;font-size:12.5px;color:var(--ink-soft);background:#FBF7EC;
+  border:1px solid #EAD9AE;border-radius:10px;padding:13px 16px}
+.gardefou b{color:#7a5209}
+footer{margin:26px 0 50px;font-size:12px;color:var(--ink-soft)}
+footer .src{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
+footer code{font-family:var(--mono);font-size:11px;background:#EEF2F5;padding:2px 6px;
+  border-radius:5px;word-break:break-all}
+footer .tracab{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 22px;font-size:11.5px}
+footer .tracab b{color:var(--ink)}
+
+/* ===========================================================================
+   Éléments propres à la vitrine — accueil, recherche, carte, listes.
+   =========================================================================== */
+
+/* Recherche par code postal. Elle n'interroge aucun serveur : l'index est un
+   fichier JSON chargé par le navigateur. Aucune requête n'est donc émise vers
+   nous quand quelqu'un cherche sa commune — ce qu'il cherche ne nous regarde pas. */
+.recherche{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:22px 24px;margin-top:-16px;box-shadow:0 6px 22px rgba(11,59,87,.07)}
+.recherche h2{margin:.1em 0 .3em;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.recherche .champ{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.recherche input{flex:1;min-width:220px;font-family:var(--sans);font-size:16px;
+  padding:12px 14px;border:1px solid var(--line);border-radius:10px}
+.recherche input:focus-visible{outline:2px solid var(--eau);border-color:var(--eau)}
+.recherche .aide{font-size:12.5px;color:var(--ink-soft);margin-top:10px}
+.resultats{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.resultats li a{display:flex;align-items:center;gap:11px;padding:11px 14px;background:#fff;
+  border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink)}
+.resultats li a:hover{border-color:var(--eau);background:#F7FBFC}
+.resultats .nom{font-weight:700}
+.resultats .det{font-size:12px;color:var(--ink-soft);margin-left:auto;text-align:right}
+.resultats .vide{padding:12px 14px;background:var(--gris-bg);border:1px solid #c8d2d8;
+  border-radius:10px;font-size:13px;color:#43535e}
+
+.chiffres{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.chiffre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.chiffre .n{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-.02em}
+.chiffre .l{font-size:11.5px;color:var(--ink-soft);margin-top:4px}
+.chiffre.rouge .n{color:var(--rouge)}.chiffre.bascule .n{color:var(--bascule)}
+.chiffre.gris .n{color:var(--gris)}
+
+.prose{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px}
+.prose h4{margin:22px 0 8px;font-size:15px;color:var(--eau-deep);font-weight:800}
+.prose h4:first-child{margin-top:0}
+.prose p{margin:0 0 10px;font-size:14px}
+.prose ul{margin:0 0 12px;padding-left:20px;font-size:14px}
+.prose li{margin-bottom:5px}
+.prose blockquote{margin:12px 0;padding:10px 16px;border-left:3px solid var(--eau);
+  background:#F5F9FA;font-style:italic;font-size:14px}
+.prose table{margin:10px 0 14px;font-size:13px}
+.prose table th,.prose table td{border:1px solid var(--line);padding:7px 9px}
+.prose table thead th{position:static;background:#F0F4F6}
+
+/* --- La carte ------------------------------------------------------------
+   SVG produit à la construction, sans fond de plan distant : aucune requête
+   vers un serveur de tuiles, donc aucune adresse IP de visiteur transmise à
+   un tiers, et aucune bannière de consentement à afficher. */
+.carte-bloc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.carte-bloc svg{width:100%;height:auto;display:block}
+.carte-bloc path.dept{fill:#E3EAEE;stroke:#fff;stroke-width:.6}
+.carte-bloc a.pt{cursor:pointer}
+.carte-bloc a.pt circle{stroke:#fff;stroke-width:1.4;transition:r .12s}
+.carte-bloc a.pt:hover circle{stroke:var(--eau-deep);stroke-width:2}
+.carte-bloc circle.analysee-vert{fill:var(--vert)}
+.carte-bloc circle.analysee-rouge{fill:var(--rouge)}
+.carte-bloc circle.analysee-bascule{fill:var(--bascule)}
+.carte-bloc circle.analysee-ambre{fill:var(--ambre)}
+.carte-bloc circle.rattachee{fill:#fff;stroke:var(--eau);stroke-width:2.2}
+.carte-bloc circle.non_documentee{fill:var(--gris-bg);stroke:var(--gris);stroke-width:1.6}
+.carte-legende{display:grid;gap:7px;margin-top:14px;font-size:12.5px;color:var(--ink-soft)}
+.carte-legende span{display:flex;align-items:center;gap:9px}
+.carte-legende i{width:14px;height:14px;border-radius:50%;flex:none;display:inline-block}
+.lg-vert{background:var(--vert)}.lg-rouge{background:var(--rouge)}
+.lg-bascule{background:var(--bascule)}
+.lg-rattachee{background:#fff;border:2px solid var(--eau)}
+.lg-nondoc{background:var(--gris-bg);border:2px solid var(--gris)}
+
+/* Le tableau défile horizontalement DANS son cadre : les colonnes de droite —
+   dépassements, bascules — sont celles qui portent l'information, et elles
+   étaient purement et simplement coupées sur un écran étroit. */
+.tableau-communes{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.tableau-communes table{font-size:13px;min-width:760px}
+.tableau-communes td a{font-weight:600;text-decoration:none}
+.tableau-communes .st{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+  padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st.analysee{background:var(--vert-bg);color:var(--vert)}
+.st.rattachee_reseau{background:#E9F1F5;color:#204a63}
+.st.non_documentee{background:var(--gris-bg);color:var(--gris)}
+
+.rappel{font-size:12.5px;color:var(--ink-soft);background:#F5F9FA;border:1px solid #cfe0e5;
+  border-radius:10px;padding:12px 15px;margin-top:14px}
+.rappel b{color:var(--eau-deep)}
+
+@media (max-width:820px){
+  .chiffres{grid-template-columns:repeat(2,1fr)}
+  .grp-grille{grid-template-columns:repeat(2,1fr)}
+  .pe-cols{grid-template-columns:1fr}
+}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){
+  .grp-grille{grid-template-columns:1fr}
+  .hero h3{font-size:21px}
+  .jauge .repere span{font-size:9px}
+  .pfas-cols{grid-template-columns:1fr}
+  .pe-cols{grid-template-columns:1fr}
+  .part{grid-template-columns:1fr auto}
+  .lect{grid-template-columns:1fr}
+  .lect .side{border-right:none;border-bottom:1px solid var(--line)}
+  .identity h2{font-size:23px}
+  .kpis{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  body{background:#fff}.switch,.btoolbar,.nav{display:none}
+  .btable-scroll{max-height:none}
+  details.bulletin>summary{display:none}
+  details.bulletin{border:none}
+}

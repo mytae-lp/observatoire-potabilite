@@ -1,0 +1,97 @@
+<!-- ===========================================================================
+     Corps commun de la fiche de bulletin. Injecté à l'identique dans la fiche
+     autonome (sortie/_template.html) et dans la page de commune de la vitrine.
+     Il ne contient aucune donnée : fiche.js le remplit depuis les tables
+     figées.
+     ======================================================================= -->
+  <div class="identity">
+    <div class="eyebrow" id="idEyebrow">Commune</div>
+    <h2 id="communeName"></h2>
+    <div class="sub" id="communeSub"></div>
+    <div class="meta" id="meta"></div>
+    <div class="official">
+      <div class="lab">Conclusion sanitaire officielle — telle que rendue par l'ARS</div>
+      <div class="concl" id="concl"></div>
+      <div class="axes" id="axes"></div>
+    </div>
+    <div id="bandeaux"></div>
+  </div>
+
+  <!-- LE BANDEAU DE TÊTE, juste après l'identité de la commune. Le projet tient
+       en une phrase — « ce n'est pas l'eau qui est devenue potable, c'est la
+       limite qui a bougé » — et cette phrase doit être démontrée sur place, pas
+       cherchée au milieu d'un tableau de trois cents lignes. -->
+  <div id="hero"></div>
+
+  <section><h3 class="sec">La double lecture</h3>
+    <div class="double">
+      <div class="lect admin">
+        <div class="side"><span class="tag" style="color:var(--eau-deep)">Lecture administrative</span><span class="who">Contrôle sanitaire — France</span></div>
+        <div class="body"><span class="pill" id="adminPill"><span class="dot"></span><span></span></span><p id="adminDetail"></p></div>
+      </div>
+      <div class="delta"><span class="arrow">↓</span><span id="deltaText"></span></div>
+      <div class="lect">
+        <div class="side"><span class="tag" style="color:var(--eau)">Lecture citoyenne</span><span class="who">Grilles datées et normes les plus strictes</span></div>
+        <div class="body"><span class="pill" id="citPill"><span class="dot"></span><span></span></span><p id="citDetail"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="secIndicateurs"><h3 class="sec">Ce qu'il y a dans cette eau</h3>
+    <div id="indicateurs"></div>
+  </section>
+
+  <section><h3 class="sec">L'analyse</h3><div class="analyse" id="analyse"></div></section>
+
+  <section><h3 class="sec">Le bulletin officiel, ligne à ligne</h3>
+    <details class="bulletin">
+      <summary><span class="chev">▶</span> Tous les paramètres du prélèvement <span class="count" id="bcount"></span></summary>
+      <div class="btoolbar">
+        <input id="bfilter" type="text" placeholder="Filtrer un paramètre (ex. PFAS, atrazine, nitrate)…" aria-label="Filtrer les paramètres">
+        <button class="btn sec2" id="btnDet" aria-pressed="false">Substances quantifiées seulement</button>
+        <button class="btn sec2" id="btnSig" aria-pressed="false">Dépassements, bascules et indéterminés</button>
+        <button class="btn" id="btnCsv">⭳ Télécharger le bulletin (CSV)</button>
+      </div>
+      <div class="legende">
+        <span><i class="sw-dep"></i> dépassement du seuil applicable ce jour-là</span>
+        <span><i class="sw-bas"></i> bascule : au-dessus de la limite de 2016, sous celle de 2026</span>
+        <span><i class="sw-ind"></i> indéterminé — ni conforme, ni dépassement</span>
+        <span><i class="sw-det"></i> substance quantifiée, sous le seuil</span>
+        <span><i class="sw-ok"></i> non quantifiée (sous la limite de quantification du laboratoire)</span>
+      </div>
+      <div class="btable-scroll">
+        <table><thead><tr>
+          <th>Paramètre</th><th>Valeur mesurée</th>
+          <th>Seuil applicable à la date</th><th>État</th>
+        </tr></thead>
+        <tbody id="btable"></tbody></table>
+      </div>
+      <div id="bAVerifier"></div>
+      <p class="bnote" id="bnote"></p>
+    </details>
+  </section>
+
+  <section><div class="verdict" id="verdict"><div class="vlab">Verdict</div><p id="verdictText"></p></div></section>
+
+  <div class="gardefou"><b>⚠ Garde-fou</b> — Cette fiche interroge <b>la construction
+    réglementaire du seuil</b>, pas les acteurs qui l'appliquent. Un exploitant qui
+    respecte une limite fixée par arrêté n'est pas en faute : c'est la limite qu'on
+    examine. Un « 0 » ou un « &lt; 0,01 » signifie « inférieur au seuil de
+    quantification du laboratoire », jamais « absent ». Un « indéterminé » n'est pas
+    un « conforme ». Cette fiche ne se substitue pas à l'information publique : pour
+    toute question sur votre eau, l'ARS de votre région, votre mairie et les données
+    Orobnat sont les interlocuteurs.</div>
+
+  <footer><div class="src">
+    <strong>Sources &amp; reproductibilité.</strong> Mesures : base publique SISE-Eaux
+    (ministère chargé de la santé), via l'API Hub'Eau, sous Licence Ouverte. Seuils :
+    référentiel daté du projet, sous ODbL 1.0, fichier versionné dont chaque
+    modification est journalisée.<br>
+    Appel d'origine : <code id="hubeauUrl"></code>
+    <div class="tracab" id="tracab"></div>
+    <div style="margin-top:10px;font-size:11.5px">« Conforme » = respect d'un plafond
+      réglementaire à une date donnée, pas d'un seuil sanitaire · un prélèvement est
+      un point dans le temps, sur un point d'eau · le seuil de 2016 appliqué aux
+      métabolites est une extrapolation assumée à partir de l'instruction
+      DGS/EA4/2020/177, et elle est signalée comme telle.</div>
+  </div></footer>
