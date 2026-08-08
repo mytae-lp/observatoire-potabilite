@@ -106,12 +106,37 @@ CREATE TABLE IF NOT EXISTS verdicts_figes (
     origine_seuil_2026  VARCHAR,
     seuil_strict        DOUBLE,
     seuil_futur         DOUBLE,
+    -- Le seuil en vigueur LE JOUR DU PRÉLÈVEMENT, et le verdict rendu contre
+    -- lui. Sans ces deux colonnes, une sortie qui ne lit que les tables figées
+    -- ne peut afficher que `depasse_2026` — c'est-à-dire juger une mesure de
+    -- 2023 à l'aune de la grille de 2026, exactement ce que CLAUDE.md §2.10
+    -- interdit. Le compteur `nb_depasse_applicable` de `analyses_figees` était
+    -- alors en désaccord avec son propre détail.
+    seuil_applicable    DOUBLE,
+    grille_applicable   VARCHAR,
     depasse_2016        BOOLEAN,
     depasse_2026        BOOLEAN,
+    depasse_applicable  BOOLEAN,
     depasse_strict      BOOLEAN,
     depasse_futur       BOOLEAN,
     bascule_2016_2026   BOOLEAN,
+    bascule_datee       BOOLEAN,
     indetermine_strict  BOOLEAN,
+    indetermine_condition BOOLEAN,
+    -- Statut de perturbateur endocrinien, dans les DEUX registres et jamais
+    -- fusionnés (CLAUDE.md §2.6). Figés ici parce qu'ils viennent de la ligne
+    -- de référentiel réellement appariée : une substance rattachée par règle de
+    -- famille n'a pas de ligne propre, et un rapprochement par libellé au
+    -- moment de l'affichage la manquerait — donc la déclarerait non-PE, ce qui
+    -- est un faux négatif. Trois états, comme partout ici : avéré, suspecté,
+    -- et « non documenté », qui n'est pas « non ».
+    pe_reglementaire    VARCHAR,
+    pe_scientifique     VARCHAR,
+    -- Ligne agrégée (« Total des pesticides analysés », « Somme de 20 PFAS »,
+    -- « Nitrates/50 + Nitrites/3 ») : une somme, pas une substance. Sans ce
+    -- drapeau, toute lecture qui énumère des substances compte la somme en
+    -- même temps que ses composants.
+    est_agregat         BOOLEAN,
     fiabilite           VARCHAR,
     PRIMARY KEY (code_prelevement, version_referentiel, libelle_parametre)
 );
@@ -134,6 +159,55 @@ CREATE TABLE IF NOT EXISTS couverture_communes (
     PRIMARY KEY (code_insee, version_referentiel)
 );
 """
+
+
+# Colonnes attendues par table figée. Sert au contrôle de dérive ci-dessous :
+# une table créée par une version antérieure du code ne doit jamais survivre en
+# silence à un changement de schéma.
+def _colonnes_declarees(schema):
+    tables = {}
+    for bloc in schema.split("CREATE TABLE IF NOT EXISTS ")[1:]:
+        nom, corps = bloc.split("(", 1)
+        colonnes = []
+        for ligne in corps.rsplit(");", 1)[0].split("\n"):
+            ligne = ligne.strip()
+            if ligne and not ligne.startswith(("--", "PRIMARY KEY")):
+                colonnes.append(ligne.split()[0])
+        tables[nom.strip()] = colonnes
+    return tables
+
+
+COLONNES_ATTENDUES = _colonnes_declarees(SCHEMA_FIGE)
+
+
+def assurer_schema(con, verbeux=True):
+    """
+    Crée les tables figées, et **détruit celles dont le schéma a dérivé**.
+
+    `CREATE TABLE IF NOT EXISTS` ne dit rien quand la table existe déjà avec
+    d'autres colonnes : un dépôt construit par une version antérieure du code
+    garderait son ancienne table, l'INSERT échouerait — ou pire, réussirait en
+    laissant de côté une colonne devenue nécessaire.
+
+    Une table figée détruite ici n'est pas une perte de fait : les mesures sont
+    intactes en base, et `figer()` recalcule tout. Ce qui se perd est le verdict
+    calculé contre une version ANTÉRIEURE du référentiel, et cela se dit.
+    """
+    con.execute(SCHEMA_FIGE)
+    for table, attendues in COLONNES_ATTENDUES.items():
+        presentes = [r[0] for r in con.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = ? ORDER BY ordinal_position", [table]).fetchall()]
+        if presentes == attendues:
+            continue
+        manquantes = [c for c in attendues if c not in presentes]
+        if verbeux:
+            print(f"  ! {table} : schéma obsolète, table reconstruite"
+                  + (f" (colonnes ajoutées : {', '.join(manquantes)})" if manquantes else ""))
+            print("    les verdicts figés contre une version antérieure du référentiel")
+            print("    sont perdus ; les mesures, elles, sont intactes. Refige.")
+        con.execute(f"DROP TABLE IF EXISTS {table}")
+    con.execute(SCHEMA_FIGE)
 
 
 def version_referentiel():
@@ -222,7 +296,7 @@ def _sommes(con, code_prel):
 
 def figer(con, version=None, calcule_le=None):
     """(Re)calcule et fige tous les bulletins présents en base."""
-    con.execute(SCHEMA_FIGE)
+    assurer_schema(con)
     version = version or version_referentiel()
     jour = calcule_le or datetime.date.today().isoformat()
 
@@ -265,13 +339,142 @@ def figer(con, version=None, calcule_le=None):
                    famille, mode_appariement, resultat_num, lq, est_quantifie, unite,
                    seuil_2016, seuil_2026_effectif, origine_seuil_2026,
                    seuil_strict, seuil_futur,
-                   depasse_2016, depasse_2026, depasse_strict, depasse_futur,
-                   bascule_2016_2026, indetermine_strict, fiabilite
+                   seuil_applicable, grille_applicable,
+                   depasse_2016, depasse_2026, depasse_applicable,
+                   depasse_strict, depasse_futur,
+                   bascule_2016_2026, bascule_datee,
+                   indetermine_strict, indetermine_condition,
+                   pe_reglementaire, pe_scientifique, est_agregat, fiabilite
             FROM v_mesures_verdict
-            WHERE code_prelevement = ? AND notee
+            -- « notee » = la mesure a un seuil dans la grille D'AUJOURD'HUI.
+            -- C'est le bon dénominateur de la couverture, et ce n'est pas le
+            -- bon filtre de figeage : une mesure qui n'a QU'UN repère strict —
+            -- la somme de 4 PFAS, dont le seuil danois de 2 ng/L est le plus
+            -- protecteur au monde — n'est pas notée, et disparaissait donc du
+            -- détail figé. Or c'est précisément là que naît l'indéterminé le
+            -- plus fréquent : la LQ courante des laboratoires est de 4 ng/L.
+            -- Le compteur du bulletin annonçait deux indéterminés et le détail
+            -- n'en montrait qu'un (CLAUDE.md §2.4).
+            WHERE code_prelevement = ? AND (notee OR seuil_strict IS NOT NULL)
         """, [version, cp])
 
+    figer_couverture_implicite(con, version, jour)
     return version, len(prels)
+
+
+def figer_couverture_implicite(con, version, calcule_le=None):
+    """
+    Toute commune qui a un bulletin figé EST une commune analysée, qu'on l'ait
+    demandée ou non. Cette fonction inscrit celles qui manquaient.
+
+    Défaut réel, trouvé le 8 août 2026. `observer.py` n'inscrit la couverture
+    que des communes qu'on lui a **demandées**. Or quand une commune n'a pas de
+    bulletin propre, le moteur prend celui de son réseau — prélevé chez une
+    voisine, et ingéré sous le nom de cette voisine, ce qui est juste (§2.3 :
+    le rattachement vit dans `couverture_communes`, pas dans le fait). Mais la
+    voisine, jamais demandée, n'obtenait aucune ligne de couverture : son
+    bulletin alimentait la fiche d'à côté, et elle-même restait invisible sur
+    la carte.
+
+    C'est le symétrique exact de la règle « non documentée ». Le projet tient à
+    ce qu'une ABSENCE de donnée reste visible ; il ne peut pas tolérer qu'une
+    PRÉSENCE de donnée ne le soit pas. Et les bulletins concernés sont les plus
+    informatifs du secteur — ce sont ceux qui alimentent plusieurs communes.
+
+    N'écrase jamais une ligne existante : une commune déjà inscrite comme
+    `rattachee_reseau` par `observer.py` garde son statut, qui est plus précis.
+    """
+    jour = calcule_le or datetime.date.today().isoformat()
+    manquantes = con.execute("""
+        SELECT a.code_insee, a.commune, a.dept, a.codes_postaux, a.lon, a.lat,
+               a.code_prelevement, a.date_prelevement, a.nb_parametres, a.pct_couverture
+        FROM analyses_figees a
+        LEFT JOIN couverture_communes cc
+               ON cc.code_insee = a.code_insee
+              AND cc.version_referentiel = a.version_referentiel
+        WHERE a.version_referentiel = ? AND cc.code_insee IS NULL
+          -- le bulletin le plus récent de la commune fait foi pour la carte
+          AND a.date_prelevement = (SELECT MAX(b.date_prelevement) FROM analyses_figees b
+                                    WHERE b.version_referentiel = a.version_referentiel
+                                      AND b.code_insee = a.code_insee)
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY a.code_insee ORDER BY a.code_prelevement) = 1
+    """, [version]).fetchall()
+
+    for insee, nom, dept, cp, lon, lat, prel, date, nbp, pct in manquantes:
+        con.execute("INSERT INTO couverture_communes VALUES (?,?,?::DATE,?,?,?,?,?,?,?,?,?::DATE,?,?)",
+                    [insee, version, jour, nom, dept, cp, lon, lat,
+                     "analysee", prel, None, str(date) if date else None, nbp, pct])
+
+    # Contradiction : une commune déclarée sans donnée qui en a une. Elle vient
+    # d'une collecte antérieure où le repli avait échoué ; la corriger en
+    # silence effacerait la trace, donc on la dit.
+    contredites = con.execute("""
+        SELECT cc.code_insee, cc.commune FROM couverture_communes cc
+        JOIN analyses_figees a ON a.code_insee = cc.code_insee
+                              AND a.version_referentiel = cc.version_referentiel
+        WHERE cc.version_referentiel = ? AND cc.statut = 'non_documentee'
+    """, [version]).fetchall()
+    for insee, nom in contredites:
+        print(f"  ! {nom or insee} était « non documentée » et a désormais un bulletin "
+              "figé — statut corrigé en « analysée »")
+        con.execute("""
+            UPDATE couverture_communes SET statut = 'analysee',
+                   code_prelevement = (SELECT a.code_prelevement FROM analyses_figees a
+                                       WHERE a.code_insee = couverture_communes.code_insee
+                                         AND a.version_referentiel = couverture_communes.version_referentiel
+                                       ORDER BY a.date_prelevement DESC LIMIT 1)
+            WHERE code_insee = ? AND version_referentiel = ?
+        """, [insee, version])
+
+    # Report des statuts qui ne dépendent PAS de la grille.
+    #
+    # « rattachée au réseau » et « non documentée » décrivent ce que les DONNÉES
+    # permettent de savoir, pas ce que le référentiel dit : changer un seuil ne
+    # fait pas apparaître un bulletin là où il n'y en a pas. Or ces statuts ne
+    # sont écrits que par observer.py, pour les communes explicitement
+    # demandées. Refiger sous une nouvelle version les perdait toutes — dix
+    # communes rattachées ont ainsi disparu du site d'une publication à l'autre,
+    # sans que rien ne le signale.
+    reportes = con.execute("""
+        WITH precedente AS (
+            SELECT * FROM couverture_communes
+            WHERE version_referentiel <> ?
+              AND statut IN ('rattachee_reseau', 'non_documentee')
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY code_insee
+                                       ORDER BY calcule_le DESC) = 1
+        )
+        SELECT p.code_insee, p.commune, p.dept, p.codes_postaux, p.lon, p.lat,
+               p.statut, p.code_prelevement, p.commune_prelevement
+        FROM precedente p
+        LEFT JOIN couverture_communes c
+               ON c.code_insee = p.code_insee AND c.version_referentiel = ?
+        WHERE c.code_insee IS NULL
+    """, [version, version]).fetchall()
+
+    for insee, nom, dept, cp, lon, lat, statut, prel, commune_prel in reportes:
+        detail = (None, None, None)
+        if prel:
+            detail = con.execute("""
+                SELECT date_prelevement, nb_parametres, pct_couverture
+                FROM analyses_figees
+                WHERE code_prelevement = ? AND version_referentiel = ?
+            """, [prel, version]).fetchone() or detail
+        con.execute("INSERT INTO couverture_communes VALUES (?,?,?::DATE,?,?,?,?,?,?,?,?,?::DATE,?,?)",
+                    [insee, version, jour, nom, dept, cp, lon, lat, statut, prel,
+                     commune_prel, str(detail[0]) if detail[0] else None,
+                     detail[1], detail[2]])
+
+    if manquantes:
+        print(f"  i {len(manquantes)} commune(s) inscrite(s) d'office : elles ont un "
+              "bulletin figé sans avoir été demandées")
+        print("    (leur analyse sert de repli à une commune voisine — sans cela elles "
+              "seraient absentes de la carte)")
+    if reportes:
+        print(f"  i {len(reportes)} statut(s) de couverture reporté(s) depuis la version "
+              "précédente")
+        print("    (rattachement au réseau et absence de donnée ne dépendent pas de la "
+              "grille)")
+    return len(manquantes)
 
 
 def figer_commune(con, commune, statut, version, calcule_le=None,
@@ -287,7 +490,7 @@ def figer_commune(con, commune, statut, version, calcule_le=None,
                               donnée, et elle doit rester visible comme telle
                               (CLAUDE.md §2.4, transposé à la commune).
     """
-    con.execute(SCHEMA_FIGE)
+    assurer_schema(con, verbeux=False)
     jour = calcule_le or datetime.date.today().isoformat()
 
     # L'identité de la commune vient de la résolution INSEE, pas de la table
@@ -337,7 +540,7 @@ def main():
     con = duckdb.connect(DB_PATH)
     try:
         if a.statut:
-            con.execute(SCHEMA_FIGE)
+            assurer_schema(con)
             statut(con)
             return
         version, n = figer(con)
