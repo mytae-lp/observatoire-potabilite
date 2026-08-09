@@ -596,7 +596,7 @@ def main():
                 f"{presence[0]} bulletin(s) sur {presence[1]} cette année-là")
 
         # LE ZÉRO S'ÉCRIT. Ce contrôle disait exactement l'inverse jusqu'au
-        # 8 août 2026 — « un paramètre qu'on ne cherche plus n'a plus de ligne
+        # 9 août 2026 — « un paramètre qu'on ne cherche plus n'a plus de ligne
         # l'année suivante » — et il verrouillait un angle mort : le détecteur
         # à l'échelle était aveugle au seul cas qui l'intéresse vraiment,
         # l'abandon complet. Une absence de ligne ne se distingue pas d'une
@@ -632,6 +632,33 @@ def main():
         verifie(any(r[2] == 0.0 for r in strate),
                 "et dans le département qui l'a cherchée, l'année de l'abandon "
                 "est bien à 0 %")
+
+        # Le panel constant — la seule base d'une série temporelle (§2.11).
+        # Panelville porte trois bulletins sur trois années : 220 paramètres en
+        # 2024, puis 210 en 2026 et 2027 dont 10 nouveaux. Seuls les 200 du
+        # socle commun sont cherchés CHAQUE année.
+        pc = con.execute("""
+            SELECT COUNT(*), ANY_VALUE(nb_annees_documentees)
+            FROM v_panel_constant WHERE dept = '28'
+        """).fetchone()
+        verifie(pc == (200, 3),
+                f"v_panel_constant retient les {pc[0]} paramètres cherchés "
+                f"chacune des {pc[1]} années — ni les 20 retirés, ni les 10 "
+                "apparus en cours de route")
+        verifie(con.execute("""
+            SELECT COUNT(*) FROM v_panel_constant
+            WHERE dept = '28' AND libelle_parametre IN
+                  ('Substance A219', 'Substance N000')
+        """).fetchone()[0] == 0,
+                "ni le paramètre abandonné ni le paramètre apparu n'entrent "
+                "dans le panel constant")
+        serie = con.execute("""
+            SELECT annee, nb_panel_constant, nb_bulletins
+            FROM v_serie_panel_constant WHERE dept = '28' ORDER BY annee
+        """).fetchall()
+        verifie(len(serie) == 3 and {r[1] for r in serie} == {200},
+                "la série porte les trois années sur le même périmètre de "
+                f"mesure ({[r[1] for r in serie]} paramètres)")
 
         print("\n18. le mélange — ce qu'un réseau moyenne avant le robinet")
         # Chantier C7. Six bulletins fictifs, chacun sur un piège réel du

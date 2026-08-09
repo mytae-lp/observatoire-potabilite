@@ -30,6 +30,30 @@ Cinq fichiers dans `data/etudes/`, non versionnés comme toute donnée dérivée
                                 année par année — le détecteur à l'échelle
     parametre_presence_dept.csv la même, par département — le contre-feu
 
+UNE CAUSE RÉGLEMENTAIRE EST DOCUMENTÉE, et elle change la lecture de tout ce qui
+sort d'ici. L'instruction n° DGS/EA4/2020/177 du 18 décembre 2020 [REG-05] et son
+guide technique substituent au balayage de toutes les molécules analysables une
+LISTE RÉGIONALE arrêtée par l'ARS, ciblée « en fonction de la probabilité de les
+retrouver ». Ordres de grandeur repris du guide : PACA passe de ~600 molécules à
+150. La bascule se fait au renouvellement des marchés pluriannuels de
+prélèvements et d'analyses des ARS, ce qui produit une RUPTURE FRANCHE d'une
+année civile à l'autre — le motif « ~600 en 2019, ~300 en 2020 » observé dans le
+Tarn. Deux conséquences pour ce script :
+
+    - la « direction commune » que cherche Yannick a un candidat nommé : les
+      abandons devraient être très majoritairement des pesticides et leurs
+      métabolites, et non des minéraux, de la microbiologie ou des
+      organoleptiques. Le vérifier est un test, pas une hypothèse de confort ;
+    - une chute datée du même mois sur toutes les communes d'une même région
+      n'est pas un fait local : c'est un changement de marché. Ne jamais
+      l'attribuer à un exploitant (§2.1).
+
+Et la règle de sortie qui en découle : AUCUNE SÉRIE TEMPORELLE DE DÉTECTIONS
+À PANEL VARIABLE. Comparer 2019 et 2021 sans se restreindre à l'intersection des
+molécules recherchées les deux années fait passer une baisse des RECHERCHES pour
+une baisse des DÉTECTIONS. C'est le pendant temporel du réétalonnage daté : ici
+ce n'est pas le seuil qui bouge, c'est le périmètre de mesure.
+
 Trois réserves de lecture, à ne pas perdre :
 
 1. `meme_point_deau` distingue une évolution d'un écart. Deux bulletins d'une
@@ -65,6 +89,11 @@ from common import DB_PATH  # noqa: E402
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SORTIE = os.path.join(RACINE, "data", "etudes")
+
+# Ce qu'on affiche en tête de liste. Le reste est dans les CSV, et le script le
+# dit à chaque fois qu'il coupe : une liste tronquée sans le dire se lit comme
+# une liste complète.
+TETE = 15
 
 # La barre verticale sépare les éléments d'une liste À L'INTÉRIEUR d'une
 # cellule : le point-virgule est le séparateur de colonnes, et l'y glisser
@@ -104,6 +133,8 @@ EXPORTS = [
     ("parametres_abandonnes.csv", "SELECT * FROM v_parametres_abandonnes"),
     ("parametre_presence.csv", "SELECT * FROM v_parametre_presence"),
     ("parametre_presence_dept.csv", "SELECT * FROM v_parametre_presence_dept"),
+    ("panel_constant.csv", "SELECT * FROM v_panel_constant"),
+    ("serie_panel_constant.csv", "SELECT * FROM v_serie_panel_constant"),
 ]
 
 
@@ -133,20 +164,52 @@ def resumer(con):
         print("centaines de communes (cf. docs/CHANTIERS.md, chantier 6).")
         return
 
+    # À l'échelle du département, la liste complète des paires est illisible et
+    # elle est de toute façon dans `panel_evolution.csv`. On en montre la tête,
+    # et on DIT qu'on la coupe : une troncature silencieuse se lit comme une
+    # exhaustivité.
     print(f"\n=== {paires} paire(s) de bulletins consécutifs, "
-          f"sur {communes} commune(s) ===\n")
+          f"sur {communes} commune(s) ===")
+    if paires > TETE:
+        print(f"    (les {TETE} plus fortes ; le détail complet est dans "
+              "panel_evolution.csv)")
+    print()
     for r in con.execute("""
         SELECT commune, date_precedente, date_courante,
                panel_precedent, panel_courant, nb_abandonnes, nb_nouveaux,
                meme_point_deau, identite_certaine
-        FROM v_panel_evolution ORDER BY nb_abandonnes DESC
-    """).fetchall():
+        FROM v_panel_evolution ORDER BY nb_abandonnes DESC LIMIT ?
+    """, [TETE]).fetchall():
         point = ("même point d'eau" if r[7] else "point d'eau différent")
         if not r[8]:
             point = "présumé " + point.replace("même point d'eau", "le même") \
                                      .replace("point d'eau différent", "différent")
         print(f"  {r[0]:<24} {r[1]} → {r[2]}   {r[3]:>4} → {r[4]:<4} "
               f"−{r[5]:<4} +{r[6]:<4} {point}")
+
+    # La seule série temporelle qu'on ait le droit de lire (§2.11). Le panel a
+    # une cause réglementaire datée : sans se restreindre aux paramètres
+    # cherchés toutes les années, une baisse des RECHERCHES se lit comme une
+    # baisse des DÉTECTIONS. Ici le périmètre de mesure ne bouge pas.
+    series = con.execute("""
+        SELECT dept, nb_annees_documentees, nb_panel_constant
+        FROM v_serie_panel_constant
+        WHERE nb_annees_documentees >= 3
+        GROUP BY 1, 2, 3 ORDER BY nb_annees_documentees DESC, dept
+    """).fetchall()
+    for dept, nb_annees, nb_params in series:
+        print(f"\n=== série à panel constant — dept {dept} : {nb_params} "
+              f"paramètres cherchés chaque année, sur {nb_annees} années ===\n")
+        print("     année  bull.  communes   mesures  quantifiées  pour mille")
+        for r in con.execute("""
+            SELECT annee, nb_bulletins, nb_communes, nb_mesures,
+                   nb_quantifiees, quantifiees_pour_mille
+            FROM v_serie_panel_constant WHERE dept = ? ORDER BY annee
+        """, [dept]).fetchall():
+            print(f"     {r[0]}   {r[1]:>4}    {r[2]:>4}   {r[3]:>7}  "
+                  f"{r[4]:>11}  {r[5]:>10}")
+        print("\n  Un taux, sur un périmètre de mesure qui ne bouge pas. Il ne dit")
+        print("  pas la qualité de l'eau : il dit ce que le même effort trouve.")
 
     print("\n=== les paramètres les plus souvent abandonnés ===\n")
     for r in con.execute("""
@@ -175,22 +238,33 @@ def resumer(con):
         ORDER BY a.libelle_parametre, a.annee
     """).fetchall()
     if chutes:
-        print("\n=== cherché partout, puis presque plus ===\n")
-        vus = set()
+        # Une seule ligne par paramètre : la chute la plus ample.
+        retenues = {}
         for cle, lib, a1, p1, n1, a2, p2, n2 in chutes:
-            if lib in vus:
-                continue
-            vus.add(lib)
-            print(f"  {lib}")
-            print(f"      {p1:>5} % en {a1} ({n1} bull.)"
-                  f"  →  {p2:>5} % en {a2} ({n2} bull.)")
-            for ligne in controler_chute(con, cle, a2):
+            garde = retenues.get(cle)
+            if garde is None or (p1 - p2) > (garde[3] - garde[5]):
+                retenues[cle] = (cle, lib, a1, p1, n1, a2, p2, n2)
+        ordonnees = sorted(retenues.values(), key=lambda r: r[6] - r[3])
+
+        print(f"\n=== cherché partout, puis presque plus — {len(ordonnees)} "
+              "paramètre(s) ===")
+        if len(ordonnees) > TETE:
+            print(f"    (les {TETE} chutes les plus amples ; "
+                  "toutes sont dans parametre_presence.csv)")
+        print()
+
+        controles = controler_chutes(con, ordonnees[:TETE])
+        for r in ordonnees[:TETE]:
+            print(f"  {r[1]}")
+            print(f"      {r[3]:>5} % en {r[2]} ({r[4]} bull.)"
+                  f"  →  {r[6]:>5} % en {r[5]} ({r[7]} bull.)")
+            for ligne in controles[(r[0], r[5])]:
                 print(f"      {ligne}")
         print("\n  Ce n'est pas une dégradation de l'eau : c'est un retrait du")
         print("  programme d'analyse. Sur ce qui n'est plus cherché, on ne sait rien.")
 
 
-def controler_chute(con, cle_param, annee):
+def controler_chutes(con, chutes):
     """Les deux contrôles qui séparent un retrait d'un artefact de corpus.
 
     Une présence nationale qui chute peut n'être qu'un changement de
@@ -205,36 +279,54 @@ def controler_chute(con, cle_param, annee):
        abandons constatés d'un bulletin au suivant sur une même commune ? C'est
        le contrôle le plus serré, puisqu'il ne change ni de commune ni de
        corpus.
+
+    Les deux lectures se font en DEUX requêtes pour tout le lot, pas deux par
+    paramètre : sur le Tarn, 308 paramètres chutent, et une requête par
+    paramètre relançait la vue départementale six cents fois.
     """
-    lignes = []
+    if not chutes:
+        return {}
+    cles = list({r[0] for r in chutes})
+    annees = list({r[5] for r in chutes})
+    marques_c = ", ".join("?" * len(cles))
+    marques_a = ", ".join("?" * len(annees))
 
-    strates = con.execute("""
-        SELECT dept, pct_bulletins, nb_bulletins
+    strates = {}
+    for cle, annee, dept, pct in con.execute(f"""
+        SELECT cle_param, annee, dept, pct_bulletins
         FROM v_parametre_presence_dept
-        WHERE cle_param = ? AND annee = ?
+        WHERE cle_param IN ({marques_c}) AND annee IN ({marques_a})
         ORDER BY dept
-    """, [cle_param, annee]).fetchall()
-    if strates:
-        zero = [d for d, pct, _ in strates if pct == 0]
-        lignes.append(
-            f"corpus   : 0 % dans {len(zero)} des {len(strates)} département(s) "
-            f"documenté(s) en {annee} qui l'ont cherché au moins une fois"
-            + (f" — {', '.join(zero)}" if zero else ""))
+    """, cles + annees).fetchall():
+        strates.setdefault((cle, annee), []).append((dept, pct))
 
-    suivi = con.execute("""
-        SELECT nb_abandons, nb_communes
-        FROM v_parametres_abandonnes WHERE cle_param = ?
-    """, [cle_param]).fetchone()
-    if suivi:
-        lignes.append(
-            f"communes : abandonné sur {suivi[0]} paire(s) de bulletins "
-            f"consécutifs, dans {suivi[1]} commune(s) suivie(s)")
-    else:
-        lignes.append(
-            "communes : aucune commune suivie ne l'abandonne d'un bulletin "
-            "au suivant — la chute peut n'être qu'un effet de corpus")
+    suivis = {r[0]: (r[1], r[2]) for r in con.execute(f"""
+        SELECT cle_param, nb_abandons, nb_communes
+        FROM v_parametres_abandonnes WHERE cle_param IN ({marques_c})
+    """, cles).fetchall()}
 
-    return lignes
+    controles = {}
+    for r in chutes:
+        cle, annee = r[0], r[5]
+        lignes = []
+        vus = strates.get((cle, annee), [])
+        if vus:
+            zero = [d for d, pct in vus if pct == 0]
+            lignes.append(
+                f"corpus   : 0 % dans {len(zero)} des {len(vus)} département(s) "
+                f"documenté(s) en {annee} qui l'ont cherché au moins une fois"
+                + (f" — {', '.join(zero)}" if zero else ""))
+        suivi = suivis.get(cle)
+        if suivi:
+            lignes.append(
+                f"communes : abandonné sur {suivi[0]} paire(s) de bulletins "
+                f"consécutifs, dans {suivi[1]} commune(s) suivie(s)")
+        else:
+            lignes.append(
+                "communes : aucune commune suivie ne l'abandonne d'un bulletin "
+                "au suivant — la chute peut n'être qu'un effet de corpus")
+        controles[(cle, annee)] = lignes
+    return controles
 
 
 def main():

@@ -701,7 +701,7 @@ ORDER BY nb_abandons DESC, libelle_parametre;
 # savoir. Le dénominateur est affiché : sur trois bulletins dans l'année, un
 # pourcentage ne veut rien dire.
 #
-# LE ZÉRO DOIT EXISTER. Corrigé le 8 août 2026. La vue ne produisait de ligne
+# LE ZÉRO DOIT EXISTER. Corrigé le 9 août 2026. La vue ne produisait de ligne
 # que pour les couples (année, paramètre) effectivement cherchés : un paramètre
 # tombé à 0 % n'avait plus de ligne du tout. Le détecteur était donc aveugle au
 # seul cas qui l'intéresse vraiment — l'abandon complet — et tout consommateur
@@ -750,7 +750,7 @@ ORDER BY x.libelle, b.annee;
 # La même chose, stratifiée par département — le contre-feu de la vue
 # précédente.
 #
-# Ajoutée le 8 août 2026. Une présence nationale qui chute peut avoir deux
+# Ajoutée le 9 août 2026. Une présence nationale qui chute peut avoir deux
 # causes, et elles n'ont rien à voir : le programme d'analyse a changé, ou bien
 # c'est le CORPUS qui a changé de composition. Le corpus actuel le montre en
 # clair — 7 bulletins sur 2 départements en 2022, 13 sur 6 en 2026. Un
@@ -1058,13 +1058,79 @@ JOIN communes_par_reseau k ON k.code_reseau = a.code_reseau
 ORDER BY melange_lisible DESC, part_non_attribuee DESC NULLS LAST, a.nom_reseau;
 """
 
+# LE PANEL CONSTANT — ce qui rend une série temporelle lisible.
+#
+# Ajouté le 9 août 2026, après la collecte du Tarn. Le §2.11 pose depuis le
+# même jour qu'« aucune série temporelle à panel variable » ne doit être
+# produite : comparer 2019 et 2026 sans se restreindre aux paramètres cherchés
+# les deux années fait passer une baisse des RECHERCHES pour une baisse des
+# DÉTECTIONS. La règle était écrite, rien ne l'outillait.
+#
+# Définition : un paramètre est constant sur un département s'il a été cherché
+# sur au moins 75 % des bulletins complets de CHAQUE année documentée. Pas de
+# couple d'années de référence à choisir — donc rien à arbitrer, et la série se
+# recalcule seule quand le corpus grandit.
+#
+# `nb_annees_documentees` est le garde-fou et il s'affiche : sur un département
+# d'une seule année, « constant » ne veut rien dire (§2.11 — un taux sans son
+# dénominateur n'est pas un indicateur).
+VUE_PANEL_CONSTANT = """
+CREATE OR REPLACE VIEW v_panel_constant AS
+WITH annees AS (
+    SELECT dept, COUNT(DISTINCT annee) AS nb_annees
+    FROM v_parametre_presence_dept GROUP BY 1
+)
+SELECT p.dept,
+       p.cle_param,
+       ANY_VALUE(p.libelle_parametre) AS libelle_parametre,
+       ANY_VALUE(a.nb_annees)         AS nb_annees_documentees
+FROM v_parametre_presence_dept p
+JOIN annees a ON a.dept = p.dept
+GROUP BY 1, 2
+HAVING COUNT(*) FILTER (WHERE p.pct_bulletins >= 75) = ANY_VALUE(a.nb_annees);
+"""
+
+# La série qu'on a le droit de lire : le taux de quantification à panel
+# constant, année par année et département par département.
+#
+# C'est le pendant temporel de `depassements_pour_mille` (§2.11) : un TAUX, et
+# sur un périmètre de mesure qui ne bouge pas. Il ne dit pas la qualité de
+# l'eau — il dit ce que le même effort de recherche trouve d'une année à
+# l'autre.
+VUE_SERIE_PANEL_CONSTANT = """
+CREATE OR REPLACE VIEW v_serie_panel_constant AS
+SELECT c.code_departement                      AS dept,
+       YEAR(p.date_prelevement)                AS annee,
+       ANY_VALUE(k.nb_annees_documentees)      AS nb_annees_documentees,
+       COUNT(DISTINCT k.cle_param)             AS nb_panel_constant,
+       COUNT(DISTINCT p.code_prelevement)      AS nb_bulletins,
+       COUNT(DISTINCT p.code_insee)            AS nb_communes,
+       COUNT(*)                                AS nb_mesures,
+       COUNT(*) FILTER (WHERE m.est_quantifie) AS nb_quantifiees,
+       ROUND(1000.0 * COUNT(*) FILTER (WHERE m.est_quantifie) / COUNT(*), 2)
+                                               AS quantifiees_pour_mille,
+       COUNT(DISTINCT p.code_insee) FILTER (WHERE m.est_quantifie)
+                                               AS nb_communes_touchees
+FROM prelevements p
+JOIN communes c ON c.code_insee = p.code_insee
+JOIN mesures  m ON m.code_prelevement = p.code_prelevement
+JOIN v_panel_constant k
+     ON k.dept = c.code_departement
+    AND k.cle_param = COALESCE(m.code_parametre, m.libelle_norm)
+WHERE p.est_complet
+GROUP BY 1, 2
+ORDER BY 1, 2;
+"""
+
 VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES,
         VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES,
         VUE_SEUILS_SANS_DATE, VUE_EFFORT, VUE_CONDITIONS,
         VUE_PANEL, VUE_PANEL_EVOLUTION, VUE_PARAMETRES_ABANDONNES,
         VUE_PARAMETRE_PRESENCE, VUE_PARAMETRE_PRESENCE_DEPT,
         VUE_RESEAU_BULLETIN, VUE_RESEAUX_ILLISIBLES,
-        VUE_MELANGE_BULLETIN, VUE_MELANGE_RESEAU]
+        VUE_MELANGE_BULLETIN, VUE_MELANGE_RESEAU,
+        # après VUE_PARAMETRE_PRESENCE_DEPT, dont elles dépendent
+        VUE_PANEL_CONSTANT, VUE_SERIE_PANEL_CONSTANT]
 
 
 def controler_forme(chemin):
