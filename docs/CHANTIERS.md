@@ -371,45 +371,116 @@ moins.
 **2. Ce n'est pas une moyenne qui glisse.** **132 des 135 installations
 baissent**, trois seulement sont stables ou en hausse.
 
-Et la rupture n'est pas une pente, c'est une marche, visible entre deux mois
-consécutifs :
+Et la rupture n'est pas une pente, c'est une marche. La moyenne mensuelle passe
+de **585 en décembre 2019 à 324 en janvier 2020** ; les six mois précédents
+tiennent entre 578 et 627, les douze suivants entre 324 et 372.
+
+**Mais la moyenne mensuelle n'est pas la bonne résolution**, et il a fallu un
+troisième contrôle pour le voir : un point d'eau n'est analysé complètement
+qu'une fois par an environ, donc une moyenne mensuelle porte sur six à vingt
+bulletins et sa date apparente dépend de qui a été prélevé ce mois-là. Datée
+installation par installation, la bascule paraissait d'abord s'étaler de janvier
+2020 à novembre 2024.
+
+**Ces datations tardives sont toutes un artefact d'échantillonnage.** Sur les 77
+installations qui semblaient basculer en 2021 ou après, **77 n'ont aucun
+bulletin entre leur dernier panel large et leur premier panel étroit** : elles
+n'ont simplement pas été prélevées dans l'intervalle, et leur date apparente est
+celle de leur retour, pas celle du changement. Aucune, pas une seule, ne cherche
+un panel large entre les deux.
+
+D'où l'énoncé le plus fort que la donnée supporte, et il est net :
+
+| Dernière année où une installation cherche encore plus de 500 paramètres | Installations |
+|---|---|
+| 2016 | 4 |
+| 2017 | 6 |
+| 2018 | 11 |
+| **2019** | **111** |
+| 2020 et après | **0** |
+
+**Aucune installation du Tarn n'a cherché un panel large après 2019.**
+
+### Ce que perd exactement le Tarn — 276 pesticides sur 278
+
+Deuxième test, sur les 47 installations qui portent un bulletin en 2019 **et**
+un en 2020 : le panel distinct passe de 632 à 413 paramètres, **278 disparaissent**
+et 59 apparaissent. La nature de la perte ne laisse aucune place au doute, et
+c'est la source elle-même qui la déclare :
+
+| Ce que la source déclarait en 2019 pour les paramètres disparus | Nombre |
+|---|---|
+| **limite de 0,1 µg/L — la grille pesticide** | **276** |
+| aucune limite déclarée | 2 |
+| une autre limite | **0** |
+
+Aldicarbe et ses deux métabolites, acéphate, 2,4-DB, acrinathrine, anilophos,
+amiprofos-méthyl… Ce qui sort du panel est un bloc homogène : des pesticides et
+leurs métabolites, et rien d'autre.
+
+### La cause documentée ne colle pas à la date — et c'est à instruire
+
+Une session parallèle a documenté la cause réglementaire et l'a inscrite à
+l'index sous **REG-05** : l'**instruction n° DGS/EA4/2020/177 du 18 décembre
+2020**, dont le guide technique substitue au balayage de toutes les molécules
+analysables une **liste régionale arrêtée par l'ARS**, ciblée « en fonction de
+la probabilité de les retrouver ». Le mécanisme correspond exactement à ce que
+le Tarn montre : un bloc de pesticides retiré d'un coup, sans que la nature de
+l'eau y soit pour rien.
+
+**Mais la date ne va pas, et l'écart est d'un an.**
 
 | | |
 |---|---|
-| décembre 2019 | 8 bulletins, panel moyen **585** |
-| **janvier 2020** | 6 bulletins, panel moyen **324** |
+| date de l'instruction | **18 décembre 2020** |
+| installations du Tarn déjà passées au panel étroit avant cette date | **55 sur 132** |
+| installations cherchant encore plus de 500 paramètres après cette date | **0 sur 132** |
+| dernière année où une installation du Tarn cherche un panel large | **2019** |
 
-Les six mois précédents tiennent entre 578 et 627 ; les douze suivants entre 324
-et 372. Le changement se produit au passage de l'année.
+Au 18 décembre 2020, le basculement du Tarn était **déjà entièrement acquis**.
+Un texte ne peut pas causer ce qui l'a précédé : c'est l'erreur exacte que le
+§2.5 et le §2.10 apprennent à ne pas commettre, transposée du seuil au
+programme d'analyse.
 
-### Ce que ce constat n'est pas
+Trois lectures restent ouvertes, et **aucune n'est tranchée** :
 
-C'est un **dénombrement**, l'indicateur A de la note de méthode, et il s'arrête
-là. Le piège du chantier reste entier : **« plus cherché » n'est pas « retiré du
-contrôle »**. Un panel qui se réduit de 40 % du jour au lendemain peut venir
-d'un changement de programme réglementaire, d'un changement de laboratoire, d'un
-changement de marché public — et rien dans les données ne permet de trancher.
-`code_lieu_analyse` vaut toujours `L`, le corpus ne porte aucun identifiant de
-laboratoire.
+1. **l'instruction codifie une pratique déjà déployée.** Les listes régionales
+   auraient précédé le texte qui les généralise. C'est fréquent, et cela rendrait
+   REG-05 juste sur le mécanisme et faux sur la chronologie ;
+2. **le Tarn a sa propre cause**, par exemple un marché pluriannuel ARS de
+   prélèvements et d'analyses entré en vigueur au 1er janvier 2020. REG-05
+   mentionne ce mécanisme de bascule par marché ;
+3. **un texte antérieur** — l'instruction de 2020 en remplace une de 2010.
 
-Ce que le constat apporte, et qui n'existait pas, c'est **une date**. Un
-changement de programme laisse une trace écrite et datée ; janvier 2020 est une
-date qu'on peut opposer à un texte. C'est le point de départ d'une recherche
-documentaire, pas sa conclusion.
+**Tant que ce point n'est pas tranché, REG-05 ne doit pas être présentée comme
+la cause de ce qu'on observe dans le Tarn.** Elle documente un mécanisme, pas
+cette bascule-là. Et les ordres de grandeur qu'elle cite (PACA ~600 → 150) sont
+`a_verifier` : ils viennent de reprises documentaires, le PDF officiel n'a pas
+été lu (§2.7).
+
+### Ce que ce constat n'est toujours pas
+
+C'est un **dénombrement**, l'indicateur A, et le piège du chantier reste entier :
+**« plus cherché » n'est pas « retiré du contrôle »**. Le corpus ne porte aucun
+identifiant de laboratoire — `code_lieu_analyse` vaut toujours `L` — donc rien
+n'y permet de distinguer un changement de programme d'un changement de
+prestataire.
 
 Et c'est **un seul département**. Rien ici ne dit qu'il se passe la même chose
-ailleurs — c'est la première chose à vérifier au département suivant, et la vue
-`v_parametre_presence_dept` est faite pour ça.
+ailleurs, ni à la même date — c'est la première chose à vérifier au département
+suivant, et la vue `v_parametre_presence_dept` est faite pour ça.
 
 ### Reste à faire
 
-1. **Quels paramètres, précisément, sont sortis en janvier 2020.**
-   `src/etude_panel.py` produit déjà la liste ; elle n'a pas encore été
-   dépouillée à cette échelle.
+1. **Lire le texte officiel de l'instruction** sur circulaires.legifrance, et
+   vérifier si son annexe est antérieure ou si elle reprend des listes déjà en
+   vigueur. C'est ce qui départage les lectures 1 et 3.
 2. **Un second département**, pour savoir si la rupture est nationale ou
-   tarnaise. C'est la question que Yannick posait en ouvrant le chantier.
-3. **La recherche documentaire** sur ce que janvier 2020 a changé aux programmes
-   d'analyse. Hors du dépôt.
+   tarnaise, et surtout **si elle y porte la même date**. Un département qui
+   basculerait début 2021 pointerait vers l'instruction ; un autre qui
+   basculerait aussi en 2020 pointerait vers une pratique antérieure.
+3. **La liste nominative des 278 disparus** est calculable telle quelle et n'a
+   pas encore été versée à `data/etudes/` par `src/etude_panel.py`.
 
 Ce qui a changé le 8 août 2026, c'est qu'elle est prête **à dire un zéro et à
 contrôler une chute**. Les deux défauts corrigés ne se voyaient pas sur 45
