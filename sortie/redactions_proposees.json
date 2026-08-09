@@ -2364,5 +2364,51 @@
   ],
   "_commune": "Barre (81) — 2026-04-24",
   "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:02800128204": {
+  "sous_titre": "Abondant, Eure-et-Loir (28) · point d'eau LE POTEAU DU VALLOT, réseau SECTEUR ABONDANT",
+  "delta": "Le contrôle conclut à la conformité « pour l'ensemble des paramètres mesurés », mais trois de ces paramètres ont été cherchés avec une limite de quantification située au-dessus de leur propre seuil réglementaire : sur ceux-là, l'analyse ne prononce ni conformité ni dépassement.",
+  "lecture_administrative": "La conclusion sanitaire est celle d'une « eau d'alimentation conforme aux exigences de qualité en vigueur », et elle porte sur « l'ensemble des paramètres mesurés ». Deux précisions se lisent dans cette formule. Le verdict est rendu contre la grille applicable à la date du prélèvement, en novembre 2025, et non contre une grille intemporelle. Et son périmètre est celui des paramètres effectivement recherchés ce jour-là : la conformité déclarée ne dit rien de ce qui n'a pas été cherché, ni de ce que le laboratoire ne pouvait pas voir sous sa limite de quantification.",
+  "analyse": [
+   {
+    "t": "Un point d'eau, un réseau",
+    "x": "Le prélèvement vient de l'installation LE POTEAU DU VALLOT, gestionnaire déclaré SMICA, et le réseau SECTEUR ABONDANT lui doit la totalité de son débit déclaré. Le bulletin décrit donc l'eau d'une ressource unique et non le résultat d'un mélange entre installations, ce qui rend la lecture plus directe : ce qui est mesuré ici se rapporte à un seul point de production amont. Tous les autres bulletins de cette commune réunis par le corpus portent ce même point d'eau, si bien que la série se lit sans changement de ressource en cours de route."
+   },
+   {
+    "t": "Les nitrates, entre deux repères",
+    "x": "Les nitrates sont mesurés à 13 mg/L. C'est le seul paramètre du bulletin qui se place entre deux repères : très en dessous des 50 mg/L de la grille applicable, au-dessus du repère le plus strict identifié par le projet, fixé à 10. La mesure, elle, ne change pas d'un repère à l'autre ; ce qui change est la question qu'on lui pose. C'est aussi le seul endroit du bulletin où l'écart entre les grilles devient visible, tout le reste des paramètres notés se rangeant du même côté quelle que soit la grille interrogée."
+   },
+   {
+    "t": "Un périmètre de mesure qui se déplace",
+    "x": "Les bulletins antérieurs de la commune ne cherchent pas la même liste de paramètres : 252 recherchés en 2022 et 2023, 268 en 2024, 289 sur ce prélèvement, et 346 sur celui de 2021, le plus large de la série. Le périmètre de mesure s'est donc déplacé plusieurs fois en quelques années. Cela interdit de comparer terme à terme les comptes d'un bulletin à l'autre : ils ne portent pas sur le même ensemble de substances. Le fait est descriptif et le dossier n'en porte pas la cause ; il ne se rattache ici à aucun texte ni à aucune décision."
+   },
+   {
+    "t": "Ce que vaut la grille de 2016 sur ce bulletin",
+    "x": "Le compte de bascules est nul : aucune mesure de ce prélèvement ne dépassait la grille de 2016 pour cesser de dépasser celle d'aujourd'hui. Cette lecture appelle une réserve que le bulletin ne peut pas afficher seul. Ce bulletin porte des métabolites notés contre la grille de 2016, et le seuil de 0,1 µg/L qui leur est appliqué pour cette année-là est une extrapolation assumée du projet, non la lecture d'un texte de 2016 : la règle qui la fonde lui est postérieure. Une part de ce passé réglementaire est donc reconstruite, et se lit comme telle. S'y ajoute que quatorze paramètres ne sont notés que par la limite déclarée par la source, laquelle ne peut produire ni bascule ni verdict pour 2016."
+   }
+  ],
+  "_commune": "Abondant (28) — 2025-11-14",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:02800129574": {
+  "sous_titre": "Eure-et-Loir (28) · réseau VERT EN DROUAIS-BOISSY-ALLAINV-LOUVILLIE",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme aux limites de qualité, et ce verdict est exact à la date du prélèvement ; ce même bulletin porte pourtant une mesure qui, notée contre la grille de 2016, n'aurait pas été conforme.",
+  "lecture_administrative": "La conclusion du contrôle sanitaire distingue deux registres. Sur les limites de qualité, l'eau est déclarée « conforme aux limites de qualité en vigueur pour l'ensemble des paramètres mesurés ». Sur les références de qualité, elle est déclarée « non conforme » pour un seul paramètre, l'équilibre calcocarbonique. Ce constat porte sur les 255 paramètres qui ont pu être comparés à un seuil, parmi les 314 recherchés.",
+  "analyse": [
+   {
+    "t": "Une bascule qui repose sur un métabolite",
+    "x": "La seule bascule de ce bulletin porte sur un métabolite, et cela oblige à une précaution qui doit être dite en toutes lettres. Le seuil de 0,1 µg/L qui lui est appliqué pour la grille de 2016 est une <b>extrapolation assumée du projet</b>, non la lecture d'un texte en vigueur en 2016 : la règle qui le fonde est postérieure. La comparaison garde son sens — elle dit ce qu'aurait valu cette mesure sous la grille ancienne — mais elle est une reconstitution, et non la citation d'une limite d'époque. C'est le seul paramètre du bulletin dans cette situation."
+   },
+   {
+    "t": "Ce que le plomb ne permet pas de conclure",
+    "x": "Le plomb n'est pas quantifié : sa concentration se situe sous la limite de quantification du laboratoire, 2 µg/L. Cela suffit pour la limite en vigueur, 10 µg/L, qui est bien au-dessus de cette capacité de mesure. Cela ne suffit pas pour le repère le plus strict identifié, 0,2 µg/L, qui se situe en dessous d'elle : contre ce repère, l'instrument ne peut rien trancher. Le bulletin ne conclut donc pas au respect de ce repère, il constate qu'il ne sait pas, et un indéterminé ne se lit jamais comme un résultat conforme."
+   },
+   {
+    "t": "Deux repères, deux verdicts différents",
+    "x": "Deux mesures de ce bulletin restent sous la grille applicable tout en dépassant le repère le plus strict identifié : le métabolite déjà cité, et les nitrates à 27,9 mg/L, sous la limite de 50 mais au-dessus du repère de 10. L'écart entre ces deux lectures n'est pas une contradiction, c'est la distance entre deux conventions de notation appliquées à une seule et même mesure. Par ailleurs, deux des 8 substances de synthèse quantifiées n'ont, dans ce bulletin, aucun seuil de comparaison qui leur soit attaché : elles sont vues par le laboratoire sans peser sur aucun verdict."
+   }
+  ],
+  "_commune": "Boissy-en-Drouais (28) — 2026-04-29",
+  "_lot": "proposé en Claude Code, non relu"
  }
 }
