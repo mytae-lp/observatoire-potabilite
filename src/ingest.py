@@ -9,7 +9,8 @@ sans précaution et sans doublon.
 
 Ce module ne fait aucune requête réseau : il reçoit les lignes déjà obtenues.
 """
-from common import norm, norm_unite, parse_val, parse_limite, SEUIL_COMPLET
+from common import (norm, norm_unite, parse_val, parse_limite,
+                    bornes_reference, SEUIL_COMPLET)
 
 
 class BulletinHeterogene(ValueError):
@@ -147,6 +148,13 @@ def ingest_bulletin(con, meta, rows):
         # muet, et permet de le contrôler là où il parle (cf. build_db.py).
         limite_num, _ = parse_limite(brut_limite)
         reference_num, _ = parse_limite(brut_reference)
+        # Les DEUX bornes de la référence. `reference_num` ci-dessus ne retient
+        # que la borne haute et vaut None dès que la source encadre des deux
+        # côtés (« >=6,5 et <=9 ») : toutes les références bilatérales étaient
+        # invisibles, et avec elles les eaux agressives — celles qui attaquent
+        # les canalisations entre le point de prélèvement et le robinet.
+        # `bornes_reference` est le seul endroit qui décide de la forme.
+        reference_min, reference_max = bornes_reference(brut_reference)
         lignes.append([
             code_prel,
             insee,
@@ -164,10 +172,12 @@ def ingest_bulletin(con, meta, rows):
             limite_num,
             (brut_reference or None),
             reference_num,
+            reference_min,
+            reference_max,
         ])
     if lignes:
         con.executemany(
-            "INSERT INTO mesures VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", lignes
+            "INSERT INTO mesures VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", lignes
         )
 
     return code_prel, nb, est_complet

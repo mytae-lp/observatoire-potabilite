@@ -213,6 +213,18 @@ recompter ailleurs) :
   regarde. Corollaire §2.4 : d'une substance entrée en 2022, on ne sait **rien**
   d'avant — ni absence ni apparition, un indéterminé.
 
+**Quatrième règle, ajoutée le 9 août 2026 — un département se compare à
+lui-même.** Décision de Yannick. Le terme de comparaison par défaut d'un
+bulletin est **son propre département**, jamais un autre. Rapprocher les 280 cas
+de l'Eure-et-Loir des 109 du Tarn n'a pas de sens : panels différents,
+couverture différente (87,9 % contre 91,8 %), et l'écart mesurerait d'abord
+l'effort de recherche. À l'intérieur d'un département les bulletins relèvent du
+même marché pluriannuel d'analyses de l'ARS, donc à peu près du même panel — la
+comparaison redevient lisible. C'est la troisième règle appliquée à l'espace
+plutôt qu'au temps. Une comparaison entre départements reste possible mais
+cesse d'être le défaut : elle affiche l'effort et la couverture de **chaque**
+terme, et se dit explicitement comme telle.
+
 **2.12 — Le seuil de 2016 des métabolites est une extrapolation, et il se
 dit.** Les 0,1 µg/L des 24 lignes « métabolite » viennent de l'instruction
 DGS/EA4/2020/177 **de décembre 2020**. L'appliquer à un prélèvement de 2016 est

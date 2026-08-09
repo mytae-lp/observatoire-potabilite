@@ -7,7 +7,7 @@
 Chaque source porte un **code stable `FAMILLE-NN`**. Ce code est l'identifiant de citation : dans le référentiel, les notes ou le futur site, il suffit d'écrire par exemple **[PFAS-05]** pour pointer sans ambiguïté vers la source.
 
 - Le **préfixe** indique la famille — et donc le sous-dossier :
-  `REG` = réglementation & seuils · `PFAS` = comparatif international PFAS · `PE` = perturbateurs endocriniens · `MIX` = effet cocktail & mélanges · `MET` = métabolites & charge totale.
+  `REG` = réglementation & seuils · `GEST` = valeurs de gestion hors limite réglementaire · `CIV` = information du public, acteurs et droits · `PFAS` = comparatif international PFAS · `PE` = perturbateurs endocriniens · `MIX` = effet cocktail & mélanges · `MET` = métabolites & charge totale · `RAD` = radiologique · `CIRC` = cancérogénicité.
 - Le **numéro** est attribué à la création et **ne change plus** (même si le fichier est déplacé).
 - Nom de fichier complet : `CODE_Organisme_description_annee.ext` (le code reste toujours le premier segment).
 - **Règle de tenue** : une nouvelle source = un fichier nommé selon ce schéma (prochain numéro libre de sa famille) rangé dans le sous-dossier de sa famille + une ligne ajoutée ici.
@@ -19,6 +19,7 @@ Data - Analyse de la qualité de l'eau en France/
 ├── INDEX_SOURCES.md            → ce fichier
 └── Sources/
     ├── REG_Reglementation_et_seuils/
+    ├── GEST_Valeurs_de_gestion/
     ├── PFAS_Comparatif_international/
     ├── PE_Perturbateurs_endocriniens/
     ├── MIX_Effet_cocktail_et_melanges/
@@ -72,6 +73,39 @@ perdraient sinon :
    aucun des articles lus ne la porte. **Elle ne sera pas écrite tant qu'un texte
    ne l'aura pas fondée** — c'est le §2.7 dans son emploi le plus utile, celui où
    il empêche d'écrire quelque chose de faux qu'on croyait savoir.
+
+## GEST — Valeurs de gestion, hors limite réglementaire  *(famille ouverte le 9 août 2026)*
+
+Ouverte pour le **perchlorate**, et destinée à tout ce qui lui ressemble : une
+substance mesurée dans l'eau, portant des valeurs sanitaires chiffrées, et pour
+laquelle **aucune limite de qualité n'existe** — ni dans la directive (UE)
+2020/2184, ni en droit français.
+
+`GEST` plutôt que `REG`, parce que `REG` porte la réglementation **des seuils**.
+Ranger là une valeur qui n'en est pas une reviendrait à laisser croire qu'elle
+s'oppose, et la première sortie publique qui la citerait prononcerait une
+non-conformité contre une valeur qui n'en fonde aucune. La distinction est celle
+du §2.8 entre un seuil du référentiel et une limite seulement déclarée, poussée
+d'un cran : ici il n'y a **pas de limite du tout**, seulement une recommandation
+de gestion.
+
+Cette famille a vocation à grossir : la directive 2020/2184 introduit une
+**liste de vigilance** encore à constituer, et la campagne nationale sur les
+résidus d'explosifs cherche « plus de 40 molécules non réglementées » [GEST-02].
+
+| Code | Fichier | Source | Ce qu'elle fournit | Lien d'origine |
+|---|---|---|---|---|
+| **GEST-01** | `GEST-01_ANSES_avis-2016-SA-0155-2017-SA-0170_perchlorate-valeur-guide_2018.pdf` | Anses, avis du **26 décembre 2018**, saisines n° 2016-SA-0155 et 2017-SA-0170 (liées : 2011-SA-0024, 2011-SA-0208, 2011-SA-0336, 2012-SA-0119) | **Source primaire de la chronologie du perchlorate.** Recommande d'abaisser la valeur de gestion adulte à **5 µg/L** — « 0,7 × 70 kg × 20 % / 2 L », la part hydrique passant de 60 % à 20 %. Et, pour les nourrissons de moins de 6 mois, établit qu'« une concentration moyenne dans l'EDCH utilisée pour la reconstitution des biberons de **1 µg.L-1** ne dépasse pas la VTR de 0,7 µg.kg p.c.-1 j-1 pour 95 % des consommateurs de laits infantiles » — **c'est le repère le plus strict identifié**. Rappelle l'avis du 18/07/2011 (valeur limite 15 µg/L adulte, VTR 0,7) et les valeurs de gestion DGS de 2011 (15 adultes / 4 nourrissons, RESE 2011), le 4 µg/L ayant été posé **par précaution**, faute de données sur les laits infantiles. Cite la note Anses du 23/03/2018 : « une valeur paramétrique devrait être fixée pour l'EDCH ». | https://www.anses.fr/fr/system/files/EAUX2017SA0170.pdf |
+| **GEST-02** | `GEST-02_ARS-Grand-Est_modalites-gestion-perchlorates_2022.pdf` | ARS Grand Est, N. Reynaud, webinaire « Polluants émergents », **14 octobre 2022** | **Répond à la question que GEST-01 laisse ouverte : la DGS n'a pas suivi.** Sous le titre « Recommandations du ministère chargé de la Santé (**toujours en vigueur**) », donne les valeurs de 2014 — 4 µg/L biberons < 6 mois, 15 µg/L femmes enceintes et allaitantes, « pour les autres catégories de la population, il n'y a pas lieu de restreindre ». Quatre ans après l'avis, le 5 µg/L n'est pas repris. Donne aussi **le calcul à nu d'une valeur de gestion** — `VTR × masse corporelle × part attribuable à l'eau / volume consommé` — et ses variantes : 15 (2014, part 60 %), 5 (2018, part 20 %), 10,5 ou 31,5 selon la VTR retenue. Chronologie complémentaire : avis 20/07/2012, OMS 2017 = **70 µg/L**, US-EPA 2019 = **56 µg/L**, avis 16/03/2021 (VTR 0,7 confirmée), **avis 03/02/2022 — nouvelle VTR à 1,5 µg/kg pc/j**. Confirme que « la nouvelle directive européenne sur l'eau potable ne propose pas de valeur réglementaire pour les perchlorates ». ⚠️ **Support de webinaire d'une ARS, pas un texte** : fiable sur l'état de la gestion, à ne pas citer comme fondement d'une valeur — c'est GEST-01 qui le porte. | https://www.eau-rhin-meuse.fr/sites/default/files/2022-10/6_Reynaud_ARS_Modalit%C3%A9s%20de%20gestion%20Perchlorates.pdf |
+| **GEST-03** | `GEST-03_ARS-Ile-de-France_perchlorates-eau-robinet_page_2026.md` | ARS Île-de-France, page « Perchlorates dans l'eau du robinet », consultée le 09/08/2026 | La formulation la plus nette de l'absence de droit : « **A ce jour, au niveau européen ou au niveau national, aucune exigence réglementaire n'est prévue spécifiquement pour les ions perchlorate** ». C'est ce qui fonde `seuil_2016` et `seuil_2026` **vides** sur la ligne du référentiel. *(Fiche de capture datée — la page n'a pas de PDF.)* | https://www.iledefrance.ars.sante.fr/perchlorates-dans-leau-du-robinet |
+| **GEST-04** | `GEST-04_ANSES_perchlorate-travaux-et-recommandations_page_2026.md` | Anses, page de synthèse (version anglaise ; la française répondait 404), consultée le 09/08/2026 | L'Anses qualifie elle-même ces valeurs de « **management guideline levels** » — niveaux repères de gestion établis par la DGS — et non de limites réglementaires. Le mot est la garantie qu'aucun dépassement ne s'y prononce comme une non-conformité. *(Fiche de capture datée.)* | https://www.anses.fr/en/content/perchlorate-ions-ansess-studies-and-recommendations |
+
+**Ce que cette famille apprend au-delà du perchlorate.** Sur cette substance, ce
+qui déplace la valeur d'un facteur six n'est ni la molécule, ni sa toxicité, ni
+l'eau : c'est **la part de l'exposition totale qu'on attribue à l'eau de
+boisson**, 60 % en 2014 et 20 % en 2018. La thèse du projet — le verdict bouge
+sans que l'eau bouge — s'y vérifie sur une substance qui n'a jamais eu de
+limite. À conserver comme cas d'école.
 
 ## PFAS — Comparatif international  (⚠️ = chiffre à verrouiller)
 

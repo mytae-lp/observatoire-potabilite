@@ -262,10 +262,51 @@ def _extrait(texte, n=90):
     return t[:n].rsplit(" ", 1)[0] + "…"
 
 
-def niveau(nb_depassements, nb_bascules, nb_indetermines):
-    """Feu de la fiche. Un indéterminé n'est pas un conforme : il colore."""
+def _resume_depassements(n):
+    """
+    Le résumé citoyen, en une ligne, qui nomme CE QUI a été franchi.
+
+    Le compte seul est trompeur : sur cinq bulletins de Paulinet, « 5
+    dépassements » désignait cinq mesures d'ESA métolachlore au-dessus d'une
+    valeur de vigilance — un métabolite reclassé « non pertinent » — là où
+    l'ARS conclut à la conformité pleine. Le lecteur lisait une alerte
+    sanitaire là où l'administration ne voit rien à signaler.
+    """
+    if not n["total"]:
+        return "Aucun dépassement à la date"
+    bouts = []
+    if n["limite"]:
+        bouts.append(f"{n['limite']} limite(s) de qualité")
+    if n["reference"]:
+        bouts.append(f"{n['reference']} référence(s) de qualité")
+    if n["vigilance"]:
+        bouts.append(f"{n['vigilance']} valeur(s) de vigilance")
+    if not n["limite"]:
+        # Le cas qui demandait la correction : rien de sanitaire n'est franchi.
+        return "Aucune limite de qualité dépassée — " + ", ".join(bouts)
+    return " · ".join(bouts) + ", à la date du prélèvement"
+
+
+def niveau(nb_depassements, nb_bascules, nb_indetermines, nb_depasse_limite=None):
+    """
+    Feu de la fiche. Un indéterminé n'est pas un conforme : il colore.
+
+    **Le rouge est réservé à la limite de qualité**, depuis le 9 août 2026.
+    `nb_depassements` mélange trois natures que l'administration sépare
+    elle-même : une limite sanitaire, une référence de qualité, une valeur de
+    vigilance sans portée opposable. Peindre en rouge un bulletin dont le seul
+    écart porte sur un métabolite reclassé « non pertinent » dit à l'habitant
+    l'inverse de ce que conclut l'ARS — cinq bulletins de Paulinet étaient dans
+    ce cas. Ces écarts-là colorent en ambre : ils sont réels, ils se lisent,
+    ils ne sont pas une non-conformité sanitaire.
+
+    `nb_depasse_limite=None` conserve l'ancien comportement, pour un appelant
+    qui n'aurait pas la décomposition sous la main.
+    """
     if nb_depassements:
-        return "rouge"
+        if nb_depasse_limite is None or nb_depasse_limite:
+            return "rouge"
+        return "ambre"
     if nb_bascules or nb_indetermines:
         return "ambre"
     return "vert"
@@ -395,7 +436,9 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
 
     r, origines = fusionner(redaction, proposee, rediger.rediger(con, a, version))
 
-    niv = niveau(a["nb_depasse_applicable"], a["nb_bascules"], a["nb_indetermines"])
+    niv = niveau(a["nb_depasse_applicable"], a["nb_bascules"], a["nb_indetermines"],
+                 a["nb_depasse_limite"])
+    natures = IND.natures_du_bulletin(con, a, version)
     panel = (f"{a['nb_parametres']} paramètres · {a['classe_effort']}"
              + (" · complet" if a["est_complet"] else " · INCOMPLET"))
 
@@ -471,19 +514,26 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
                   "d": r.get("lecture_administrative") or manque,
                   "o": origines.get("lecture_administrative")},
         "delta": r.get("delta") or "",
+        # Le résumé citoyen dit ce qui a été franchi, pas seulement combien de
+        # fois. « 12 dépassements » quand aucun ne porte sur une limite de
+        # qualité contredit la conclusion de l'ARS sur le même bulletin.
         "cit": {"level": niv,
-                "v": (f"{a['nb_depasse_applicable']} dépassement(s) à la date du prélèvement"
-                      if a["nb_depasse_applicable"] else "Aucun dépassement à la date"),
+                "v": _resume_depassements(natures),
                 "d": r.get("lecture_citoyenne") or manque,
                 "o": origines.get("lecture_citoyenne")},
         # Les indicateurs, groupés : ce qu'on a trouvé / quelle eau c'est /
         # ce que vaut cette lecture. L'ordre et le contenu viennent du fichier
         # versionné referentiel/indicateurs.csv, pas de ce code.
+        "natures": natures,
         "ind": IND.calculer(con, a, version),
         "groupes": [[c, t, s] for c, t, s in IND.GROUPES],
         # Les trois lectures qui ne tiennent pas dans une tuile.
         "pfas": IND.pfas_par_chaine(con, a, version),
         "nourrissons": IND.reperes_nourrissons(con, a, version),
+        # Les paramètres SANS limite de qualité qui sortent de leur référence
+        # déclarée — dans les deux sens. Ce ne sont pas des non-conformités, et
+        # le bloc le dit ; le sens « en dessous » est celui de l'eau agressive.
+        "references": IND.hors_references(con, a, version),
         "pe": IND.perturbateurs(con, a, version),
         # Ce que le laboratoire ne pouvait pas voir : la mention au paramètre,
         # le taux au bulletin, et le barème qui situe cette LQ dans le corpus
@@ -502,8 +552,13 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
             # aussi parlant que pour une bascule — souvent davantage.
             "depassements": [{"p": d[0], "v": _nb(d[1]), "u": d[2] or "",
                               "s": _nb(d[3]), "g": d[4],
-                              "s16": _nb(d[5]) if d[5] is not None else None}
+                              "s16": _nb(d[5]) if d[5] is not None else None,
+                              # La nature de ce qui est franchi : une limite
+                              # sanitaire et une valeur indicative ne se
+                              # peignent pas de la même couleur.
+                              "nat": d[6]}
                              for d in IND.depassements_en_tete(con, a, version)],
+            "natures": IND.natures_du_bulletin(con, a, version),
             "nb_bascules": a["nb_bascules"],
             "nb_depassements": a["nb_depasse_applicable"],
             "nb_indetermines": a["nb_indetermines"],

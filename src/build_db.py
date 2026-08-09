@@ -16,7 +16,8 @@ import sys
 import duckdb
 
 from common import (DB_PATH, REF_CSV, ALIAS_CSV, RACINE,
-                    FACTEURS_MASSE_PAR_LITRE, norm, norm_unite, f, s)
+                    FACTEURS_MASSE_PAR_LITRE, norm, norm_unite, f, s,
+                    bornes_reference)
 
 REGLES_CSV = os.path.join(RACINE, "referentiel", "regles_famille.csv")
 
@@ -67,6 +68,23 @@ CREATE TABLE IF NOT EXISTS mesures (
     limite_declaree   DOUBLE,
     reference_brute   VARCHAR,
     reference_declaree DOUBLE,
+    -- LES DEUX BORNES de la référence de qualité déclarée avec la mesure.
+    --
+    -- `reference_declaree` ne retient que la borne HAUTE, et vaut NULL dès que
+    -- la source encadre des deux côtés — « >=6,5 et <=9 unité pH ». Toutes les
+    -- références bilatérales étaient donc invisibles jusque dans la table :
+    -- 527 mesures du corpus sortent de leur plage PAR LE BAS (conductivité 358,
+    -- pH 169, jusqu'à 4,4) et aucune ne produisait le moindre verdict.
+    --
+    -- Une eau peu minéralisée ou acide n'est pas une eau polluée : c'est une
+    -- eau AGRESSIVE, et c'est un sujet à part entière parce qu'elle attaque les
+    -- canalisations qu'elle traverse et emporte ce qu'elle en dissout. Or le
+    -- prélèvement est fait à un point du réseau : ce que l'eau arrache entre ce
+    -- point et le robinet ne figure dans aucun bulletin. La borne basse est
+    -- donc le seul indice, dans les données, d'une contamination que les
+    -- données ne contiennent pas.
+    reference_min     DOUBLE,
+    reference_max     DOUBLE,
     PRIMARY KEY (code_prelevement, libelle_parametre)
 );
 
@@ -372,6 +390,61 @@ SELECT
        AND v.seuil_strict * v.k IS NOT NULL AND v.seuil_strict * v.k > 0
        AND v.lq > v.seuil_strict * v.k) AS indetermine_strict,
 
+    -- LA NATURE DU SEUIL FRANCHI. Trois natures, et elles ne disent pas la
+    -- même chose — l'administration elle-même les sépare en trois axes de
+    -- conclusion (`conf_limites_bact`, `conf_limites_pc`, `conf_references_pc`).
+    --
+    --   limite     limite de qualité — fondée sur la santé. Son dépassement
+    --              est une non-conformité sanitaire ;
+    --   reference  référence de qualité — organoleptique, structurelle ou de
+    --              bon fonctionnement. S'en écarter n'est PAS une
+    --              non-conformité sanitaire, et le dire autrement serait un
+    --              faux positif ;
+    --   vigilance  valeur indicative, sans portée opposable — typiquement un
+    --              métabolite reclassé « non pertinent ». C'est la leçon du
+    --              R417888 (§2.7) : une valeur sanitaire transitoire n'est pas
+    --              une limite de conformité.
+    --
+    -- `depasse_applicable` mélange aujourd'hui les trois : sur le Tarn entier,
+    -- 79 de ses 172 mesures portent sur une valeur de vigilance et 8 sur une
+    -- référence. Cette colonne ne corrige pas ce compteur — elle le rend
+    -- lisible, et permet de le décomposer sans rien déplacer.
+    CASE
+        WHEN v.seuil_2026 IS NOT NULL AND v.statut_2026 ILIKE 'vigilance%' THEN 'vigilance'
+        WHEN v.seuil_2026 IS NOT NULL AND v.statut_2026 ILIKE 'reference%' THEN 'reference'
+        WHEN v.seuil_2026 IS NOT NULL AND v.statut_2026 ILIKE 'limite%'    THEN 'limite'
+        WHEN v.seuil_2026 IS NOT NULL                                      THEN 'referentiel_sans_statut'
+        WHEN v.limite_declaree    IS NOT NULL THEN 'limite'
+        WHEN v.reference_max IS NOT NULL OR v.reference_min IS NOT NULL THEN 'reference'
+        ELSE NULL
+    END AS nature_seuil,
+
+    -- HORS DE LA RÉFÉRENCE DÉCLARÉE — par le haut OU par le bas.
+    --
+    -- Le modèle ne connaissait que le dépassement par le haut. Or 527 mesures
+    -- du corpus sortent de leur plage par le BAS — conductivité sous 200 µS/cm
+    -- dans 52 communes, pH sous 6,5 dans 23, jusqu'à 4,4 — et aucune ne
+    -- produisait de verdict. Une eau peu minéralisée ou acide est une eau
+    -- AGRESSIVE : elle attaque les canalisations qu'elle traverse et emporte ce
+    -- qu'elle en dissout. Le prélèvement étant fait à un point du réseau, ce
+    -- qu'elle arrache entre ce point et le robinet n'est dans aucun bulletin.
+    -- C'est le seul indice, dans les données, d'une contamination que les
+    -- données ne contiennent pas.
+    --
+    -- Ce n'est PAS un dépassement de limite sanitaire, et ça ne se peint pas
+    -- de la même couleur (§2.1 : on décrit, on n'accuse pas).
+    (v.est_quantifie AND (
+        (v.reference_max IS NOT NULL AND v.resultat_num > v.reference_max) OR
+        (v.reference_min IS NOT NULL AND v.resultat_num < v.reference_min)
+     )) AS hors_reference,
+    CASE
+        WHEN NOT v.est_quantifie THEN NULL
+        WHEN v.reference_max IS NOT NULL AND v.resultat_num > v.reference_max THEN 'au_dessus'
+        WHEN v.reference_min IS NOT NULL AND v.resultat_num < v.reference_min THEN 'en_dessous'
+    END AS sens_hors_reference,
+    v.reference_min,
+    v.reference_max,
+
     -- Contrôle croisé : notre seuil 2026 contredit-il celui que
     -- l'administration déclare avec la mesure ? Comparaison faite après
     -- conversion, sinon une simple différence d'unité passerait pour un
@@ -419,6 +492,20 @@ SELECT
     COUNT(*) FILTER (WHERE v.bascule_2016_2026)                   AS nb_bascules,
     COUNT(*) FILTER (WHERE v.bascule_datee)                       AS nb_bascules_datees,
     COUNT(*) FILTER (WHERE v.indetermine_strict)                  AS nb_indetermines,
+
+    -- Les trois natures, comptées séparément. `nb_depasse_applicable`
+    -- ci-dessus ne bouge pas : ces trois colonnes le DÉCOMPOSENT, elles ne le
+    -- remplacent pas. Un taux qui mélange une limite sanitaire, une référence
+    -- organoleptique et une valeur indicative ne se compare pas d'une commune
+    -- à l'autre — ces compteurs-là, si.
+    COUNT(*) FILTER (WHERE v.depasse_applicable AND v.nature_seuil = 'limite')
+                                                                  AS nb_depasse_limite,
+    COUNT(*) FILTER (WHERE v.depasse_applicable AND v.nature_seuil = 'vigilance')
+                                                                  AS nb_au_dessus_vigilance,
+    -- Hors référence : les deux bornes, et le sens compte. Une eau trop peu
+    -- minéralisée n'est pas une eau chargée.
+    COUNT(*) FILTER (WHERE v.hors_reference)                       AS nb_hors_reference,
+    COUNT(*) FILTER (WHERE v.sens_hors_reference = 'en_dessous')   AS nb_sous_reference,
     COUNT(*) FILTER (WHERE v.ecart_referentiel_declare)           AS nb_ecarts_seuil,
     COUNT(*) FILTER (WHERE v.est_quantifie
                      AND v.famille IN ('metabolite', 'PFAS', 'pesticide')) AS nb_polluants_synthese,
@@ -1158,6 +1245,77 @@ def controler_forme(chemin):
     return len(lignes) - 1
 
 
+def migrer_mesures(con):
+    """
+    Ajoute `reference_min` / `reference_max` à une table `mesures` existante et
+    les remplit, sans réingérer et sans reconstruire.
+
+    `CREATE TABLE IF NOT EXISTS` ne touche pas une table déjà là : sans cette
+    migration, une base construite avant le 9 août 2026 garderait seize colonnes
+    et l'insertion suivante échouerait. Reconstruire n'était pas une option —
+    les mesures ne se retrouvent que par le réseau, et le cache brut ne couvre
+    pas tous les départements du corpus.
+
+    Le remplissage passe par `parse_plage()` puis `parse_limite()`, c'est-à-dire
+    **les parseurs du projet**, jamais une seconde expression régulière écrite
+    en SQL. Deux implémentations d'une même règle divergent à la première
+    retouche — le chantier C8 l'a montré ailleurs dans ce dépôt. Le corpus ne
+    porte que 22 formes distinctes de `reference_brute` : on les parse une fois
+    chacune et on propage.
+    """
+    presentes = {r[0] for r in con.execute(
+        "SELECT column_name FROM information_schema.columns "
+        "WHERE table_name = 'mesures'").fetchall()}
+    for colonne in ("reference_min", "reference_max"):
+        if colonne not in presentes:
+            con.execute(f"ALTER TABLE mesures ADD COLUMN {colonne} DOUBLE")
+
+    formes = [r[0] for r in con.execute(
+        "SELECT DISTINCT reference_brute FROM mesures "
+        "WHERE reference_brute IS NOT NULL AND reference_max IS NULL "
+        "  AND reference_min IS NULL").fetchall()]
+    remplies = 0
+    for brut in formes:
+        mini, maxi = bornes_reference(brut)
+        if mini is None and maxi is None:
+            continue
+        con.execute("UPDATE mesures SET reference_min = ?, reference_max = ? "
+                    "WHERE reference_brute = ?", [mini, maxi, brut])
+        remplies += 1
+    return remplies
+
+
+def renormaliser_unites(con):
+    """
+    Recalcule `mesures.unite_norm` quand la règle de normalisation a changé.
+
+    `unite_norm` est figée **à l'ingestion**. Corriger `norm_unite()` ne suffit
+    donc pas : le référentiel, lui, est rechargé à chaque build et repasse par
+    la nouvelle règle, mais 1,37 million de mesures gardent l'ancienne clé. Les
+    deux côtés de la comparaison cessent alors de se parler — exactement le
+    défaut que la correction voulait réparer.
+
+    Réingérer n'était pas une option (cf. `migrer_mesures`). Le corpus ne porte
+    qu'une quarantaine d'unités distinctes : on les renormalise une fois
+    chacune et on propage, avec `norm_unite()` — jamais une seconde règle
+    écrite en SQL.
+
+    Retourne (mesures touchées, [(unité, ancienne clé, nouvelle clé), …]).
+    """
+    touchees, exemples = 0, []
+    for unite, ancienne, n in con.execute(
+            "SELECT unite, unite_norm, COUNT(*) FROM mesures "
+            "WHERE unite IS NOT NULL GROUP BY 1, 2").fetchall():
+        nouvelle = norm_unite(unite)
+        if nouvelle == ancienne:
+            continue
+        con.execute("UPDATE mesures SET unite_norm = ? WHERE unite = ?",
+                    [nouvelle, unite])
+        touchees += n
+        exemples.append((unite, ancienne, nouvelle))
+    return touchees, exemples
+
+
 def charger_referentiel(con, chemin=REF_CSV):
     """Charge referentiel_seuils.csv. Remplace intégralement la table."""
     controler_forme(chemin)
@@ -1300,6 +1458,19 @@ def build(db=DB_PATH, reset=False):
     con = duckdb.connect(db)
     con.execute(SCHEMA)
     print("schéma en place")
+
+    # Une table `mesures` construite avant le 9 août 2026 n'a pas les deux
+    # bornes de référence : `CREATE TABLE IF NOT EXISTS` ne la touche pas.
+    # On l'ALTER et on la remplit sur place — reconstruire aurait perdu des
+    # mesures que seul le réseau peut redonner.
+    formes = migrer_mesures(con)
+    if formes:
+        print(f"migration     : bornes de référence remplies sur {formes} forme(s) déclarée(s)")
+
+    renorm, exemples = renormaliser_unites(con)
+    if renorm:
+        print(f"migration     : {renorm} mesure(s) renormalisées — "
+              + ", ".join(f"{u} : {a} -> {b}" for u, a, b in exemples))
 
     nref = charger_referentiel(con)
     print(f"référentiel   : {nref} paramètres chargés depuis referentiel_seuils.csv")

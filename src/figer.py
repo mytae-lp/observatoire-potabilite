@@ -103,6 +103,18 @@ CREATE TABLE IF NOT EXISTS analyses_figees (
     -- ne sait pas si le repère danois est tenu » et « on ne sait pas si la
     -- limite française est tenue » ne sont pas la même information.
     nb_aveugles             INTEGER,
+    -- LA NATURE DE CE QUI EST FRANCHI. `nb_depasse_applicable` ne bouge pas :
+    -- ces compteurs le DÉCOMPOSENT. Un taux qui mélange une limite sanitaire,
+    -- une référence organoleptique et une valeur indicative ne se compare pas
+    -- d'une commune à l'autre ; ceux-là, si.
+    nb_depasse_limite       INTEGER,
+    nb_au_dessus_vigilance  INTEGER,
+    -- Hors de la référence déclarée, dans les DEUX sens. Le sens compte : une
+    -- eau trop peu minéralisée n'est pas une eau chargée, c'est une eau
+    -- agressive — elle attaque le réseau entre le point de prélèvement et le
+    -- robinet, et ce qu'elle en emporte n'est dans aucun bulletin.
+    nb_hors_reference       INTEGER,
+    nb_sous_reference       INTEGER,
     nb_ecarts_seuil         INTEGER,
     nb_depasse_applicable   INTEGER,
     nb_bascules_datees      INTEGER,
@@ -166,6 +178,14 @@ CREATE TABLE IF NOT EXISTS verdicts_figes (
     -- 0,1 » se lit ; « 0,5 » ne se lit pas.
     lq_aveugle          BOOLEAN,
     lq_rapport_seuil    DOUBLE,
+    -- limite | reference | vigilance — l'administration sépare elle-même ces
+    -- trois axes dans ses conclusions, et les confondre à l'affichage
+    -- transforme un écart organoleptique en non-conformité sanitaire (§2.1).
+    nature_seuil        VARCHAR,
+    hors_reference      BOOLEAN,
+    sens_hors_reference VARCHAR,
+    reference_min       DOUBLE,
+    reference_max       DOUBLE,
     -- Statut de perturbateur endocrinien, dans les DEUX registres et jamais
     -- fusionnés (CLAUDE.md §2.6). Figés ici parce qu'ils viennent de la ligne
     -- de référentiel réellement appariée : une substance rattachée par règle de
@@ -467,6 +487,8 @@ def figer(con, version=None, calcule_le=None):
                    p.nb_depasse_2016, p.nb_depasse_2026, p.nb_depasse_strict,
                    p.nb_depasse_futur, p.nb_bascules, p.nb_indetermines,
                    ?,
+                   p.nb_depasse_limite, p.nb_au_dessus_vigilance,
+                   p.nb_hors_reference, p.nb_sous_reference,
                    p.nb_ecarts_seuil,
                    p.nb_depasse_applicable, p.nb_bascules_datees,
                    p.depassements_pour_mille,
@@ -496,6 +518,8 @@ def figer(con, version=None, calcule_le=None):
                    indetermine_strict, indetermine_condition,
                    {EST_AVEUGLE},
                    CASE WHEN {EST_AVEUGLE} THEN lq / {SEUIL_LQ} END,
+                   nature_seuil, hors_reference, sens_hors_reference,
+                   reference_min, reference_max,
                    pe_reglementaire, pe_scientifique, est_agregat, fiabilite
             FROM v_mesures_verdict
             -- « notee » = la mesure a un seuil dans la grille D'AUJOURD'HUI.
@@ -507,7 +531,8 @@ def figer(con, version=None, calcule_le=None):
             -- plus fréquent : la LQ courante des laboratoires est de 4 ng/L.
             -- Le compteur du bulletin annonçait deux indéterminés et le détail
             -- n'en montrait qu'un (CLAUDE.md §2.4).
-            WHERE code_prelevement = ? AND (notee OR seuil_strict IS NOT NULL)
+            WHERE code_prelevement = ? AND (notee OR seuil_strict IS NOT NULL
+                                        OR hors_reference)
         """, [version, cp])
 
     figer_couverture_implicite(con, version, jour)

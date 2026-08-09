@@ -198,13 +198,34 @@ function renderHero(d){
   const h = d.hero || {};
   const bloc = el("section", "hero " + (h.niveau || "gris"));
 
+  /* Trois natures, que l'administration sépare elle-même dans ses conclusions,
+     et que ce bandeau confondait : une limite de qualité est sanitaire, une
+     référence ne l'est pas, une valeur de vigilance n'est pas opposable.
+     Annoncer « 5 dépassements » quand les cinq portent sur un métabolite
+     reclassé « non pertinent » dit au lecteur l'inverse de ce que conclut
+     l'ARS sur le même bulletin. */
+  const nat = h.natures || {};
   let titre, sous;
-  if(h.nb_depassements){
-    titre = h.nb_depassements + (h.nb_depassements > 1
-      ? " paramètres dépassaient le seuil applicable ce jour-là"
-      : " paramètre dépassait le seuil applicable ce jour-là");
+  if(h.nb_depassements && nat.limite){
+    titre = nat.limite + (nat.limite > 1
+      ? " paramètres dépassaient la limite de qualité applicable ce jour-là"
+      : " paramètre dépassait la limite de qualité applicable ce jour-là");
     sous = "Le verdict est rendu contre la grille en vigueur <b>à la date du "
          + "prélèvement</b> : un reclassement n'est pas rétroactif.";
+    const autres = (nat.reference || 0) + (nat.vigilance || 0);
+    if(autres) sous += " S'y ajoutent " + autres + " mesure(s) au-dessus d'une "
+      + "<b>référence de qualité ou d'une valeur de vigilance</b>, qui ne sont pas "
+      + "des non-conformités sanitaires.";
+  } else if(h.nb_depassements){
+    /* Aucune limite franchie. Le bulletin est conforme au sens sanitaire, et
+       le dire autrement serait le faux positif que le §2.13 dit coûter le plus
+       cher au projet. */
+    titre = "Aucune limite de qualité dépassée";
+    sous = h.nb_depassements + " mesure(s) se situent au-dessus d'une <b>valeur de "
+         + "vigilance ou d'une référence de qualité</b> — une valeur indicative, sans "
+         + "portée opposable, ou un repère de bon fonctionnement. "
+         + "<b>Ce n'est pas une non-conformité sanitaire</b>, et l'administration ne la "
+         + "compte pas comme telle.";
   } else if(h.nb_bascules){
     titre = "Conforme aujourd'hui. Ne l'aurait pas été il y a dix ans.";
     sous = h.nb_bascules + (h.nb_bascules > 1
@@ -259,7 +280,17 @@ function renderHero(d){
           + (c.datee ? " Le déplacement est daté : la même valeur, la veille, "
                      + "n'était pas conforme." : "")));
       } else {
-        /* dépassement */
+        /* dépassement — étiqueté par la nature de ce qui est franchi. Sans
+           cette étiquette, la carte d'un métabolite « non pertinent » est
+           indiscernable de celle d'un plomb au-dessus de sa limite. */
+        const NATURES = {
+          limite:    ["dep", "limite de qualité"],
+          reference: ["bas", "référence de qualité"],
+          vigilance: ["bas", "valeur de vigilance"]
+        };
+        const nn = NATURES[c.nat];
+        if(nn) t.appendChild(txt("span", "etat " + nn[0], nn[1]));
+
         const f = parseFloat(c.v.replace(",", ".")) / parseFloat(c.s.replace(",", "."));
         let n = "Seuil applicable à la date : " + c.s + " " + c.u
               + (isFinite(f) ? " — la mesure vaut " + (Math.round(f * 100) / 100)
@@ -271,7 +302,17 @@ function renderHero(d){
             + " fois.";
         }
         if(c.g === "2016") n += " C'est la grille de 2016 qui s'appliquait encore à cette date.";
+        /* `txt` pose du TEXTE — les chiffres et les unités viennent de la base
+           et n'ont rien à faire dans du HTML. La phrase sur la nature du seuil
+           est de la prose pure : elle passe par `el`, dans son propre bloc. */
         carte.appendChild(txt("div", "cas-n", n));
+        if(c.nat === "vigilance"){
+          carte.appendChild(el("div", "cas-n", "Cette valeur est <b>indicative et sans "
+            + "portée opposable</b> : la franchir n'est pas une non-conformité."));
+        } else if(c.nat === "reference"){
+          carte.appendChild(el("div", "cas-n", "C'est une <b>référence de qualité</b> — "
+            + "goût, aspect, bon fonctionnement — <b>pas une limite sanitaire</b>."));
+        }
       }
       liste.appendChild(carte);
     });
@@ -361,6 +402,9 @@ function renderIndicateurs(d){
       renderPfas(d, zone);
       renderDanger(d, zone);
     }
+    /* Le groupe « eau » décrit le caractère de la ressource — c'est là que
+       vivent les références de qualité, qui ne disent rien d'une pollution. */
+    if(cle === "eau") renderReferences(d, zone);
     if(cle === "lecture") renderPlafond(d, zone);
   });
 }
@@ -562,6 +606,60 @@ function renderNourrissons(d, zone){
       etat.appendChild(txt("span", "etat ok", "sous le repère"));
     }
     tr.appendChild(etat);
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  b.appendChild(t);
+  zone.appendChild(b);
+}
+
+/* Hors de la référence de qualité déclarée — et SANS limite de qualité.
+   Périmètre décidé le 9 août 2026 : quand une limite existe, c'est elle qui
+   parle et le dépassement s'affiche ailleurs. Ici il n'y a rien à quoi être
+   non conforme, seulement une valeur déclarée par l'administration et une
+   mesure qui s'en écarte. Le bloc n'est donc JAMAIS peint comme un
+   dépassement : le confondre transformerait un écart organoleptique en
+   non-conformité sanitaire (CLAUDE.md §2.1, §2.13).
+
+   Le sens compte autant que l'écart. Sous la borne basse, l'eau n'est pas
+   chargée : elle est agressive, et ce qu'elle emporte du réseau entre le point
+   de prélèvement et le robinet n'est dans aucun bulletin. */
+function renderReferences(d, zone){
+  const r = d.references;
+  if(!r || !r.liste.length) return;
+
+  const b = el("div", "bloc-lecture");
+  b.appendChild(txt("h5", null, "Hors de la référence de qualité"));
+  b.appendChild(el("p", null,
+    "Ces paramètres n'ont <b>aucune limite de qualité</b> : il n'existe rien à quoi "
+    + "cette eau pourrait être « non conforme » sur ce point. Ce que l'administration "
+    + "déclare avec la mesure est une <b>référence de qualité</b> — un repère de bon "
+    + "fonctionnement, de goût ou d'aspect. S'en écarter <b>n'est pas une "
+    + "non-conformité sanitaire</b>, et c'est une information, pas un verdict."));
+
+  if(r.nb_en_dessous){
+    b.appendChild(el("p", "note-basse",
+      "<b>Sous la borne basse.</b> Une eau peu minéralisée ou acide n'est pas une eau "
+      + "chargée : c'est une eau <b>agressive</b>, qui dissout une partie de ce qu'elle "
+      + "traverse. Le prélèvement ayant été fait à un point du réseau, ce qu'elle "
+      + "emporte entre ce point et le robinet <b>ne figure dans aucun bulletin</b>."));
+  }
+
+  const t = el("table", "tab-lecture");
+  t.innerHTML = "<thead><tr><th>Paramètre</th><th>Mesure</th>"
+              + "<th>Référence déclarée</th><th></th></tr></thead>";
+  const tb = el("tbody");
+  r.liste.forEach(x => {
+    const tr = el("tr");
+    tr.appendChild(txt("td", null, x.libelle));
+    tr.appendChild(txt("td", "num", x.texte));
+    tr.appendChild(txt("td", "num",
+      (x.plage ? x.plage : (x.sens === "en_dessous" ? "≥ " : "≤ ") + x.borne)
+      + " " + x.unite));
+    const e = el("td");
+    e.appendChild(txt("span", "etat bas",
+      x.sens === "en_dessous" ? "sous la référence" : "au-dessus de la référence"));
+    tr.appendChild(e);
     tb.appendChild(tr);
   });
   t.appendChild(tb);

@@ -128,8 +128,26 @@ def norm_unite(u):
         return None
     t = str(u).replace("µ", "u").replace("μ", "u")
     t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
-    t = re.sub(r"\([^)]*\)", "", t)   # espèce chimique : µg(CN)/L -> µg/L
+    # Une espèce chimique commence par une LETTRE — (CN), (Cl2), (P2O5), (SiO2).
+    # Une base de dénombrement commence par un CHIFFRE — (100mL) — et elle EST
+    # l'unité, pas une précision sur elle.
+    #
+    # La règle d'avant retirait les deux. « n/(100mL) » devenait « n/ », donc :
+    #   - les bactéries coliformes, E. coli et les entérocoques n'étaient plus
+    #     comparables à leur propre référence, écrite « n/100mL » au
+    #     référentiel — trois lignes muettes sur 10 348 mesures ;
+    #   - pire, « n/(100mL) », « n/(250mL) » et « n/(100L) » se réduisaient
+    #     tous les trois à « n/ », donc se déclaraient mutuellement comparables.
+    #     Un dénombrement par litre lu comme un dénombrement par 100 mL est un
+    #     facteur 10, et le §2.9 dit qu'un verdict faux est pire qu'un verdict
+    #     absent.
+    t = re.sub(r"\(\s*[^\d)][^)]*\)", "", t)   # espèce chimique : µg(CN)/L -> µg/L
+    t = t.replace("(", "").replace(")", "")     # la base reste, ses parenthèses non
     t = re.sub(r"\s+", "", t)
+    # « mSv/an » et « mSv/a » sont la même unité : le référentiel écrit l'année
+    # comme la directive, Hub'Eau l'abrège. Sans cette équivalence, la dose
+    # indicative totale — 2 805 mesures — n'a aucun seuil de comparaison.
+    t = re.sub(r"/an$", "/a", t)
     return t or None
 
 
@@ -311,6 +329,25 @@ def parse_plage(v):
     return (float(m.group(1).replace(",", ".")),
             float(m.group(2).replace(",", ".")),
             (m.group(3).strip() or None))
+
+
+def bornes_reference(brut):
+    """
+    (mini, maxi) d'une référence de qualité déclarée, quelle que soit sa forme.
+
+    Encadrée des deux côtés — « >=6,5 et <=9 unité pH » — c'est `parse_plage`.
+    Bornée par le haut seulement — « <=200 µg/L » — c'est `parse_limite`.
+
+    UN SEUL endroit décide de cette forme, et c'est celui-ci. L'ingestion, la
+    migration de la table et les vues s'y réfèrent toutes : deux implémentations
+    d'une même règle divergent à la première retouche, et la première victime
+    serait la borne BASSE — celle qui vaut None dans `reference_declaree` et qui
+    rendait invisibles 527 mesures d'eau agressive.
+    """
+    mini, maxi, _ = parse_plage(brut)
+    if mini is None and maxi is None:
+        maxi = parse_limite(brut)[0]
+    return mini, maxi
 
 
 def f(x):

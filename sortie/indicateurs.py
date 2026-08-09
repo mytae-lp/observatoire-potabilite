@@ -375,6 +375,74 @@ def reperes_nourrissons(con, a, version):
     return out
 
 
+def hors_references(con, a, version):
+    """
+    Les paramètres SANS limite de qualité qui sortent de leur référence déclarée.
+
+    Décision de Yannick, 9 août 2026 : « on note les références de qualité ; si
+    pas de limite, alors on donne une information sur cette valeur ».
+
+    Le périmètre est donc exactement celui-là — `seuil_2026_effectif IS NULL` :
+    aucune limite au référentiel, aucune limite déclarée avec la mesure. Là où
+    une limite existe, c'est elle qui parle et le dépassement s'affiche
+    normalement ; le bloc ne redit pas ce que la fiche dit déjà ailleurs.
+
+    Ce que ce bloc n'est pas
+    ------------------------
+    **Ce ne sont pas des non-conformités**, et la fiche doit le dire à chaque
+    fois. L'administration sépare elle-même ses conclusions en trois axes
+    (`conf_limites_bact`, `conf_limites_pc`, `conf_references_pc`) : une
+    référence de qualité est organoleptique, structurelle ou de bon
+    fonctionnement. La franchir n'engage pas la potabilité. Peindre l'une pour
+    l'autre serait le faux positif que le §2.13 dit coûter le plus cher au
+    projet.
+
+    Les deux sens ne disent pas la même chose
+    -----------------------------------------
+    Le modèle ne connaissait que le dépassement par le haut. Or sur le corpus à
+    deux départements, **539 mesures sortent de leur plage par le BAS contre 202
+    par le haut**. Une eau peu minéralisée ou acide n'est pas une eau chargée :
+    c'est une eau **agressive**, qui attaque les canalisations qu'elle traverse
+    et emporte ce qu'elle en dissout. Le prélèvement étant fait à un point du
+    réseau, ce qu'elle arrache entre ce point et le robinet n'est dans aucun
+    bulletin — c'est le seul indice, dans les données, d'une contamination que
+    les données ne contiennent pas.
+
+    C'est un fait de physico-chimie, pas un conseil : le §2.2 interdit d'en
+    tirer une orientation vers un produit ou un équipement, et le §2.1 de le
+    reprocher à quiconque.
+    """
+    rows = con.execute("""
+        SELECT libelle_parametre, resultat_num, lq, est_quantifie, unite,
+               reference_min, reference_max, sens_hors_reference
+        FROM verdicts_figes
+        WHERE code_prelevement = ? AND version_referentiel = ?
+          AND hors_reference
+          AND seuil_2026_effectif IS NULL
+        ORDER BY sens_hors_reference, libelle_parametre
+    """, [a["code_prelevement"], version]).fetchall()
+
+    out = []
+    for lib, val, lq, quant, unite, mini, maxi, sens in rows:
+        # La borne franchie, et elle seule : afficher « entre 6,5 et 9 » quand
+        # c'est la borne basse qui est en cause noie l'information utile.
+        borne = mini if sens == "en_dessous" else maxi
+        out.append({
+            "libelle": lib,
+            "texte": _texte_valeur(quant, val, lq, unite),
+            "unite": unite or "",
+            "sens": sens,
+            "borne": _nb(borne) if borne is not None else None,
+            "plage": (_nb(mini) + " à " + _nb(maxi)
+                      if mini is not None and maxi is not None else None),
+        })
+    return {
+        "liste": out,
+        "nb_au_dessus": sum(1 for x in out if x["sens"] == "au_dessus"),
+        "nb_en_dessous": sum(1 for x in out if x["sens"] == "en_dessous"),
+    } if out else None
+
+
 def perturbateurs(con, a, version):
     """
     Les perturbateurs endocriniens quantifiés, dans TROIS registres distincts.
@@ -585,17 +653,67 @@ def bascules_en_tete(con, a, version, maxi=3):
 
 
 def depassements_en_tete(con, a, version, maxi=3):
-    """`seuil_2016` est renvoyé aussi : une mesure qui dépasse aujourd'hui a
+    """
+    `seuil_2016` est renvoyé aussi : une mesure qui dépasse aujourd'hui a
     souvent dépassé bien plus largement l'ancienne limite, et la jauge le
-    montre mieux qu'une phrase."""
+    montre mieux qu'une phrase.
+
+    **`nature_seuil` est renvoyée depuis le 9 août 2026**, et elle change ce que
+    la ligne veut dire. Trois natures que l'administration sépare elle-même dans
+    ses conclusions, et que le bandeau confondait :
+
+      limite     limite de qualité, fondée sur la santé — une non-conformité ;
+      reference  référence de qualité — organoleptique, structurelle ou de bon
+                 fonctionnement. Pas une non-conformité sanitaire ;
+      vigilance  valeur indicative sans portée opposable, typiquement un
+                 métabolite reclassé « non pertinent ».
+
+    Sur le Tarn entier, 79 des 172 mesures en dépassement portaient sur une
+    valeur de vigilance et 8 sur une référence : les annoncer toutes comme des
+    dépassements produisait un faux positif sur la moitié du compte. Cinq
+    bulletins de Paulinet affichaient un dépassement d'ESA métolachlore là où
+    l'ARS conclut à la conformité pleine.
+
+    Le tri met les limites d'abord : à écart égal, une limite sanitaire compte
+    plus qu'une valeur indicative.
+    """
     return con.execute("""
         SELECT libelle_parametre, resultat_num, unite, seuil_applicable,
-               grille_applicable, seuil_2016
+               grille_applicable, seuil_2016, nature_seuil
         FROM verdicts_figes
         WHERE code_prelevement = ? AND version_referentiel = ? AND depasse_applicable
-        ORDER BY resultat_num / NULLIF(seuil_applicable, 0) DESC
+        ORDER BY CASE nature_seuil WHEN 'limite' THEN 0 WHEN 'reference' THEN 1
+                                   WHEN 'vigilance' THEN 2 ELSE 3 END,
+                 resultat_num / NULLIF(seuil_applicable, 0) DESC
         LIMIT ?
     """, [a["code_prelevement"], version, maxi]).fetchall()
+
+
+def natures_du_bulletin(con, a, version):
+    """
+    Le compte des dépassements, décomposé par nature du seuil franchi.
+
+    `nb_depasse_applicable` ne bouge pas — il reste le compteur canonique, et
+    aucune sortie ne le recalcule. Ces trois nombres le DÉCOMPOSENT, pour que le
+    bandeau puisse dire « 12 dépassements, dont 2 d'une limite sanitaire »
+    plutôt que « 12 dépassements » tout court.
+
+    Les compteurs sont lus dans `analyses_figees`, qui les porte déjà
+    (`nb_depasse_limite`, `nb_au_dessus_vigilance`) : on ne recompte pas à
+    l'affichage ce qui a été figé (§8bis — ne jamais recalculer un verdict à la
+    volée dans l'interface).
+    """
+    total = a["nb_depasse_applicable"] or 0
+    limite = a["nb_depasse_limite"] or 0
+    vigilance = a["nb_au_dessus_vigilance"] or 0
+    # Le reste est nécessairement de nature « référence » ou sans statut : on le
+    # déduit plutôt que de le recompter, pour que la somme se referme toujours.
+    return {
+        "total": total,
+        "limite": limite,
+        "vigilance": vigilance,
+        "reference": max(0, total - limite - vigilance),
+    }
 
 
 # ---------------------------------------------------------------------------

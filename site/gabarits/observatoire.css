@@ -241,6 +241,12 @@ h3.sec::after{content:"";flex:1;height:1px;background:var(--line)}
 .tab-lecture thead th{background:#F4F7F8;border-bottom:1px solid var(--line)}
 .tab-lecture tr.au-dessus td{background:var(--bascule-bg)}
 
+/* L'eau agressive — sous la borne basse d'une référence. Un liseré, pas une
+   couleur d'alerte : ce n'est pas une non-conformité, et le §2.1 dit qu'on
+   décrit sans accuser. Le rouge est réservé au dépassement d'une limite. */
+.note-basse{border-left:3px solid var(--eau-deep);padding-left:12px;
+  margin:0 0 14px;font-size:13px;color:var(--ink-soft);max-width:80ch}
+
 /* Trois registres côte à côte, de même largeur : aucun n'est subordonné aux
    autres, et surtout pas « non documenté ». */
 .pe-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -483,9 +489,30 @@ footer .tracab b{color:var(--ink)}
    corpus ne couvre pas restent inertes : un survol qui promet un lien absent
    laisserait croire à une couverture qui n'existe pas. */
 .carte-bloc a.zone{cursor:pointer}
-.carte-bloc a.zone path.dept{fill:#D5E2E8;transition:fill .12s}
-.carte-bloc a.zone:hover path.dept{fill:#B7D2DC;stroke:var(--eau-deep);stroke-width:1}
-.carte-bloc a.zone:focus-visible path.dept{stroke:var(--eau-deep);stroke-width:1.6}
+.carte-bloc a.zone path.dept{transition:fill .12s}
+.carte-bloc a.zone:hover path.dept{stroke:var(--eau-deep);stroke-width:1.4}
+.carte-bloc a.zone:focus-visible path.dept{stroke:var(--eau-deep);stroke-width:1.8}
+
+/* Carte de France par département : l'intensité dit le NOMBRE D'ANALYSES
+   détenues, jamais un verdict. Un dégradé de la couleur de l'eau, donc — pas
+   du vert au rouge, qui se lirait comme « bon » et « mauvais ». Foncé veut
+   dire « bien documenté » ; la lecture se fait à l'envers de l'habitude, et
+   c'est le rappel sous la carte qui doit le dire. */
+.carte-bloc path.dept.c0{fill:#F2F5F7}
+.carte-bloc path.dept.c1{fill:#D3E4E8}
+.carte-bloc path.dept.c2{fill:#A5CBD4}
+.carte-bloc path.dept.c3{fill:#5FA3B3}
+.carte-bloc path.dept.c4{fill:#186E80}
+.carte-bloc .zone-inerte{pointer-events:none}
+.carte-bloc text.etiq{font-family:var(--sans);font-size:12px;font-weight:800;
+  fill:var(--ink);paint-order:stroke;stroke:#fff;stroke-width:3px;
+  stroke-linejoin:round;pointer-events:none}
+.carte-bloc path.dept.c4+text.etiq,
+.carte-bloc a.zone:has(path.c4) text.etiq{fill:#fff;stroke:#0B3B57}
+.carte-legende.paliers{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px 18px}
+.carte-legende i.pal{width:22px;height:13px;border-radius:3px;border:1px solid var(--line)}
+i.pal.c0{background:#F2F5F7}i.pal.c1{background:#D3E4E8}i.pal.c2{background:#A5CBD4}
+i.pal.c3{background:#5FA3B3}i.pal.c4{background:#186E80}
 .carte-bloc a.pt{cursor:pointer}
 .carte-bloc a.pt circle{stroke:#fff;stroke-width:1.4;transition:r .12s}
 .carte-bloc a.pt:hover circle{stroke:var(--eau-deep);stroke-width:2}
@@ -525,6 +552,15 @@ footer .tracab b{color:var(--ink)}
 .carte-legende .lg-btn[aria-pressed="false"] span{text-decoration:line-through}
 .carte-legende .lg-btn[aria-pressed="false"] i{filter:grayscale(1)}
 .lg-aide{margin:9px 0 0;font-size:11.5px;color:var(--ink-soft);font-style:italic}
+
+/* Index alphabétique d'une liste de communes. Sur 314 lignes, c'est lui qui
+   remplace le survol d'une carte : on cherche sa commune par son nom. */
+.index-alpha{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px}
+.index-alpha a{display:inline-block;min-width:28px;text-align:center;padding:5px 7px;
+  font-size:13px;font-weight:700;text-decoration:none;background:var(--card);
+  border:1px solid var(--line);border-radius:7px}
+.index-alpha a:hover{background:var(--eau);color:#fff;border-color:var(--eau)}
+.tableau-communes tr:target td{background:var(--ambre-bg)}
 
 /* Ce que le filtre masque, dans la carte comme dans le tableau. Les deux
    portent le même attribut `data-niveau`, donc la même règle les atteint. */

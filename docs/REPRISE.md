@@ -1,5 +1,19 @@
 # Reprise — état au 8 août 2026
 
+> **9 août 2026 — l'Eure-et-Loir (28) est collecté en entier, 363/363
+> communes, zéro erreur réseau.** `--termine` rend 0. Deuxième département
+> complet du corpus, après le Tarn. Chiffres et suites : §10 en bas de fichier.
+>
+> **Le verrou DuckDB est la contrainte d'ordonnancement du projet.**
+> `fetch_departement.run()` tient une connexion lecture-écriture ouverte de bout
+> en bout (`src/fetch_departement.py:317`). Pendant une collecte départementale
+> — deux heures et plus — **aucun autre processus ne peut ouvrir la base, même
+> en lecture seule** : ni `rediger_lot.py`, ni `build_fiche.py`, ni les tests.
+> Ce qui reste faisable en parallèle : **rédiger**, à condition d'avoir
+> fabriqué les dossiers de faits AVANT de lancer la collecte. Les agents ne
+> lisent alors que `data/dossiers/PREL-*.md` et écrivent dans
+> `data/dossiers/reponses/`. Seul `--integrer` attend la fin.
+
 Document de passage de main entre deux sessions. **`CLAUDE.md` reste la
 référence** : il porte la méthode, les garde-fous et les décisions
 d'architecture, et il est relu automatiquement au début de chaque session. Ce
@@ -398,8 +412,11 @@ aluminium (8, jusqu'à 509 pour 200), radon 222 (8, jusqu'à 286 Bq/L pour 100),
 bactéries coliformes (43). Question de fond, pas de code : **le projet
 veut-il noter les références de qualité, et si oui les distinguer des limites ?**
 
-**b) 79 des 135 dépassements du Tarn portent sur une valeur de VIGILANCE**,
-pas sur une limite de qualité — 53 sur l'ESA métolachlore, 16 sur le
+**b) 79 des 172 mesures en dépassement du Tarn — 46 % — portent sur une valeur
+de VIGILANCE**, pas sur une limite de qualité. *(Corrigé le 9 août 2026 : la
+première rédaction disait « 79 des 135 dépassements » en rapportant un compte de
+mesures à un compte de bulletins. 172 mesures, 135 bulletins.)* Le détail :
+53 sur l'ESA métolachlore, 16 sur le
 chlorothalonil R471811. Le référentiel le sait (`statut_2026` = `vigilance
 (non pertinent depuis…)`), la fiche l'ignore et affiche « dépassement du seuil
 applicable ». C'est la leçon du R417888 du §2.7, transposée : une valeur
@@ -430,7 +447,7 @@ Ce qui reste vrai et mineur : ces trois libellés n'ont pas de `seuil_2016` ni d
 `seuil_strict`, donc **aucune bascule ne peut être détectée sur les chlorites**
 (§2.8, une limite seulement déclarée ne fabrique pas de passé réglementaire).
 
-### 9.5 Le plafond analytique à l'échelle (chantier C4)
+### 9.5 Le plafond analytique à l'échelle (chantier C4) — chiffres du Tarn seul
 
 **1 295 mesures aveugles, sur 1 128 des 1 575 bulletins (72 %).** Dominé par
 l'**hydrazide maléique** : entrée au panel en 2020, cherchée sur ~1 100
@@ -448,3 +465,259 @@ s'ajoutent.
 deux ou quatre mesures isolées (prosulfocarbe 20 µg/L en 2017, aminotriazole
 50 µg/L en 2022). **Ce n'est pas une dispersion entre laboratoires, c'est un
 plafond systématique sur une molécule.**
+
+---
+
+## 10. Mise à jour du 9 août 2026 — l'Eure-et-Loir est collecté en entier
+
+**363 communes sur 363, zéro erreur réseau.**
+`py -X utf8 src/fetch_departement.py --dept 28 --termine` rend **0**.
+Deuxième département complet, après le Tarn. Le corpus double.
+
+**Chiffres relevés contre le référentiel `2cc3c1a9a6c9`** — c'est la version en
+vigueur dans l'arbre de travail, et donc celle à publier. Les chiffres portés
+ici jusqu'au 9 août au soir étaient ceux de `3a66a7b928d0` : ils sont corrigés
+ci-dessous, avec l'ancienne valeur entre parenthèses. **La différence vient
+d'une modification non commitée du référentiel** — ajout de `code_parametre` sur
+37 lignes, qui apparie davantage de mesures. À commiter (cf. §10.2, point 5),
+sinon la version figée n'est pas une version reconstituable.
+
+| | 28 | ensemble de la base |
+|---|---|---|
+| communes traitées | 363/363 | — |
+| analysée / rattachée au réseau / non documentée | 177 / 181 / 5 | — |
+| bulletins complets | 1 611 | **3 193** figés |
+| mesures | — | **1 372 988** |
+| couverture moyenne des mesures | **88,7 %** (était 87,9) | — |
+| conformes 2026 **avec bascule** | **274** (était 280) | — |
+| — dont conformes *à la date* avec bascule datée (§2.10) | **225** (était 230) | — |
+| bascules cumulées | 502 | — |
+| bulletins non conformes **à la date** | **397** sur 1 611, soit 24,6 % | — |
+| cache brut `data/brut/28/` | 1 611 bulletins, 35,2 Mo | — |
+| libellés sans aucun seuil | — | **157** (était 163 ; 118 avant le 28) |
+
+Collecte en deux temps : 128,2 min pour 360 communes (21,4 s/commune — plus
+rapide que les 35,2 s du Tarn), puis 0,7 min pour les 4 dernières.
+
+**Le chiffre à publier est 274, et le chiffre prudent est 225** (§2.10) : c'est
+le second qui se compare à la conclusion de l'ARS. Les deux se recalculent avec
+`select version_referentiel, count(*) ... from analyses_figees` — et se
+revérifient après toute retouche du référentiel, puisqu'ils en dépendent.
+
+### 10.1 Quatre communes perdues par le journal, pas par la collecte
+
+La passe de fond s'est terminée sur un code de sortie 0 en affichant
+`[360/360]` et **zéro erreur journalisée** — mais `--termine` rendait
+`359/363, 4 restante(s)` : Moléans, Mondonville-Saint-Jean, Montboissier,
+Montharville n'avaient **aucune ligne** au journal. Le fichier n'était pas
+corrompu (359 lignes, toutes lisibles) : quatre `ecrire_journal` ont été
+**perdues en écriture**, pas mal formées.
+
+La reprise les a traitées en 0,7 min avec **0 appel réseau, 15 bulletins relus
+au cache** : la collecte les avait donc bien faites, seul le journal ne le
+disait pas. Une machine qui s'est arrêtée un court instant pendant la collecte
+est une cause plausible — **elle n'est pas établie**, et le mécanisme exact
+reste inconnu.
+
+**Ce qu'il faut en retenir** : le code de sortie 0 et le compteur `[N/N]` ne
+sont pas des preuves de complétude. **`--termine` est le seul juge**, et il a
+fonctionné exactement comme il a été écrit pour le faire le 8 août. Le lancer
+systématiquement après toute collecte départementale.
+
+### 10.2 Ce qui attend, avant toute publication du 28
+
+1. **157 libellés sans aucun seuil de comparaison** (118 avec le Tarn seul).
+   **Relecture faite le 9 août 2026 : `docs/AUDIT_NON_APPARIES.md`.** Elle
+   conclut que le compte n'est pas un compte d'angles morts — l'essentiel est
+   de la physico-chimie sans seuil sanitaire — mais qu'il reste **deux dossiers
+   bloquants** avant de publier le 28 : l'anthraquinone, même code SANDRE et
+   même CAS sous deux libellés dont un seul est noté, et six paramètres de
+   l'arrêté du 11/01/2007 absents du référentiel (turbidité, COT, fer,
+   manganèse, ammonium, coloration). Rien ne se publie sur ces paramètres-là
+   tant que ce n'est pas instruit.
+2. **Ne pas comparer les 274 cas du 28 aux 109 du Tarn** sans afficher
+   l'effort de recherche de chacun (§2.11). Les deux panels ne sont pas les
+   mêmes, et la couverture non plus — **88,7 % contre 92,6 %** (le couple
+   87,9 / 91,8 cité au §2.11 de `CLAUDE.md` est celui de l'ancien référentiel,
+   à corriger là-bas une fois la modification commitée).
+3. **Publier reste un geste séparé.** `tests/test_sorties.py` échouera tant
+   que les communes couvertes n'ont pas leur page — c'est le contrôle qui
+   fonctionne, pas une régression (§8quater bis).
+4. **35 bulletins du Tarn sans prose**, dossiers de faits déjà fabriqués dans
+   `data/dossiers/` (9 août 2026), plus 2 réponses en attente d'intégration.
+   Yannick indique que les analyses du Tarn sont faites : c'est donc
+   l'intégration qui reste à vérifier. **Au 9 août au soir, `data/dossiers/` ne
+   contient plus que `reponses/`, vide** : les dossiers ont été consommés, et
+   aucun dossier n'existe pour le 28.
+5. **Commiter la modification du référentiel** (37 lignes, ajout de
+   `code_parametre`). Tant qu'elle ne l'est pas, `2cc3c1a9a6c9` n'est pas une
+   version reconstituable depuis l'historique, alors que 3 193 bulletins sont
+   figés contre elle — exactement ce que la fonction `version_referentiel()`
+   documente comme cas admis mais transitoire.
+6. **Cinq bulletins où notre verdict à la date contredit la conclusion de
+   l'ARS** — Alluyes (19/04/2024), Gilles (04/08/2025), Ymeray (20/02/2025),
+   Saint-Bomer (12/01/2026), Cloyes-les-Trois-Rivières (12/09/2022). Quatre sur
+   cinq portent le chlorothalonil R471811 **au-dessus de 0,9 µg/L**, que l'ARS
+   traite ici comme valeur indicative sans conclure à la non-conformité, alors
+   qu'elle conclut l'inverse sur d'autres bulletins du même département. La
+   contradiction est dans la source. **Relecture humaine obligatoire avant
+   publication** (§2.13 : un faux positif coûte plus qu'un faux négatif).
+   Le cas d'Alluyes est par ailleurs le plus démonstratif du corpus :
+   0,94 µg/L mesuré **dix jours avant** la date d'applicabilité du seuil de
+   0,9 (29/04/2024) — même eau, même mesure, verdict inverse dix jours plus
+   tard.
+
+---
+
+## 11. Mise à jour du 9 août 2026 — les 163 libellés sans seuil, et la nature du seuil
+
+Point 1 de la file du §10.2, traité en entier, publié et contrôlé.
+**Version de référentiel publiée : `2cc3c1a9a6c9`.**
+
+### 11.1 Les trois causes, et ce qui a été fait de chacune
+
+Les 163 libellés de `v_parametres_non_apparies` ne relevaient pas d'un problème
+mais de trois. Inventaire complet dans
+`data/etudes/parametres_non_apparies_2026-08-09.md`.
+
+| cause | libellés | traitement |
+|---|---|---|
+| **A** — le seuil EST au référentiel, le libellé ne s'y apparie pas | 5 | corrigé |
+| **B** — la source déclare une référence que le moteur ignorait | 13 | déjà outillé (§11.3) |
+| **C** — ni ligne, ni référence déclarée | 145 | 1 traité (perchlorate), le reste documenté |
+
+**39 lignes du référentiel ont reçu leur `code_parametre`** — 32 lus dans le
+corpus, 7 établis à la main. Restent 5 lignes volontairement vides : deux règles
+de famille (ce ne sont pas des substances), le chlorure de vinyle (jamais
+mesuré), le 1,2,4-triazole (aucun libellé Hub'Eau ne le porte — aminotriazole
+et benzotriazole sont d'autres substances) et les chlorites (le code 1735
+couvre deux objets réglementaires).
+
+Effet mesuré, avant/après : **+8 567 mesures notées**, dépassements applicables
+de 1 003 à 1 081 — soit exactement **70 bactéries coliformes et 8 radon 222**,
+tous deux de nature `reference`. Le volet radiologique cesse d'être l'angle mort
+du §8 de `CLAUDE.md` : il n'était pas « non travaillé », il n'était **jamais
+apparié**.
+
+**Deux corrections d'unités**, dans `norm_unite()` : `n/(100mL)` devenait `n/`,
+la parenthèse étant traitée comme une espèce chimique. Pire — `n/(100mL)`,
+`n/(250mL)` et `n/(100L)` se réduisaient **tous les trois à `n/`**, donc se
+déclaraient mutuellement comparables. Et `mSv/an` ≡ `mSv/a`. 10 354 mesures
+renormalisées par migration sur place (`renormaliser_unites`, sur le modèle de
+`migrer_mesures`).
+
+### 11.2 Un faux positif produit, détecté, corrigé — la leçon vaut d'être gardée
+
+Renseigner `code_parametre` a d'abord introduit **deux faux dépassements de
+sélénium** (Sainville, Aunay-sous-Auneau) : 29 µg/L comparés à 20 alors que la
+source déclare 30 pour ces mesures au titre de l'exception géologique.
+
+**Le code SANDRE 1385 couvre deux objets réglementaires** — « Sélénium » et
+« Sélénium si conditions géologiques particulières ». Même cas pour 1752
+(chlorates, 250 contre 700 µg/L), qui n'avait pas encore produit de faux
+positif. Les deux codes ont été retirés.
+
+> **Règle à retenir : avant d'apparier par code, vérifier qu'un même code ne
+> porte pas deux limites déclarées différentes.** Trois codes sont dans ce cas
+> sur tout le corpus : 1385, 1752, 1339. Et **ne jamais automatiser
+> l'appariement par ressemblance de libellé** : essayé le même jour, 32
+> candidats faux sur 37 — « Ethylbenzène » se rattachait à « Benzene », et tout
+> ce qui contient les lettres « ph » à la ligne « pH ».
+
+Écart signalé, non corrigé : `CLAUDE.md` §2.13 annonce que le sélénium est
+modélisé par `seuil_conditionnel` et `condition_seuil`. **La ligne du
+référentiel a ces deux colonnes vides.**
+
+### 11.3 La nature du seuil est affichée — 195 bulletins changent de couleur
+
+Le moteur lisait déjà les références de qualité : ce travail existait **non
+commité** dans l'arbre (`nature_seuil`, `hors_reference`, `sens_hors_reference`,
+`reference_min` / `reference_max`, et leurs compteurs figés). **Le §9.3(a) est
+donc périmé.** Ce qui manquait était l'affichage, ajouté le 9 août :
+
+- **le rouge est réservé à la limite de qualité.** `niveau()` prend désormais
+  `nb_depasse_limite` : **195 bulletins sur les 566 qui portent un dépassement
+  n'en ont aucun sur une limite** et passent de rouge à ambre. Paulinet est le
+  cas type — nous affichions « dépassement » sous une conclusion ARS de
+  conformité pleine ;
+- **le bandeau a deux titres** : « N paramètres dépassaient la limite de
+  qualité » ou « Aucune limite de qualité dépassée » ;
+- **chaque carte porte sa nature** — limite / référence / vigilance — et la
+  phrase qui l'explique ;
+- **le résumé citoyen nomme** au lieu de compter : « 7 limite(s) de qualité ·
+  1 référence(s) · 1 valeur(s) de vigilance » ;
+- **`depassements_en_tete` trie les limites d'abord.**
+
+**Nouveau bloc « Hors de la référence de qualité »** (`hors_references()` +
+`renderReferences()`), sur le périmètre décidé par Yannick : **hors référence ET
+sans limite de qualité**. Là où une limite existe, c'est elle qui parle.
+**617 bulletins sont hors d'une référence, dont 484 par le BAS** — l'eau
+agressive, premier écran du projet qui montre une eau sous sa plage. Le bloc
+porte un liseré, pas une couleur d'alerte : ce n'est pas une non-conformité.
+
+`nb_depasse_applicable` ne bouge pas : les compteurs le **décomposent**, et ils
+sont lus dans `analyses_figees`, jamais recalculés à l'affichage (§8bis).
+
+### 11.4 Perchlorate — et la famille de sources `GEST`
+
+Ligne ajoutée au référentiel : **aucun `seuil_2016`, aucun `seuil_2026`** — il
+n'existe aucune limite réglementaire, ni UE ni française. `seuil_strict = 1`
+µg/L, décision de Yannick : « ce n'est pas le cadre légal, c'est le cadre strict
+que l'on a documenté ». Résultat : **0 notée, 0 dépassement de conformité,
+214 `depasse_strict`** sur 44 communes.
+
+Chronologie lue sur source primaire — VTR 0,7 µg/kg pc/j (2011) ; valeurs de
+gestion DGS 15 µg/L adultes et 4 µg/L nourrissons de moins de 6 mois (2011,
+reconduites le 8/4/2014) ; **avis Anses du 26/12/2018 recommandant 1 µg/L pour
+l'eau de reconstitution des biberons et 5 µg/L pour l'adulte** ; OMS 2017 = 70 ;
+US-EPA 2019 = 56 ; VTR portée à 1,5 le 3/2/2022. **La DGS n'a pas repris le 5** —
+vérifié sur un document ARS d'octobre 2022 qui présente les valeurs de 2014
+comme « toujours en vigueur ».
+
+Ce qui déplace la valeur d'un facteur six n'est ni la molécule ni l'eau : c'est
+**la part de l'exposition totale attribuée à l'eau de boisson**, 60 % en 2014 et
+20 % en 2018. La thèse du projet, sur une substance qui n'a jamais eu de limite.
+
+Nouvelle famille de sources **`GEST` — valeurs de gestion hors limite
+réglementaire**, quatre entrées, fichiers rangés dans
+`Sources/GEST_Valeurs_de_gestion/`. `REG` porte la réglementation *des seuils* ;
+y ranger une valeur qui n'en est pas une ferait prononcer des non-conformités
+contre une valeur qui n'en fonde aucune.
+
+**`pypdf` a été installé** à cette occasion. Sans lecteur PDF, toute source
+réglementaire primaire restait hors de portée et retombait en `a_verifier` —
+c'était la réserve n° 1 du §8.
+
+### 11.5 Publication — faite, contrôlée
+
+```
+683 commune(s) couverte(s), 0 sans page      678 fiches + 5 non documentées
+691 page(s), 0 ressource(s) distante(s)
+les 8 contrôles de tests/test_sorties.py passent
+```
+
+Un seul signalement non bloquant, connu : le « charbon actif » de Vourles
+(§4.2), prose d'auteur, décision de Yannick.
+
+### 11.6 Ce que cette publication laisse ouvert
+
+1. **207 communes portent une prose PROPOSÉE**, à relire — contre 45 avant le
+   passage à l'échelle.
+2. **La fiche autonome pèse 136 Mo.** Elle a été conçue comme « un fichier
+   unique qu'on peut archiver ou transmettre » : à 3 193 bulletins, elle ne
+   l'est plus. `site/public/` pèse 651 Mo. **À traiter avant le prochain
+   département.**
+3. **Trois versions de référentiel cohabitent** dans la base — 9 579 lignes
+   figées pour 3 193 bulletins, base passée de 142 à 522 Mo. Purger les versions
+   périmées est une décision à prendre : elles sont la trace de ce qui a été
+   publié sous chaque grille.
+4. **La règle de comparaison intra-départementale** (`CLAUDE.md` §2.11,
+   quatrième règle) est écrite mais **pas outillée** : le contrôle n° 8 de
+   `test_sorties.py` vérifie qu'une zone est nommée, pas qu'elle appartient au
+   même département.
+5. Les points 2 à 4 du §10.2 restent ouverts, ainsi que le perchlorate côté
+   fiche : la ligne existe, aucun bloc ne l'explique encore au lecteur.
+6. **Proton Drive a verrouillé `data/eau.duckdb` deux fois** en pleine écriture,
+   faisant échouer un figeage. Yannick a suspendu la synchronisation. La base
+   n'est pas versionnée et se reconstruit (`--reingerer`) : elle n'a rien à faire
+   dans un dossier synchronisé.
