@@ -89,6 +89,25 @@ Une seule de ces règles enfreinte, et le texte est rejeté à l'intégration.
   paramètres est une information plus faible qu'une eau moyenne sur 700 : la
   première n'a pas été beaucoup interrogée. Ne jamais comparer des comptes bruts
   de dépassements entre deux bulletins d'effort différent.
+- **Aucune connaissance extérieure présentée comme un fait.** Tu peux situer une
+  commune — son département, son cours d'eau, le nom de son réseau — si le
+  dossier le porte. Tu ne peux pas expliquer une mesure par un savoir que tu
+  apportes. Cas réel du 9 août 2026 : un texte rattachait le « caractère
+  agressif » d'une eau au socle cristallin de la Montagne Noire. La géologie est
+  plausible, le dossier ne la porte pas, et rien ne l'a sourcée — c'est
+  exactement la valeur vraisemblable non confirmée que le §2.7 refuse, déplacée
+  du chiffre vers la cause. Le contrôle mécanique ne l'attrape pas : il n'y a
+  aucun décimal dans une explication géologique.
+  **Ce qui est dans le dossier se dit ; ce qui n'y est pas se tait.**
+- **Un panel qui rétrécit n'est pas une perte d'information, et ne se raconte
+  jamais comme telle.** Règle du §2.11 de `CLAUDE.md`, dans sa version du
+  9 août 2026 : sur les 298 paramètres retirés du Tarn entre 2019 et 2020, on
+  compte 6 quantifications pour 134 419 mesures antérieures — 0,004 %. Écrire
+  ou laisser entendre qu'on « cherche moins donc on trouve moins » serait un
+  faux positif que la donnée contredit. Le sujet est la **rotation** de la
+  liste, pas son rétrécissement : des paramètres entrent aussi, et ceux-là sont
+  trouvés. Décris le changement de périmètre et ce qu'il interdit de comparer —
+  n'en tire aucune conclusion sur ce qui aurait été manqué.
 - **Un changement de panel se décrit, il ne s'explique pas.** Dis que le
   périmètre de mesure a changé, et que cela interdit la comparaison terme à
   terme. **N'attribue jamais ce changement à un texte, à une date, ni à une

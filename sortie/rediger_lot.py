@@ -111,7 +111,21 @@ def dossier(con, a, version):
     """
     lignes = rediger._lignes(con, a["code_prelevement"], version)
     d = ["# Bulletin\n"]
-    d.append(f"Commune : {a['commune']} ({a['code_insee']}), département {a['dept']}")
+    # Le nombre de communes desservies fixe la PORTÉE du texte : un point d'eau
+    # du Tarn en dessert jusqu'à 46, et le rédacteur ne peut pas le deviner.
+    # Trois rédacteurs du lot ont buté dessus le 9 août 2026, l'un demandant
+    # même s'il avait le droit d'écrire « Tarn » à partir du seul code « 81 ».
+    n_com = con.execute("""
+        SELECT COUNT(*) FROM couverture_communes
+        WHERE code_prelevement = ? AND version_referentiel = ?
+    """, [a["code_prelevement"], version]).fetchone()[0] or 1
+    d.append(f"Commune : {a['commune']} ({a['code_insee']}), département {a['dept']} "
+             "— le nom du département correspondant au code est une nomenclature "
+             "publique, tu peux l'écrire")
+    d.append(f"Portée de ce texte : ce bulletin est celui qu'affichent "
+             f"{n_com} communes — écris pour toutes, pas pour la seule ci-dessus"
+             if n_com > 1 else
+             "Portée de ce texte : ce bulletin n'est affiché que par cette commune")
     d.append(f"Prélèvement : {a['code_prelevement']} du {rediger.date_fr(a['date_prelevement'])}")
     if a.get("nom_installation_amont"):
         d.append(f"Point d'eau (installation amont) : {a['nom_installation_amont']}")
@@ -151,9 +165,30 @@ def dossier(con, a, version):
     d.append(f"Contrefactuels — dépasserait la grille 2016 : {a['nb_depasse_2016']} ; "
              f"la grille 2026 : {a['nb_depasse_2026']} ; "
              f"le repère le plus strict identifié : {a['nb_depasse_strict']}")
-    d.append(f"Indéterminés (LQ au-dessus du repère strict) : {a['nb_indetermines']}")
-    d.append(f"Paramètres aveugles (LQ au-dessus du seuil applicable) : "
-             f"{a.get('nb_aveugles') or 0}"
+    # Le recouvrement se DIT, il ne se laisse pas deviner.
+    #
+    # Défaut réel trouvé le 9 août 2026, signalé par deux rédacteurs du lot du
+    # Tarn : le compteur ci-dessous porte TOUS les indéterminés, tandis que la
+    # table « Indéterminés au repère le plus strict » écarte les paramètres
+    # aveugles pour ne pas les répéter avec la table suivante. Or le chantier C4
+    # a établi que les aveugles sont TOUS parmi les indéterminés. Quand le seul
+    # indéterminé d'un bulletin est aussi aveugle, le dossier annonçait donc
+    # « 1 » au-dessus d'une table vide — et un rédacteur consciencieux s'abstient
+    # d'en parler, ce qui fait perdre le seul angle distinctif du bulletin.
+    # Un compteur en désaccord avec son détail est exactement ce que l'atelier
+    # faisait au chantier C8 : il ne ment pas, il induit en erreur.
+    nb_ind = a["nb_indetermines"] or 0
+    nb_av = a.get("nb_aveugles") or 0
+    ind_aveugles = sum(1 for r in lignes if (r[10] or r[11]) and r[15]
+                       and not r[7] and not r[8])
+    ligne_ind = f"Indéterminés (LQ au-dessus du repère strict) : {nb_ind}"
+    if ind_aveugles:
+        ligne_ind += (f" — dont {ind_aveugles} qui sont AUSSI hors de portée du "
+                      "laboratoire, donc listés plus bas dans « Paramètres hors "
+                      "de portée », et absents de la table des indéterminés pour "
+                      "ne pas être comptés deux fois")
+    d.append(ligne_ind)
+    d.append(f"Paramètres aveugles (LQ au-dessus du seuil applicable) : {nb_av}"
              + (f", soit {_n(a.get('aveugles_pour_mille'), 1)} ‰ des notés"
                 if a.get("aveugles_pour_mille") else ""))
     if a.get("nb_synthese_quantifiees"):
@@ -185,8 +220,13 @@ def dossier(con, a, version):
                       [[r[0], f"{_n(r[2])} {r[3] or ''}".strip(), _n(r[4]),
                         (f"{_n(r[16], 1)}×" if r[16] else "—")] for r in aveugles]))
 
+    # Même règle que rediger.py : une somme ne s'énumère pas à côté de ses
+    # composants. Sans ce filtre, le dossier de faits listait deux lignes là où
+    # le compteur en annonçait une, et quatre rédacteurs du lot du Tarn s'en
+    # sont aperçus avant nous.
     quant = [r for r in lignes
-             if r[13] and r[12] in rediger.FAMILLES_SYNTHESE and not r[7]][:15]
+             if r[13] and r[12] in rediger.FAMILLES_SYNTHESE
+             and not r[7] and not r[17]][:15]
     d.append("\n## Substances de synthèse quantifiées, sans dépassement\n"
              + _table(["paramètre", "valeur", "famille", "seuil applicable"],
                       [[r[0], f"{_n(r[1])} {r[3] or ''}".strip(), r[12], _n(r[4])]

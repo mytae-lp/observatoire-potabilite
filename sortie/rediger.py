@@ -92,7 +92,7 @@ def _lignes(con, code_prel, version):
                seuil_2016, grille_applicable, depasse_applicable,
                bascule_2016_2026, bascule_datee, indetermine_strict,
                indetermine_condition, famille, est_quantifie, seuil_strict,
-               lq_aveugle, lq_rapport_seuil
+               lq_aveugle, lq_rapport_seuil, est_agregat
         FROM verdicts_figes
         WHERE code_prelevement = ? AND version_referentiel = ?
         ORDER BY resultat_num DESC NULLS LAST
@@ -113,7 +113,22 @@ def sections(con, a, version, lignes=None):
     lignes = _lignes(con, a["code_prelevement"], version) if lignes is None else lignes
     dep = [r for r in lignes if r[7]]
     bas = [r for r in lignes if r[8] and not r[7]]
-    quant = [r for r in lignes if r[13] and r[12] in FAMILLES_SYNTHESE and not r[7]]
+    # `not r[17]` — on n'énumère JAMAIS une somme à côté de ses composants.
+    #
+    # Défaut réel trouvé le 9 août 2026, signalé par quatre rédacteurs du lot du
+    # Tarn. À Terre-de-Bancalié, la fiche disait dans une section « 2 substances
+    # de synthèse sont quantifiées — Total des pesticides analysés à 0,021 µg/L
+    # et ESA metolachlore à 0,021 µg/L », et dans la suivante « 1 substance de
+    # synthèse est quantifiée ». La même valeur comptée deux fois : la somme et
+    # son unique composant, présentés comme deux substances distinctes.
+    #
+    # `figer.py` excluait déjà les agrégats de `nb_synthese_quantifiees` — c'est
+    # la règle du §7.1, « hors lignes agrégées pour ne pas compter une somme en
+    # même temps que ses composants ». La prose, elle, ne le faisait pas : deux
+    # implémentations d'une même règle, et une seule à jour. 428 bulletins sur
+    # 1 595 portent un agrégat quantifié, soit 27 % du corpus.
+    quant = [r for r in lignes
+             if r[13] and r[12] in FAMILLES_SYNTHESE and not r[7] and not r[17]]
     aveugles = [r for r in lignes if r[15]]
     # Un aveugle est presque toujours AUSSI un indéterminé au sens du repère le
     # plus strict — 46 sur 46 dans le corpus au 8 août 2026. Les laisser dans
