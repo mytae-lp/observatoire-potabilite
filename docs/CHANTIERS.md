@@ -21,14 +21,15 @@ un, ici ou dans une autre session.
 
 | Code | Nom court | En une phrase | Statut |
 |---|---|---|---|
-| **C1** | FILTRATION | ce qu'un type de filtre retient, et ce qu'il ne retient pas | **gelé** — on ne touche à rien |
-| **C2** | PANEL | quels paramètres on a cessé de chercher | **premier livrable posé** |
-| **C3** | ÉVOLUTION | comparer les bulletins successifs d'un même point d'eau | en attente de C7 |
+| **C1** | FILTRATION | ce qu'un type de filtre retient, et ce qu'il ne retient pas | **dégelé le 9 août 2026** — le §2.2 est révisé, la table reste à construire |
+| **C2** | PANEL | quels paramètres on a cessé de chercher | **une rupture datée trouvée** — janvier 2020, à installation constante |
+| **C3** | ÉVOLUTION | comparer les bulletins successifs d'un même point d'eau | **débloqué** — 165 installations à plusieurs bulletins |
 | **C4** | LQ | la finesse du laboratoire, et le biais qu'elle crée entre communes | **fait**, règle inscrite au §8bis |
 | **C5** | TERRITOIRES | ne comparer qu'à des zones nommées, dont on a les données | **fait**, règle inscrite au §2.11 |
-| **C6** | ÉCHELLE | passer de 60 à plusieurs milliers de communes | **en cours** — le Tarn est lancé, 26 communes sur 314 |
+| **C6** | ÉCHELLE | passer de 60 à plusieurs milliers de communes | **le Tarn est fait** — 314/314, 1 595 bulletins |
 | **C7** | CAPTAGE | la dilution comme mode de gestion — hypothèse à instruire | **premier livrable posé** |
 | **C8** | ATELIER | comprendre et fiabiliser le back-office | **prêt à lancer** |
+| **C9** | VITRINE | le parcours, la carte, la liste, le référentiel, et « que faire » | **en cours** — ouvert le 9 août 2026 |
 
 ### Lancer un chantier dans une autre session
 
@@ -50,6 +51,7 @@ tableau dit qui écrit où — à relire avant d'en lancer deux ensemble.
 | C7 CAPTAGE | `src/build_db.py` (vues de mélange), `src/etude_melange.py`, `docs/METHODE_DILUTION.md` | C3 ; **C2 sur `build_db.py`** |
 | C8 ATELIER | `atelier/atelier.py`, `tests/` | tous, en lecture |
 | C6 ÉCHELLE | `src/collecte.py`, `src/brut.py`, `src/fetch_departement.py`, `src/hubeau.py`, `src/observer.py` | **tous, par le corpus** — une collecte change les chiffres de chaque chantier |
+| C9 VITRINE | `site/build_site.py`, `site/gabarits/`, `docs/VITRINE.md`, `referentiel/retention_procedes.csv` | **C6 par le corpus** ; C1, dont il porte le livrable |
 
 Trois règles pour que ça tienne :
 
@@ -141,10 +143,35 @@ Rien ne bouge : ni le §2.2, ni la phrase de Vourles, ni le contrôle qui la
 signale. Le chantier reste écrit ici pour qu'il soit repris tel quel le jour
 venu, avec sa raison — le retour de lecteur — qui est le vrai déclencheur.
 
-### Reste à décider, le moment venu
+### Dégel du 9 août 2026 — le §2.2 est révisé
 
-Le périmètre exact de la révision du §2.2, et si ce volet vit sur le site ou
-seulement dans le livre — Yannick indique qu'il est lié aux deux.
+Le moment est venu en ouvrant le chantier C9 : le volet « que faire quand mon
+eau est compliquée » est demandé pour la vitrine, et il bute exactement sur ce
+garde-fou.
+
+**Le §2.2 de `CLAUDE.md` est réécrit**, sur instruction de Yannick. La frontière
+ne passe plus entre « en parler » et « ne pas en parler », mais entre **un type
+et un produit**. L'argumentaire long — le retour de lecteur qui déclenche tout,
+le test qui repère une prescription déguisée, le cas de Vourles — est au §2.2 de
+`docs/GARDE-FOUS.md`.
+
+Ce qui reste à construire, et qui est le vrai coût du chantier :
+
+1. **`referentiel/retention_procedes.csv`**, une ligne par couple procédé ×
+   famille de substance, avec ses sources. Rien ne se publie avant qu'il existe :
+   le §2.2 révisé n'autorise pas de la prose sur les procédés, il autorise une
+   table sourcée.
+2. **Les sources elles-mêmes**, à `fiabilite = verifie`, chacune couvrant son
+   couple précisément. C'est le poste long, et il ne se sous-traite pas à une
+   analogie de famille.
+3. **Le cas de Vourles** — la phrase de Yannick devient conforme sur le fond,
+   mais attend sa ligne dans la table. Le signalement de `tests/test_sorties.py`
+   ne se retire pas avant.
+
+### Reste à décider
+
+Si ce volet vit sur le site **et** dans le livre, ou seulement dans l'un des
+deux — Yannick indiquait le 8 août qu'il est lié aux deux.
 
 ---
 
@@ -313,10 +340,76 @@ qu'on suit d'un bulletin au suivant. Ce n'est donc pas un effet de composition
 du corpus. Cela reste 45 bulletins, et donc une piste — mais une piste qui a
 passé le contrôle qui aurait dû la tuer.
 
+### Le volume est arrivé — et il y a une rupture datée au mois près
+
+Le Tarn a été collecté en entier le 8 août 2026 (chantier C6) : 314 communes,
+1 575 bulletins complets, 2016 → 2026. La machinerie construite pour 45
+bulletins a été lancée sur trente-cinq fois plus, et elle rend un motif.
+
+**Le panel du Tarn passe de 606 à 352 paramètres entre 2019 et 2020.**
+
+| Année | Bulletins | Panel moyen |
+|---|---|---|
+| 2016 | 95 | 626 |
+| 2017 | 103 | 604 |
+| 2018 | 114 | 600 |
+| **2019** | 164 | **606** |
+| **2020** | 121 | **352** |
+| 2021 | 158 | 355 |
+| 2024 | 217 | 349 |
+| 2026 | 56 | 378 |
+
+Le carnet exigeait deux contrôles avant d'appeler cela un retrait. Les deux
+passent, et ils passent largement.
+
+**1. À installation constante.** En ne gardant que les installations qui portent
+un bulletin avant 2020 **et** un après — 135 d'entre elles, 431 bulletins avant,
+720 après — le panel moyen passe de **606 à 362, soit −40 %**. Ce n'est donc pas
+un effet de composition du corpus : ce sont les mêmes points d'eau qui cherchent
+moins.
+
+**2. Ce n'est pas une moyenne qui glisse.** **132 des 135 installations
+baissent**, trois seulement sont stables ou en hausse.
+
+Et la rupture n'est pas une pente, c'est une marche, visible entre deux mois
+consécutifs :
+
+| | |
+|---|---|
+| décembre 2019 | 8 bulletins, panel moyen **585** |
+| **janvier 2020** | 6 bulletins, panel moyen **324** |
+
+Les six mois précédents tiennent entre 578 et 627 ; les douze suivants entre 324
+et 372. Le changement se produit au passage de l'année.
+
+### Ce que ce constat n'est pas
+
+C'est un **dénombrement**, l'indicateur A de la note de méthode, et il s'arrête
+là. Le piège du chantier reste entier : **« plus cherché » n'est pas « retiré du
+contrôle »**. Un panel qui se réduit de 40 % du jour au lendemain peut venir
+d'un changement de programme réglementaire, d'un changement de laboratoire, d'un
+changement de marché public — et rien dans les données ne permet de trancher.
+`code_lieu_analyse` vaut toujours `L`, le corpus ne porte aucun identifiant de
+laboratoire.
+
+Ce que le constat apporte, et qui n'existait pas, c'est **une date**. Un
+changement de programme laisse une trace écrite et datée ; janvier 2020 est une
+date qu'on peut opposer à un texte. C'est le point de départ d'une recherche
+documentaire, pas sa conclusion.
+
+Et c'est **un seul département**. Rien ici ne dit qu'il se passe la même chose
+ailleurs — c'est la première chose à vérifier au département suivant, et la vue
+`v_parametre_presence_dept` est faite pour ça.
+
 ### Reste à faire
 
-Rien avant le chantier C6. La machinerie est prête et attend le volume ; sur
-9 paires, chercher une direction commune serait de la lecture de marc de café.
+1. **Quels paramètres, précisément, sont sortis en janvier 2020.**
+   `src/etude_panel.py` produit déjà la liste ; elle n'a pas encore été
+   dépouillée à cette échelle.
+2. **Un second département**, pour savoir si la rupture est nationale ou
+   tarnaise. C'est la question que Yannick posait en ouvrant le chantier.
+3. **La recherche documentaire** sur ce que janvier 2020 a changé aux programmes
+   d'analyse. Hors du dépôt.
 
 Ce qui a changé le 8 août 2026, c'est qu'elle est prête **à dire un zéro et à
 contrôler une chute**. Les deux défauts corrigés ne se voyaient pas sur 45
@@ -914,13 +1007,34 @@ publication, qui refera aussi tous les barèmes de LQ.
 
 ### Ce qui reste à faire
 
-1. **Le Tarn en entier** — **lancé le 8 août 2026 au soir, arrêté en bon ordre à
-   26 communes sur 314**, tout figé. Reste ~288 communes, de l'ordre de 2 h 10.
-   La commande de reprise et les trois filets — `--figer`, `--reingerer`,
-   `--rapport` — sont dans `docs/REPRISE.md` §2, qui porte l'état chiffré.
-   Le corpus est déjà passé de 45 à **145 bulletins** et de 15 617 à
-   **56 512 mesures**, et **10 installations portent plusieurs bulletins** là où
-   le corpus entier n'en portait aucune.
+1. ~~**Le Tarn en entier**~~ — **FAIT le 8 août 2026. 314 communes sur 314,
+   zéro erreur.** 2 h 49 de collecte, plus deux rattrapages.
+
+   | | | était |
+   |---|---|---|
+   | bulletins figés | **1 595** | 45 |
+   | mesures | **684 883** | 15 617 |
+   | communes couvertes | **339** — 143 analysées, 196 rattachées | 60 |
+   | cache brut | 1 575 bulletins, **32,4 Mo** | — |
+   | bulletins conformes 2026 avec bascule | **109** | 8 |
+
+   Un défaut trouvé au dépouillement, et corrigé : **neuf communes avaient
+   échoué sur des coupures réseau de Hub'Eau** — sept d'affilée, dont Castres et
+   Cordes-sur-Ciel — et **la reprise les tenait pour traitées**. Elles seraient
+   restées « non documentées » à tort, ce qui est le pire cas du §2.4 transposé
+   à la commune : une absence de donnée présentée comme un état stable, alors
+   qu'elle n'était qu'un incident de réseau. `a_faire` et `--termine` comptent
+   désormais une erreur comme du travail restant, et une rafale d'échecs
+   déclenche une pause croissante — insister au même rythme ne sert à rien et
+   n'est pas courtois envers un service public gratuit (§3.2). Les neuf ont été
+   rattrapées ; Paulinet à elle seule portait 98 bulletins.
+
+   Les autres chantiers en sortent transformés : **165 installations portent
+   plusieurs bulletins** (76 en portent au moins cinq) là où le corpus entier
+   n'en portait aucune — **le chantier C3 n'attend plus rien** ; les mesures
+   aveugles passent de 46 sur 39 bulletins à **1 316 sur 1 143**, et la base du
+   barème de LQ de 29 à **1 595 bulletins** (C4) ; et le chantier C2 rend son
+   premier motif, une rupture datée de janvier 2020 — voir sa section.
 2. **Republier**, ce qui refait les 12 pages manquantes et met à jour toutes les
    bases de barème. À faire après la collecte, pas pendant.
 3. **Le coût du figeage** : `figer.figer()` recalcule tout le corpus à chaque
@@ -1192,8 +1306,11 @@ Repris de `docs/REPRISE.md` §4, mis à jour :
   celui écarté pour les paramètres aveugles subsiste sur l'indéterminé
   ordinaire, dans `src/build_db.py`. Sans effet aujourd'hui, par accident ;
 - **l'ordre des chantiers 3 et 7** — l'évolution attend le captage ;
-- **le §2.2 et la filtration** — chantier C1, gelé jusqu'à nouvel ordre ;
-- **le « charbon actif » de Vourles** — inchangé, décision liée au chantier C1 ;
+- **le §2.2 et la filtration** — chantier C1 : **tranché le 9 août 2026**, le
+  §2.2 est révisé, la frontière passe entre un type et un produit. Reste la
+  table `retention_procedes.csv` et ses sources ;
+- **le « charbon actif » de Vourles** — conforme sur le fond depuis la révision
+  du §2.2, mais toujours non sourcé : il attend sa ligne dans la table ;
 - **les 53 communes hors livre** — tranché : on garde (chantier C6) ;
 - **le mot « la série »** dans les sept fiches du livre — portée que le lecteur
   ne peut pas résoudre. Hors périmètre de C5, ce sont des textes d'auteur ;
@@ -1204,6 +1321,190 @@ Repris de `docs/REPRISE.md` §4, mis à jour :
   la trancher : il faut la nomenclature SISE-Eaux du lieu d'analyse, ou l'ARS ;
 - **l'hébergement** — hébergeur, nom de domaine, et dépôt de code public ou
   non. Rien n'est publié en ligne à ce jour.
+
+---
+
+## C9 — VITRINE
+
+### Le parcours, la carte, la liste, le référentiel, et « que faire »
+
+### Ce que Yannick demande — 9 août 2026
+
+> « je veux travailler maintenant sur le site vitrine. Il y a un gros travail en
+> profondeur à réaliser. Parcours utilisateur, carte, liste de commune,
+> référentiel, mais aussi toute une partie information. Que faire quand je vois
+> que mon eau est vraiment compliquée etc. »
+
+Quatre lots, plus un cinquième qui est le livrable du chantier C1 dégelé.
+
+### Ce qui existe, mesuré le 9 août 2026
+
+| | |
+|---|---|
+| pages | 5, plus **60 fiches de commune** — la base en couvre **90** |
+| poids total | 9,5 Mo |
+| `carte.html` | 190 304 o, dont **174 432 o de fond départemental** (92 %, 118 anneaux) |
+| coût d'un point sur la carte | **203 o** — marginal |
+| `communes.html` | 31 785 o pour 60 lignes, soit ~530 o par ligne |
+| `donnees/index_communes.json` | 9 113 o pour 60 communes, soit ~152 o par commune |
+| référentiel affiché | 74 paramètres, déversés en table brute au bas de `sources.html` |
+| volet information | néant, hors quatre paragraphes en accueil et `methode.html` |
+
+Le site publié est une photographie du 8 août à 20 h 23 : **30 communes
+couvertes n'ont pas de page**, ce que `tests/test_sorties.py` signale déjà.
+
+### Ce que l'échelle casse, et ce qu'elle ne casse pas
+
+C'est le point que le carnet doit fixer, parce qu'il commande la conception et
+que l'intuition se trompe dessus.
+
+**La carte ne casse pas par le poids.** Son coût est fixe — le fond — et un
+point ne coûte que 203 o : 5 000 communes ajouteraient ~1 Mo à une page qui en
+pèse déjà 174 Ko. **Elle casse par la lisibilité.** Mesuré dans le navigateur le
+9 août 2026 : sur une carte de France large de 926 px, le Tarn occupe
+**85 × 73 px**, et chaque point de commune fait 5,5 px de rayon. Ses 314
+communes ne peuvent pas y tenir côte à côte — elles s'empilent. Il faut donc un
+**niveau géographique intermédiaire**, pas une compression. Sur sa propre page,
+le même département occupe 926 × 793 px : le facteur est d'environ 120 en
+surface.
+
+**La liste casse par le poids**, elle : ~530 o par ligne, soit ~2,6 Mo d'HTML
+d'un seul bloc à 5 000 communes, sans tri ni filtre ni pagination.
+
+**L'index de recherche casse plus tard, mais il casse** : ~152 o par commune,
+soit 760 Ko à 5 000 communes chargés dès la première frappe, et ~5 Mo si le
+corpus atteignait un jour les 35 000 communes françaises. Le découpage par
+département est la sortie, et il vaut pour les trois.
+
+### Le piège méthodologique — un par lot
+
+Ce chantier est le plus exposé du dépôt : c'est la seule surface que le public
+voit, et **une règle de méthode qui ne se voit pas à l'écran n'existe pas.** Le
+§8bis liste onze obligations d'affichage ; chaque lot ci-dessous peut en perdre
+une par simple commodité d'interface.
+
+**Lot 1 — le parcours.** Introduire un niveau *département* et un niveau
+*réseau* crée deux occasions de fabriquer un agrégat interdit. Un département
+n'a pas de verdict, un réseau non plus : ce sont des **collections de bulletins
+datés**, chacun noté contre sa grille. Toute moyenne, tout « taux de conformité
+du département », tout classement de communes serait exactement le profil
+synthétique que le §2.3 interdit — sans date, donc non réétalonnable. Et le
+§2.11 tient : aucun classement sans l'effort de recherche de chaque terme.
+
+**Lot 2 — la carte.** Un zoom départemental rend visibles les communes **non
+documentées**, qui sont aujourd'hui noyées. C'est un gain, et c'est un risque :
+plus elles sont visibles, plus la tentation est grande de les rendre discrètes.
+Le §8bis obligation 4 ne se négocie pas — gris n'est pas une couleur neutre,
+c'est un troisième état.
+
+**Lot 3 — l'information.** Deux pièges distincts. Le premier : le volet civique
+est du **contenu réglementaire**, donc soumis au §2.7 comme un seuil. « L'ARS
+contrôle », « la commune distribue », « vous avez un droit d'accès » sont des
+affirmations qui se sourcent, pas des évidences qu'on rédige de mémoire — c'est
+la faute la plus facile de tout le chantier. Le second : le §2.1. Expliquer qui
+décide quoi ne doit pas devenir la désignation d'un responsable.
+
+**Lot 4 — le référentiel.** Une fiche par paramètre invite à écrire ce qu'est la
+substance, ses effets, sa dangerosité. Le §2.15 tient : trois registres, jamais
+fusionnés — `pe_reglementaire`, `pe_scientifique`, `cancerogenicite_circ`. Et le
+§2.12 : le seuil 2016 d'un métabolite est une extrapolation, et une fiche par
+paramètre est précisément l'endroit où cela doit se lire.
+
+**Lot 5 — les procédés.** Voir C1. Rien ne se publie avant que
+`referentiel/retention_procedes.csv` existe et soit sourcé couple par couple.
+
+### Les cinq lots
+
+| Lot | Ce qu'il produit | Dépend de |
+|---|---|---|
+| **1 — parcours** | niveau département, entrée par réseau (`nom_uge`), fil d'Ariane, liste filtrable et paginée qui tient à 5 000 lignes | — |
+| **2 — carte** | fond découpé par département, zoom, filtres par état, fond factorisé hors page | lot 1 pour les URL |
+| **3 — information** | « comment lire un bulletin », et le « que faire » civique, sourcé | §2.2 révisé (fait) |
+| **4 — référentiel** | page dédiée, recherche, filtres famille/fiabilité, une fiche par paramètre | — |
+| **5 — procédés** | `referentiel/retention_procedes.csv` et son affichage | C1, sources à réunir |
+
+Ordre arrêté par Yannick le 9 août 2026 : **1, 2, 3, 4**, le lot 5 venant se
+loger dans le lot 3 quand la table existe.
+
+### Ce qui a été construit — lots 1 et 2, 9 août 2026
+
+**Le parcours.** `Accueil › Les communes du corpus › Tarn (81) › Albi › bulletin`.
+Un niveau *département* est apparu entre la carte et la fiche, et
+`communes.html` est devenu son index — un département par ligne, l'effort de
+recherche en **étendue** et jamais en moyenne.
+
+**Le fond découpé.** `carte_svg()` est indexée par code de département et cadre
+sur ce qu'elle dessine. Il n'y a pas d'autre zoom : une carte du Tarn est un
+fond du Tarn, pas un fond de France recadré.
+
+**La légende est le filtre.** Cliquer un état le retire de la carte **et** du
+tableau — les deux portent le même `data-niveau`, donc la même règle CSS les
+atteint. Ils ne peuvent pas diverger. Et **le compte d'un état masqué reste à
+l'écran, barré** : on retire un état de la vue, jamais du décompte. Un filtre
+qui ferait disparaître « 52 communes non documentées » présenterait une absence
+de donnée comme une bonne nouvelle (§8bis, obligation 4).
+
+**La carte de situation d'une fiche.** Sur une commune rattachée, un trait
+pointillé relie la commune à celle où l'analyse a réellement été prélevée. C'est
+l'obligation d'affichage n° 5 rendue visible : à l'échelle, six communes sur dix
+lisent le bulletin d'une voisine, et une phrase en petits caractères ne suffit
+pas. Le trait n'est tracé que si les deux points sont connus — `commune_prelevement`
+n'est qu'un **nom** dans `couverture_communes`, et un trait vers un point
+approximatif dirait sur une carte quelque chose de faux, ce que l'absence de
+trait ne fait pas.
+
+**Un défaut corrigé en passant.** `page()` prend désormais un `prefixe` et un
+`fil`. La version précédente réparait les adresses d'une page déjà rendue par
+une chaîne de sept `.replace()`, une par entrée de menu : ajouter une page ou un
+sous-dossier demandait de penser à l'allonger, sans quoi le lien pointait dans
+le vide et rien ne le signalait. C'est la leçon de C8 une troisième fois — une
+règle recopiée diverge.
+
+**Mesures, sur un corpus d'essai de 374 communes** (synthétique, pour éprouver
+l'échelle sans la base, verrouillée) :
+
+| | |
+|---|---|
+| carte de France, 374 communes | 253 528 o |
+| **page d'un département de 314 communes** | 240 698 o — c'est la nouvelle page lourde |
+| index des départements | **3 751 o** |
+| emprise du Tarn sur la carte de France | **85 × 73 px** sur 926 de large |
+| le même sur sa propre page | **926 × 793 px** — environ 120× la surface |
+
+Vérifié dans le navigateur : le filtre passe 314 points et 314 lignes à 262 et
+262 d'un même clic, le second clic restaure, aucune erreur de console, aucun
+débordement horizontal en 375 px, et les tableaux défilent dans leur cadre.
+
+**Une estimation fausse attrapée par la mesure.** « Un département tient dans
+une trentaine de pixels » avait été écrit de tête, puis propagé dans ce carnet,
+dans deux commentaires de code **et dans un texte publié de la vitrine**. La
+mesure donne 85 × 73. Rectifié partout. C'est le §2.7 hors de son domaine
+habituel : la règle vaut pour un chiffre d'interface comme pour un seuil.
+
+### Ce qui n'est pas encore vérifié
+
+**La construction réelle du site n'a pas été lancée** — la base est verrouillée
+par la collecte. Tout ci-dessus est vérifié fonction par fonction et dans le
+navigateur sur un corpus d'essai ; rien n'est vérifié de bout en bout sur les
+données réelles, ni contre les trois suites de tests.
+
+### Contrainte de session — 9 août 2026
+
+La collecte du Tarn tourne depuis 11 h 43 (48 communes sur 314 à 12 h, 196
+bulletins au cache brut, 4,6 Mo) et **tient le verrou d'écriture DuckDB** : la
+base n'est ni lisible ni copiable pendant ce temps. Le travail commence donc par
+ce qui ne demande pas la base, et la vérification — construction du site, tests
+— attend la fin de la collecte. Décision de Yannick : **site d'abord, collecte
+en parallèle**, sans l'interrompre.
+
+### Ce qui reste à décider
+
+- **la profondeur du volet information** : sur le site seul, ou site et livre ;
+- **le niveau réseau** : `nom_uge` porte le gestionnaire déclaré, pas l'UDI. Une
+  entrée « par réseau » sur ce champ regroupe par gestionnaire, ce qui n'est pas
+  tout à fait la même chose que « l'eau que vous buvez vient d'ici ». À vérifier
+  contre les données avant de nommer la page ;
+- **l'hébergement**, toujours ouvert : rien n'est publié en ligne à ce jour.
 
 ---
 
@@ -1296,3 +1597,25 @@ Repris de `docs/REPRISE.md` §4, mis à jour :
   Le barème de LQ passe de 29 à 71 bulletins de base, comme le §2.14 le prévoyait.
   `tests/test_sorties.py` signale 12 communes couvertes sans page : c'est le
   contrôle qui fonctionne, publier restant un geste séparé.
+- **9 août 2026, C9 ouvert et C1 dégelé** — Yannick demande le chantier de la
+  vitrine en profondeur : parcours, carte, liste, référentiel, et un volet
+  information « que faire quand mon eau est compliquée ». Ce dernier butant sur
+  le §2.2, **il est révisé le jour même sur instruction** : la frontière ne
+  passe plus entre en parler et ne pas en parler, mais entre **un type et un
+  produit**. Énoncé au §2.2 de `CLAUDE.md`, argumentaire au §2.2 de
+  `docs/GARDE-FOUS.md`, avec le retour de lecteur qui l'a déclenchée et le test
+  qui repère une prescription déguisée. C1 passe de gelé à dégelé ; son livrable
+  — `referentiel/retention_procedes.csv`, sourcé couple par couple — devient le
+  lot 5 de C9, et rien ne se publie sur les procédés avant qu'il existe.
+  Diagnostic mesuré de la vitrine, qui corrige une intuition fausse : **la carte
+  ne casse pas par le poids** — 174 Ko de fond fixe, 203 o par point — mais par
+  la lisibilité, le Tarn n'occupant que 85 × 73 px sur une carte de France large
+  de 926 (mesuré, après qu'une première estimation « une trentaine de pixels »
+  eut été écrite de tête et propagée jusque dans un texte publié). Ce sont
+  **la liste**
+  (~530 o/ligne, 2,6 Mo à 5 000 communes) et **l'index de recherche**
+  (~152 o/commune) qui cassent par le poids. Le découpage par département est la
+  sortie commune aux trois. Ordre arrêté : parcours, carte, information,
+  référentiel. Session contrainte : la collecte du Tarn tourne (48/314 à 12 h)
+  et tient le verrou d'écriture DuckDB — le travail commence par ce qui ne
+  demande pas la base.

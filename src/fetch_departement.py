@@ -290,7 +290,21 @@ def run(dept, limite=None, depuis=None, tous=False, repli=True, cache=True,
     if vu:
         print(f"journal   : {len(vu)} commune(s) déjà traitée(s), reprise")
 
-    a_faire = [c for i, c in sorted(communes.items()) if i not in vu]
+    # Une commune EN ERREUR n'est pas une commune faite.
+    #
+    # Défaut réel, trouvé le 8 août 2026 en dépouillant la première collecte
+    # départementale : neuf communes du Tarn — dont Castres et Cordes-sur-Ciel —
+    # ont échoué sur des coupures réseau de Hub'Eau, sept d'affilée. Le journal
+    # portait bien leur échec, mais la reprise les considérait comme traitées et
+    # ne les redemandait jamais. Elles seraient restées « non documentées » à
+    # tort, ce qui est précisément le pire cas du §2.4 transposé à la commune :
+    # une absence de donnée qui n'est pas une absence de fait, présentée comme
+    # un état stable. Un échec réseau est transitoire ; il se retente.
+    a_faire = [c for i, c in sorted(communes.items())
+               if (vu.get(i) or {}).get("etat") in (None, "erreur")]
+    a_retenter = sum(1 for c in a_faire if c["code_insee"] in vu)
+    if a_retenter:
+        print(f"reprise   : {a_retenter} commune(s) en erreur à retenter")
     if limite:
         a_faire = a_faire[:limite]
     print(f"à traiter : {len(a_faire)} commune(s)")
@@ -304,6 +318,7 @@ def run(dept, limite=None, depuis=None, tous=False, repli=True, cache=True,
     t0 = time.time()
     stats = collections.Counter()
     interrompu = False
+    consecutives = 0
     try:
         for idx, commune in enumerate(a_faire, 1):
             insee = commune["code_insee"]
@@ -317,7 +332,17 @@ def run(dept, limite=None, depuis=None, tous=False, repli=True, cache=True,
                 ecrire_journal(dept, {"code_insee": insee, "nom": commune.get("nom"),
                                       "etat": "erreur", "message": str(e)})
                 stats["erreur"] += 1
+                # Les échecs arrivent en rafale : sept communes consécutives du
+                # Tarn sont tombées sur la même coupure. Insister au même rythme
+                # ne sert à rien et n'est pas courtois envers un service public
+                # gratuit (§3.2) — on laisse le temps à l'hôte de revenir.
+                consecutives += 1
+                if consecutives >= 3:
+                    attente = min(60, 5 * consecutives)
+                    print(f"  {consecutives} échecs d'affilée — pause de {attente}s")
+                    time.sleep(attente)
                 continue
+            consecutives = 0
 
             ecrire_journal(dept, {
                 "code_insee": insee, "nom": commune.get("nom"),
@@ -381,9 +406,16 @@ def main():
         if not communes:
             print(f"département {a.dept} : pas de cache d'énumération, état inconnu")
             sys.exit(1)
-        reste = [i for i in communes if i not in vu]
-        print(f"département {a.dept} : {len(vu)}/{len(communes)} communes traitées, "
-              f"{len(reste)} restante(s)")
+        # Même règle que la reprise : une commune en erreur reste à faire.
+        # Sans cela, `--termine` annoncerait « terminé » sur un département
+        # amputé de ses échecs réseau.
+        reste = [i for i in communes
+                 if (vu.get(i) or {}).get("etat") in (None, "erreur")]
+        en_erreur = sum(1 for i in communes if (vu.get(i) or {}).get("etat") == "erreur")
+        faites = len(communes) - len(reste)
+        print(f"département {a.dept} : {faites}/{len(communes)} communes traitées, "
+              f"{len(reste)} restante(s)"
+              + (f" dont {en_erreur} en erreur, à retenter" if en_erreur else ""))
         sys.exit(1 if reste else 0)
     if a.rapport:
         rapport(a.dept)

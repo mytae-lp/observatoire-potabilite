@@ -55,55 +55,73 @@ Pour fusionner : `git checkout master && git merge chantier-interface`
 
 `data/eau.duckdb` n'est **pas versionnée** et se reconstruit. État actuel :
 
-**État au 8 août 2026, 22 h — collecte du Tarn en cours, arrêtée en bon ordre.**
+**État au 8 août 2026 — le Tarn est collecté en entier, 314 communes sur 314,
+zéro erreur. Tout est figé.**
 
 | | | était au passage de main |
 |---|---|---|
 | version de référentiel | `3a66a7b928d0` | inchangée |
-| communes ayant des mesures | **50** | 36 |
-| prélèvements | **145** | 45 |
-| mesures | **56 512** | 15 617 |
-| communes couvertes | **90** — 50 analysées, 40 rattachées au réseau | 60 |
-| départements | 15, 17, 22, 28, 46, 69, 81, 82 | idem |
-| bulletins portant la thèse | **8** — complets, sans dépassement à la date, avec bascules | 8 |
-| installations à plusieurs bulletins | **10** | **0** — c'était le verrou de C3 |
+| prélèvements figés | **1 595** | 45 |
+| mesures | **684 883** | 15 617 |
+| communes couvertes | **339** — 143 analysées, 196 rattachées au réseau | 60 |
+| départements | 15, 17, 22, 28, 46, 69, **81 (entier)**, 82 | idem |
+| bulletins conformes 2026 **avec bascule** | **109** | 8 |
+| — dont conformes *à la date du prélèvement* (§2.10) | **63** | 8 |
+| installations à plusieurs bulletins | **165**, dont 76 à ≥ 5 | **0** |
+| mesures aveugles (§8bis n° 11) | **1 316** sur 1 143 bulletins | 46 sur 39 |
+| cache brut `data/brut/81/` | 1 575 bulletins, **32,4 Mo** | — |
 
-Tout est **figé** à cet instant : une coupure machine ne perd rien.
+Le corpus a été multiplié par 35 en bulletins et par 44 en mesures. **Les deux
+chiffres de la thèse ne se lisent pas de la même façon** : 109 est la requête
+canonique du §6 (`nb_depasse_2026 = 0`), 63 applique le verdict à la date du
+prélèvement (`nb_depasse_applicable = 0`), qui est le seul comparable à la
+conclusion de l'ARS et donc le plus prudent. Publier le premier sans le second
+serait un faux positif de 46 bulletins.
 
-### La collecte du Tarn — 26 communes sur 314
+### Ce qui a été trouvé, et qui attend une suite
 
-Elle a été arrêtée volontairement, pas interrompue. Pour la reprendre, une seule
-commande, qui repart exactement où elle en était et **ne redemande à Hub'Eau
-aucun bulletin déjà au cache** :
+**Le panel du Tarn s'effondre de 606 à 352 paramètres entre 2019 et 2020**, à
+installation constante (−40 % sur 135 installations suivies, 132 en baisse sur
+135), avec une rupture nette entre décembre 2019 (585) et janvier 2020 (324).
+C'est le premier motif rendu par le chantier C2, il a une date, et il reste un
+**dénombrement** : rien dans les données ne dit la cause. Détail et contrôles
+dans `docs/CHANTIERS.md` §C2.
+
+*Yannick indique avoir documenté ce point dans un autre fil — la cause et sa
+source restent à reporter ici.*
+
+### Refaire ou reprendre une collecte départementale
 
 ```bash
 py -X utf8 -u src/fetch_departement.py --dept 81 --tous
 ```
 
-| | |
-|---|---|
-| avancement | 26 / 314 communes — `--termine` le dit à tout moment |
-| cache brut | `data/brut/81/`, 102 bulletins, 2,0 Mo |
-| journal | `data/journal/dept_81.jsonl`, une ligne par commune, refermée à chaque fois |
-| reste à faire | ~288 communes, de l'ordre de **2 h 10** |
+Idempotente et reprenable : le journal `data/journal/dept_81.jsonl` porte une
+ligne par commune, refermée à chaque fois, et le cache brut évite de redemander
+un bulletin déjà obtenu. Trois filets :
 
-Trois filets, dans l'ordre où on en a besoin :
-
-- `--figer` — fige ce qui est collecté, sans réseau, si la reprise ne va pas au bout ;
+- `--termine` — code de sortie 0 si le département est entièrement traité.
+  **Une commune en erreur compte comme restant à faire** (corrigé le 8 août 2026
+  après que neuf échecs réseau ont failli passer pour des communes traitées) ;
+- `--figer` — fige ce qui est collecté, sans réseau ;
 - `--reingerer` — rejoue tout le cache brut dans la base, sans un seul appel
   réseau, si `data/eau.duckdb` est abîmée ou reconstruite ;
 - `--rapport` — la couverture du département, sans rien collecter.
 
-**Ne pas lire `data/journal/collecte_81.log`** pour suivre l'avancement : Python
-tamponne sa sortie quand elle est redirigée, le fichier reste vide longtemps.
-C'est `--termine` et `--rapport` qui disent la vérité, parce qu'ils lisent le
-journal.
+**Ne pas lire `data/journal/collecte_81.log`** pour suivre l'avancement sans
+`-u` : Python tamponne sa sortie quand elle est redirigée. C'est `--termine` et
+`--rapport` qui disent la vérité, parce qu'ils lisent le journal.
 
-Attention avant de republier : le corpus a triplé, donc **les barèmes de LQ de
-toutes les fiches déjà publiées ont changé de base** (§2.14), et
-`tests/test_sorties.py` signalera les communes couvertes sans page tant que la
-publication n'a pas eu lieu — c'est le contrôle qui fonctionne, pas une
-régression.
+### Avant de republier — trois choses, dans cet ordre
+
+1. **`tests/test_sorties.py` échoue : 339 communes couvertes, 279 sans page.**
+   Ce n'est pas une régression, c'est le contrôle qui fonctionne — publier est
+   un geste séparé de collecter (§8quater bis). Il faut publier pour l'éteindre.
+2. **Tous les barèmes de LQ déjà publiés ont changé de base** — de 29 à 1 595
+   bulletins (§2.14). Les fiches existantes affichent une base périmée.
+3. **`v_parametres_non_apparies` passe de 103 à 118 libellés.** Un paramètre
+   sans seuil existe en base et ne pèse sur aucun verdict : à relire avant de
+   publier un département entier.
 
 **La base se reconstruit entièrement**, et deux listes versionnées permettent
 de choisir quoi restituer :
@@ -254,3 +272,59 @@ Ces constats sont dans les rédactions proposées, mais ils dépassent la fiche 
   total réglementaire opposable hormis la somme de 20.
 - **Boissezon** : 627 paramètres en 2019, 369 en 2024. L'effort de recherche
   divisé par deux, sans que rien n'indique une dégradation de l'eau.
+  **La cause est trouvée — 9 août 2026** : instruction n° DGS/EA4/2020/177 du
+  18 décembre 2020, fiche `REG-05` (`Sources/REG_Reglementation_et_seuils/REG-05_FR_instruction-DGS-2020-177_listes-pesticides.md`).
+  Voir ci-dessous §8.
+
+---
+
+## 8. Mise à jour du 9 août 2026 — la chute du panel a une cause réglementaire
+
+Le motif « ~600 paramètres en 2019, ~300 en 2020 » observé dans le Tarn n'est pas
+un artefact de collecte : c'est l'**instruction n° DGS/EA4/2020/177 du
+18 décembre 2020** et son guide technique, qui remplacent le balayage de toutes
+les molécules analysables par une **liste régionale de pesticides et métabolites
+arrêtée par l'ARS**, ciblée « en fonction de la probabilité de les retrouver ».
+La bascule se fait au renouvellement des **marchés pluriannuels d'analyses** des
+ARS, d'où une rupture nette d'une année civile à l'autre. Ordres de grandeur
+repris du guide : PACA ~600 → 150 molécules ; Grand Est 160 substances actives +
+42 métabolites.
+
+**Ce qui a été écrit** (aucune donnée touchée, aucun test relancé — ce sont des
+documents) :
+
+| Fichier | Ce qui y a été ajouté |
+|---|---|
+| `Sources/REG_Reglementation_et_seuils/REG-05_FR_instruction-DGS-2020-177_listes-pesticides.md` | la fiche complète : texte, calendrier, motivation officielle, critiques, sources |
+| `docs/INDEX_SOURCES.md` | la ligne `REG-05` dans la section REG ; la ligne `REG-05` de la section MET renvoie désormais au même texte ; numéros libres corrigés ; **trois défauts de tenue signalés** (voir plus bas) |
+| `src/etude_panel.py` | la cause en tête de docstring, avec le test qu'elle appelle et la règle de sortie |
+| `CLAUDE.md` §2.11 | troisième règle : **aucune série temporelle à panel variable** |
+
+**Trois réserves, dans l'ordre d'importance :**
+
+1. **Le PDF officiel de l'instruction n'a pas pu être téléchargé** en session
+   (circulaires.legifrance, sante.gouv). Les chiffres PACA et Grand Est viennent
+   de reprises documentaires du guide, **pas d'une lecture de l'annexe**. À
+   verrouiller avant toute publication (§2.7).
+2. **Le test de confirmation sur le Tarn n'a pas été lancé.** Il est écrit en
+   §4 de la fiche : lister les `code_parametre` présents en 2019 et absents en
+   2020, vérifier qu'ils sont bien majoritairement pesticides/métabolites, et
+   dater la bascule au mois près. Une coupure franche = changement de marché ;
+   une décroissance progressive = effet d'échantillonnage. **Tant qu'il n'est
+   pas fait, la cause est plausible et sourcée, pas démontrée sur nos données.**
+   **À n'exécuter qu'une fois la collecte du Tarn terminée** (consigne de
+   Yannick, 9 août 2026) : `data/eau.duckdb` est en cours d'écriture, DuckDB
+   n'admet qu'un seul écrivain, et un panel mesuré sur 26 communes sur 314
+   n'aurait de toute façon pas le même sens qu'un panel départemental complet.
+   `py -X utf8 src/fetch_departement.py --dept 81 --termine` dit où en est la
+   collecte.
+3. **`docs/INDEX_SOURCES.md` a trois défauts de tenue** constatés au passage et
+   volontairement non corrigés, parce qu'ils demandent une décision de
+   renumérotation : `PFAS-07` et `PE-05` désignent chacun deux documents
+   différents ; `RAD-01` et `CIRC-01` sont rangés dans la section MET ;
+   `REG-06` et `REG-07` sont catalogués sans fichier sur le disque.
+
+Deux facteurs à ne jamais confondre avec la cause principale : le **Covid**
+(baisse du nombre de *prélèvements* en 2020, pas du nombre de *paramètres*) et
+l'**effet d'échantillonnage** (le nombre de paramètres distincts sur une année
+dépend du nombre de bulletins complets réalisés cette année-là).
