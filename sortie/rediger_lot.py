@@ -134,6 +134,24 @@ def dossier(con, a, version):
     if a.get("noms_reseaux"):
         d.append(f"Réseaux desservis : {a['noms_reseaux']}")
     d.append(f"Conclusion du contrôle sanitaire : {a.get('conclusion_conformite') or '—'}")
+    # Cette limite se DIT, sinon chaque rédacteur la redécouvre et s'en méfie.
+    #
+    # Neuf rédacteurs du lot du Tarn ont buté sur la même chose : la conclusion
+    # annonce une non-conformité aux RÉFÉRENCES de qualité, et aucune table ne
+    # nomme le paramètre en cause. Chacun a écrit une prudence différente, et
+    # plusieurs ont soupçonné un manque de leur dossier. Vérifié le 9 août 2026 :
+    # ce n'est pas un manque, c'est une limite de la donnée — sur le bulletin de
+    # Burlats, ZÉRO mesure ne dépasse la référence que la source déclare, et
+    # pourtant `conf_references_pc` vaut « N ». La source rend le verdict, pas ce
+    # qui le fonde. 899 bulletins complets du Tarn sont dans ce cas.
+    if str(a.get("conf_references_pc") or "").upper().startswith("N"):
+        d.append("ATTENTION — ce bulletin est déclaré NON CONFORME aux "
+                 "références de qualité, et **la source ne dit pas quel "
+                 "paramètre le fonde**. Aucune mesure de ce bulletin ne dépasse "
+                 "la référence que la source déclare pour elle : ce n'est pas un "
+                 "manque de ce dossier, c'est une limite de la donnée publique. "
+                 "Dis-le ainsi si tu l'abordes — ne suppose aucun paramètre, et "
+                 "ne laisse pas croire que le projet aurait pu le retrouver.")
 
     # La prose est indexée par POINT D'EAU : le rédacteur doit savoir qu'il
     # n'écrit pas pour une commune. Une allusion trop locale rendrait le texte

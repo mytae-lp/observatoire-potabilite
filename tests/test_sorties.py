@@ -88,7 +88,14 @@ COMPARAISONS_VAGUES = ["ailleurs", "voisinage", "alentours", "aux environs",
 # Emplois de ces mots qui ne sont pas des comparaisons de territoire.
 # « prélevée ailleurs » est l'obligation d'affichage n° 5 du §8bis — dire où
 # l'analyse a eu lieu quand elle est empruntée au réseau.
-IDIOMES = ["par ailleurs", "prélevé ailleurs", "prélevée ailleurs",
+#
+# « d'ailleurs » ajouté le 9 août 2026 : c'est une charnière de discours, pas
+# une désignation de lieu — « le dossier ne le dit d'ailleurs pas » ne compare
+# aucun territoire. Le contrôle a refusé quatre textes justes du lot du Tarn
+# pour ce seul adverbe, et trois rédacteurs l'ont identifié comme un faux
+# positif avant nous. Un garde-fou qui refuse du juste finit par être contourné,
+# et c'est alors qu'il cesse de protéger.
+IDIOMES = ["par ailleurs", "d'ailleurs", "prélevé ailleurs", "prélevée ailleurs",
            "prélevés ailleurs", "prélevées ailleurs", "analysé ailleurs",
            "analysée ailleurs"]
 
