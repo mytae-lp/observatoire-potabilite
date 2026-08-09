@@ -84,10 +84,30 @@ en 2020 » : correct. « Cette eau est polluée et on vous le cache » : interdi
 
 **2.2 — C'est un outil de conscience, pas un outil de prescription.**
 *« non, ce n'est pas le propos. ici c'est un outils de conscience. »*
-**Aucune recommandation de filtration, d'osmoseur, de charbon actif, d'eau
-embouteillée, ni d'aucun équipement ou produit, jamais** — pas même en note de
-bas de page. On oriente vers l'information publique (ARS, mairie, Orobnat),
-jamais vers un produit.
+**On n'oriente jamais vers un produit.** L'orientation par défaut reste
+l'information publique : ARS, mairie, Orobnat, rapport annuel du service.
+
+**Révisé le 9 août 2026**, sur instruction de Yannick. La rédaction précédente
+interdisait aussi de *décrire* un procédé, et laissait donc le lecteur alerté
+sans aucune prise — *« ton site il nous alerte, mais il peut créer une panique
+car on ne sait pas quoi faire de ces informations »*. La frontière ne passe plus
+entre « en parler » et « ne pas en parler », mais entre **un type et un
+produit** :
+
+- **permis** — décrire une **famille de procédés et ce qu'elle retient**, comme
+  un fait de physico-chimie sourcé et daté. Cela vit dans une table versionnée,
+  `referentiel/retention_procedes.csv`, jamais dans de la prose : une ligne par
+  couple **procédé × famille de substance**, avec ses `sources` et sa
+  `fiabilite`. Le §2.7 s'y applique entier — **la source doit couvrir CE couple
+  précisément**, jamais par analogie de famille ;
+- **interdit, nulle part, pas même en note** — une marque, un modèle, un
+  fournisseur, un prix, un lien d'achat ; un conseil individuel (« pour votre
+  eau, prenez… », « il faudrait filtrer ») ; l'eau embouteillée présentée comme
+  une solution, le projet n'en ayant aucun corpus (§8) ; et toute description
+  tournée en recommandation — impératif, conditionnel de conseil, classement de
+  procédés par « efficacité » hors du couple qui lui donne son sens.
+
+Argumentaire, cas et contre-exemples : `docs/GARDE-FOUS.md` §2.2.
 
 **2.3 — Ne travailler que sur les bulletins complets.** *« il ne faut travailler
 que sur les analyses qui intègrent tous les indicateurs… »* C'est la règle
@@ -159,6 +179,39 @@ dans `nom_uge` et `dept`, il ne s'invente pas. Pas de « ailleurs », pas de « 
 voisinage », pas de « plusieurs communes ». Contrôle n° 8 de
 `tests/test_sorties.py` (il constate qu'une zone est nommée, pas qu'elle est la
 bonne : cette relecture reste humaine).
+
+**Troisième règle, ajoutée le 9 août 2026 — aucune série temporelle à panel
+variable.** Comparer deux années sans se restreindre à **l'intersection des
+paramètres recherchés les deux années** fait passer une baisse des recherches
+pour une baisse des détections. Ce n'est pas le seuil qui bouge, c'est le
+périmètre de mesure. Outillé : `v_panel_constant` et `v_serie_panel_constant`
+(cherché sur ≥ 75 % des bulletins **chaque** année documentée du département).
+
+Le Tarn le démontre, et impose trois précautions de formulation (chiffres et
+contrôles : `docs/CHANTIERS.md`, chantier C2, qui fait foi — ne pas les
+recompter ailleurs) :
+
+- **la rupture est un fait, sa cause ne l'est pas.** 627 paramètres au
+  19 décembre 2019, 344 au 6 janvier 2020 ; une seule vague, 298 retraits dont
+  279 pesticides. L'instruction DGS/EA4/2020/177 [REG-05] décrit un mécanisme
+  cohérent — liste régionale ciblée, figée par les marchés pluriannuels ARS —
+  mais elle est **du 18 décembre 2020, onze mois APRÈS**. Écrire « rupture de
+  janvier 2020, compatible avec un renouvellement de marché ; l'instruction va
+  dans le même sens mais lui est postérieure », **jamais « causée par »**.
+  Attribuer un effet à un texte qui le suit est l'erreur même des §2.5 et
+  §2.10, transposée du seuil au programme d'analyse ;
+- **ne jamais présenter ce retrait comme une perte d'information.** Sur les 298
+  retirés : 6 quantifications pour 134 419 mesures avant 2020 (0,004 %), LQ
+  médiane vingt fois plus fine que la limite. Le dire autrement serait un faux
+  positif, et la donnée dit l'inverse ;
+- **le sujet est la rotation, pas le rétrécissement.** 34 paramètres entrent
+  entre 2019 et 2026, et ceux-là sont trouvés — chlorothalonil R471811 quantifié
+  dans 19,1 % de ses mesures et 20 communes. Le R417888 entre en 2024, l'année
+  de l'avis ANSES qui le classe pertinent : le programme suit la décision
+  réglementaire. Et à panel constant, le Tarn est **plat sur onze ans**
+  (16,1 à 19,2 ‰). Ce qui change n'est pas l'eau, c'est la liste de ce qu'on
+  regarde. Corollaire §2.4 : d'une substance entrée en 2022, on ne sait **rien**
+  d'avant — ni absence ni apparition, un indéterminé.
 
 **2.12 — Le seuil de 2016 des métabolites est une extrapolation, et il se
 dit.** Les 0,1 µg/L des 24 lignes « métabolite » viennent de l'instruction

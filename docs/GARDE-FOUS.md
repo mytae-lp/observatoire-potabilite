@@ -34,6 +34,8 @@ Citation de Yannick, à conserver telle quelle :
 
 > « non, ce n'est pas le propos. ici c'est un outils de conscience. »
 
+### La rédaction d'origine, et pourquoi elle a tenu un an
+
 **Aucune recommandation de filtration, d'osmoseur, de charbon actif,
 d'eau embouteillée, ni d'aucun équipement ou produit, jamais.** Pas même
 en note de bas de page, pas même en « pour information ». Toute suggestion
@@ -43,6 +45,82 @@ commercial et détruit la crédibilité du projet.
 Si un utilisateur demande quoi faire de son eau, la réponse est de
 l'orienter vers l'information publique (ARS, mairie, données Orobnat), pas
 vers un produit.
+
+Cette rédaction protégeait contre un danger réel et elle l'a fait
+efficacement : un observatoire qui suggère un équipement devient
+indistinguable d'un site d'affiliation, et aucune rigueur en amont ne rachète
+cela.
+
+### La révision du 9 août 2026
+
+Elle a été demandée par Yannick après un **retour de lecteur**, qui est le vrai
+déclencheur et qu'il faut garder sous les yeux :
+
+> « ton site il nous alerte, mais il peut créer une panique car on ne sait pas
+> quoi faire de ces informations »
+
+Ce n'est pas une intuition d'auteur, c'est un constat d'usage. Un outil qui
+documente sans jamais ouvrir de suite laisse le lecteur avec une inquiétude et
+aucune prise — et une inquiétude sans prise se résout ailleurs, souvent chez le
+premier vendeur venu. La règle, écrite pour éloigner du commerce, y renvoyait
+donc par omission.
+
+La distinction posée par Yannick est celle qui rend la révision possible :
+
+> « solutions de filtrations, non pas un produit mais un type, on sait que le
+> charbon actif retient les chaînes longues de PFAS mais très mal les chaînes
+> courtes. »
+
+« Le charbon actif retient mal les PFAS à chaîne courte » est un **fait de
+physico-chimie**, vérifiable et sourçable, du même statut qu'un seuil.
+« Achetez tel filtre » est un argumentaire commercial. L'ancienne rédaction
+interdisait les deux par la même phrase.
+
+### Où passe exactement la frontière
+
+**Permis** : décrire une famille de procédés et ce qu'elle retient. Et cela ne
+vit **pas dans de la prose** — le projet ne dit rien qui ne soit sourcé et daté
+(§2.7), donc cette matière prend la même forme que le référentiel de seuils :
+
+```
+referentiel/retention_procedes.csv
+  procede ; famille_substance ; taille_ou_propriete ; retention ;
+  sources ; fiabilite
+```
+
+Une ligne par couple **procédé × famille de substance**. Et le §2.7 s'y
+applique entier : **la source doit couvrir CE couple précisément.** C'est le
+piège du chlorothalonil R417888 transposé — « le charbon actif retient les
+PFAS » étendu par analogie aux chaînes courtes serait une valeur fausse
+déguisée en valeur sourcée, et c'est exactement l'exemple que Yannick cite pour
+justifier la révision. La règle se retournerait alors contre elle-même.
+
+**Interdit**, sans exception, nulle part, pas même en note :
+
+| Ce qui est interdit | Le test qui le repère |
+|---|---|
+| marque, modèle, fournisseur, prix, lien d'achat | le lecteur peut-il acheter la chose nommée ? |
+| conseil individuel — « pour votre eau, prenez… », « il faudrait filtrer » | la phrase s'adresse-t-elle à *ce* lecteur plutôt qu'à la substance ? |
+| l'eau embouteillée comme solution | le projet n'en a **aucun corpus** (§8) : ce serait un conseil non documenté |
+| description tournée en recommandation | impératif, conditionnel de conseil, classement de procédés par « efficacité » détaché de son couple procédé × substance |
+
+Le dernier cas est le plus insidieux parce qu'il ne nomme aucun produit. « Le
+meilleur procédé contre les PFAS est… » est déjà une prescription : un procédé
+n'est efficace **que sur un couple**, et le classer dans l'absolu fabrique la
+recommandation que le reste de la règle interdit.
+
+### Le cas de Vourles, qui se referme
+
+`tests/test_sorties.py` signalait, dans une section de la main de Yannick, la
+phrase « précisément celles que le charbon actif retient mal ». Elle était
+laissée en l'état — ni supprimée, ni validée — dans l'attente de cette révision
+(chantier C1, gelé le 8 août 2026 : *« on fera une révision du §2.2 le moment
+voulu. Pour l'instant on touche pas. »*).
+
+La révision la rend conforme **sur le fond**. Elle ne la rend pas sourcée pour
+autant : Yannick lui-même écrivait *« je n'en suis pas certain »*. La phrase
+attend donc sa ligne dans `retention_procedes.csv` — charbon actif × PFAS à
+chaîne courte, avec sa source — et non un simple retrait du signalement.
 
 ---
 
