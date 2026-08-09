@@ -92,7 +92,7 @@ def _lignes(con, code_prel, version):
                seuil_2016, grille_applicable, depasse_applicable,
                bascule_2016_2026, bascule_datee, indetermine_strict,
                indetermine_condition, famille, est_quantifie, seuil_strict,
-               lq_aveugle, lq_rapport_seuil, est_agregat
+               lq_aveugle, lq_rapport_seuil, est_agregat, depasse_strict
         FROM verdicts_figes
         WHERE code_prelevement = ? AND version_referentiel = ?
         ORDER BY resultat_num DESC NULLS LAST

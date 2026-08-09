@@ -158,6 +158,24 @@ def dossier(con, a, version):
     if a.get("nb_synthese_recherchees"):
         d.append(f"{a['nb_synthese_recherchees']} substances de synthèse recherchées")
 
+    # §2.12 porté PAR le dossier, et non laissé à la mémoire du rédacteur.
+    #
+    # Six rédacteurs du lot du Tarn ont signalé le même conflit le 9 août 2026 :
+    # le §2.12 impose de dire, partout où la grille 2016 est invoquée sur un
+    # métabolite, que ce 0,1 µg/L est une extrapolation ; et la consigne leur
+    # interdit d'écrire ce que le dossier ne porte pas. Chacun a tranché seul,
+    # dans un sens ou dans l'autre — c'est-à-dire que la règle s'appliquait au
+    # hasard. Un garde-fou qui dépend de qui le lit n'en est pas un : il vit
+    # désormais dans le dossier, comme le reste des faits.
+    if any(r[12] == "metabolite" and r[5] is not None for r in lignes):
+        d.append("\n# Réserve obligatoire sur ce bulletin (§2.12)\n")
+        d.append("Ce bulletin porte des métabolites notés contre la grille de "
+                 "2016. Le seuil de 0,1 µg/L qui leur est appliqué pour 2016 est "
+                 "une **extrapolation assumée du projet**, pas la lecture d'un "
+                 "texte de 2016 : la règle qui le fonde est postérieure. Tu DOIS "
+                 "le dire partout où tu invoques la grille de 2016 sur un "
+                 "métabolite. N'invente ni date ni référence de texte.")
+
     d.append("\n# Verdicts\n")
     d.append(f"Dépassements à la date du prélèvement : {a['nb_depasse_applicable']}")
     d.append(f"Bascules 2016→2026 : {a['nb_bascules']} "
@@ -213,6 +231,19 @@ def dossier(con, a, version):
                   lambda r: r[8] and not r[7]))
     d.append(bloc("Indéterminés au repère le plus strict",
                   lambda r: (r[10] or r[11]) and not r[7] and not r[8] and not r[15]))
+    # Le compteur existait, la table manquait.
+    #
+    # Troisième compteur sans détail trouvé le 9 août 2026, signalé par trois
+    # rédacteurs du lot du Tarn. Le bloc « Verdicts » annonçait « dépasserait le
+    # repère le plus strict identifié : 1 » et aucune table ne nommait ce
+    # paramètre. Tous les trois se sont abstenus d'en parler — à raison, puisque
+    # l'attribuer à une substance au jugé aurait été un faux positif — et le
+    # bulletin perdait ainsi ce qui était souvent son seul angle : une eau
+    # conforme partout, qui ne l'est pas au repère le plus protecteur connu.
+    # C'est la thèse du projet vue par son autre bout, et elle était invisible.
+    d.append(bloc("Dépasserait le repère le plus strict identifié "
+                  "(mais pas la grille applicable)",
+                  lambda r: r[18] and not r[7]))
 
     aveugles = [r for r in lignes if r[15]][:12]
     d.append("\n## Paramètres hors de portée du laboratoire\n"

@@ -89,6 +89,12 @@ Une seule de ces règles enfreinte, et le texte est rejeté à l'intégration.
   paramètres est une information plus faible qu'une eau moyenne sur 700 : la
   première n'a pas été beaucoup interrogée. Ne jamais comparer des comptes bruts
   de dépassements entre deux bulletins d'effort différent.
+- **Un sigle que le dossier ne développe pas ne se développe pas.** SMAEP, UGE,
+  UDI : écris-les tels quels, ou évite-les. Six rédacteurs du lot du Tarn ont
+  buté sur la contradiction entre « développe les sigles » et « rien hors du
+  dossier » ; c'est la seconde règle qui gagne, et certains ont préféré taire le
+  gestionnaire plutôt que d'inventer son intitulé. Mieux vaut un sigle brut
+  qu'un développement supposé.
 - **Aucune connaissance extérieure présentée comme un fait.** Tu peux situer une
   commune — son département, son cours d'eau, le nom de son réseau — si le
   dossier le porte. Tu ne peux pas expliquer une mesure par un savoir que tu
