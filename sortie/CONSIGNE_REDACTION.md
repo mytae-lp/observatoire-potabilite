@@ -89,6 +89,19 @@ Une seule de ces règles enfreinte, et le texte est rejeté à l'intégration.
   paramètres est une information plus faible qu'une eau moyenne sur 700 : la
   première n'a pas été beaucoup interrogée. Ne jamais comparer des comptes bruts
   de dépassements entre deux bulletins d'effort différent.
+- **Un changement de panel se décrit, il ne s'explique pas.** Dis que le
+  périmètre de mesure a changé, et que cela interdit la comparaison terme à
+  terme. **N'attribue jamais ce changement à un texte, à une date, ni à une
+  décision.** Instruction du 9 août 2026, sur instruction de Yannick, après un
+  cas réel : un texte proposé attribuait l'écart de panel d'Alban à « une
+  instruction de décembre 2020 », alors que les deux bulletins de cette commune
+  sont de 2016 et 2026 — dix ans sans rien entre les deux, donc aucune datation
+  possible — et que dans le Tarn le basculement était **déjà entièrement acquis
+  avant** cette date : 55 installations sur 132 étaient passées au panel étroit
+  au 18 décembre 2020, et aucune ne cherchait plus un panel large après 2019.
+  La cause reste à instruire ; elle vit dans `docs/CHANTIERS.md` §C2 avec ses
+  réserves, pas dans une fiche communale. Aucun contrôle mécanique ne peut
+  attraper cette faute : une causalité ne contient aucun nombre décimal.
 - **Le repère le plus strict est « le plus strict identifié »**, jamais « le plus
   strict au monde » : le balayage mondial n'a été fait que sur les PFAS.
 - **Le cumul se dénombre, il ne s'évalue pas.** On peut dire combien de
