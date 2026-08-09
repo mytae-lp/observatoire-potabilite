@@ -131,10 +131,42 @@ def empreinte(nom):
     return f"{nom}?v={EMPREINTES[nom]}"
 
 
+def fil_ariane(fil, prefixe):
+    """
+    Le fil d'Ariane — accueil › département › commune › bulletin.
+
+    Il n'est pas décoratif : le parcours du §8bis va du code postal au bulletin
+    en passant par des niveaux intermédiaires, et un visiteur qui arrive sur une
+    fiche par un lien direct n'a autrement aucun moyen de savoir où il est ni de
+    remonter d'un cran.
+    """
+    if not fil:
+        return ""
+    bouts = []
+    for i, (libelle, url) in enumerate(fil):
+        dernier = i == len(fil) - 1
+        if dernier or not url:
+            bouts.append(f'<li aria-current="page">{h(libelle)}</li>')
+        else:
+            bouts.append(f'<li><a href="{prefixe}{h(url)}">{h(libelle)}</a></li>')
+    return ('<nav class="fil" aria-label="Fil d\'Ariane"><div class="wrap">'
+            f'<ol>{"".join(bouts)}</ol></div></nav>')
+
+
 def page(titre, corps, page_courante, description, version, calcule_le,
-         scripts="", sous_titre=None, formule=True):
+         scripts="", sous_titre=None, formule=True, prefixe="", fil=None):
+    """
+    Le squelette commun. `prefixe` est le chemin de retour vers la racine —
+    "" à la racine, "../" dans `commune/` et `departement/`.
+
+    Il est passé explicitement plutôt que réparé après coup : la version
+    précédente réécrivait les adresses d'une page déjà rendue par une chaîne de
+    `.replace()`, une par entrée de menu. Ajouter une page au menu ou un
+    sous-dossier au site demandait de penser à allonger la chaîne, sans quoi le
+    lien pointait dans le vide — et rien ne l'aurait signalé.
+    """
     nav = "".join(
-        f'<li><a href="{f}"{" aria-current=\"page\"" if f == page_courante else ""}>{h(n)}</a></li>'
+        f'<li><a href="{prefixe}{f}"{" aria-current=\"page\"" if f == page_courante else ""}>{h(n)}</a></li>'
         for f, n in PAGES)
     return f"""<!DOCTYPE html>
 <html lang="fr">
@@ -143,7 +175,7 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{h(titre)} — Observatoire de la potabilité réglementaire</title>
 <meta name="description" content="{h(description)}">
-<link rel="stylesheet" href="assets/{empreinte('observatoire.css')}">
+<link rel="stylesheet" href="{prefixe}assets/{empreinte('observatoire.css')}">
 </head>
 <body>
 <div class="masthead"><div class="wrap">
@@ -153,6 +185,7 @@ def page(titre, corps, page_courante, description, version, calcule_le,
   {'<div class="formule">« Ce n\'est pas l\'eau qui est devenue potable. C\'est la limite qui a bougé. »</div>' if formule else ''}
 </div></div>
 <nav class="nav" aria-label="Sections du site"><div class="wrap"><ul>{nav}</ul></div></nav>
+{fil_ariane(fil, prefixe)}
 
 <div class="wrap">
 {corps}
@@ -234,35 +267,80 @@ def projeter(lon, lat, lat0=46.6):
     return lon * math.cos(math.radians(lat0)), -lat
 
 
-def carte_svg(lignes, largeur=920):
+_GEO = {}
+
+
+def geo_departements():
+    """
+    Le fond, lu une seule fois et indexé par code de département.
+
+    L'indexation par département est ce qui permet de ne dessiner qu'un
+    département sur sa propre page. Sans elle, chaque page départementale
+    embarquerait les 174 Ko du fond national pour n'en montrer qu'un
+    centième — mesuré le 9 août 2026 : le fond pèse 92 % de `carte.html`,
+    un point de commune 203 octets. Le coût de la carte est dans le fond,
+    et il est fixe.
+    """
+    if _GEO:
+        return _GEO
+    if not os.path.exists(GEOJSON):
+        return _GEO
+    geo = json.load(open(GEOJSON, encoding="utf-8"))
+    for f in geo["features"]:
+        code = str(f["properties"].get("code") or "").strip()
+        g = f["geometry"]
+        polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
+        anneaux = [a for poly in polys for a in poly]
+        _GEO[code] = {"nom": f["properties"].get("nom") or code, "anneaux": anneaux}
+    return _GEO
+
+
+def carte_svg(lignes, largeur=920, depts=None, lien_dept=None, prefixe="",
+              focus=None, relier=None):
     """Fond départemental + un point par commune, en SVG produit ici même.
 
     Aucun serveur de tuiles n'est appelé : le visiteur ne laisse donc aucune
     trace chez un tiers en consultant la carte, et il n'y a pas de bannière de
     consentement à lui imposer.
+
+    `depts` restreint le fond ET le cadrage à ces départements — c'est le zoom.
+    Il n'y a pas d'autre zoom : le cadrage se calcule sur ce qu'on dessine, donc
+    une carte du Tarn est un fond du Tarn, pas un fond de France recadré.
+    Mesuré : sur une carte de France large de 926 px, le Tarn occupe 85 × 73 px,
+    contre 926 × 793 sur sa propre page — environ 120 fois plus de surface pour
+    y placer ses 314 communes. C'est la lisibilité qui impose ce découpage, pas
+    le poids : un point ne coûte que 203 octets.
+
+    `lien_dept` rend chaque département cliquable — c'est ce qui fait de la
+    carte de France une porte d'entrée du parcours plutôt qu'une illustration.
+
+    `focus` et `relier` servent la carte de situation d'une fiche : mettre en
+    évidence la commune qu'on regarde, et **tracer le trait vers la commune où
+    l'analyse a réellement été prélevée**. C'est l'obligation d'affichage n° 5
+    du §8bis rendue visible au lieu d'être seulement écrite — à l'échelle, six
+    communes sur dix lisent le bulletin d'une voisine, et une phrase en petits
+    caractères ne suffit pas à le faire comprendre.
     """
-    if not os.path.exists(GEOJSON):
+    geo = geo_departements()
+    if not geo:
         return ('<p class="rappel">Fond de carte absent — '
                 '<code>referentiel/geo/departements-simplifie.geojson</code>.</p>')
-    geo = json.load(open(GEOJSON, encoding="utf-8"))
 
-    anneaux = []
-    for f in geo["features"]:
-        g = f["geometry"]
-        polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
-        for poly in polys:
-            for anneau in poly:
-                anneaux.append(anneau)
+    retenus = [(c, d) for c, d in sorted(geo.items())
+               if depts is None or c in depts]
+    if not retenus:
+        return '<p class="rappel">Aucun contour départemental pour cette zone.</p>'
 
     xs, ys = [], []
-    for anneau in anneaux:
-        for lon, lat in anneau:
-            x, y = projeter(lon, lat)
-            xs.append(x)
-            ys.append(y)
+    for _, d in retenus:
+        for anneau in d["anneaux"]:
+            for lon, lat in anneau:
+                x, y = projeter(lon, lat)
+                xs.append(x)
+                ys.append(y)
     minx, maxx, miny, maxy = min(xs), max(xs), min(ys), max(ys)
     marge = 14
-    ech = (largeur - 2 * marge) / (maxx - minx)
+    ech = (largeur - 2 * marge) / max(1e-9, (maxx - minx))
     hauteur = (maxy - miny) * ech + 2 * marge
 
     def pt(lon, lat):
@@ -271,33 +349,67 @@ def carte_svg(lignes, largeur=920):
 
     # Décimation : à cette échelle, deux points distants de moins d'un demi-pixel
     # sont le même point. Le fichier source reste intact dans le dépôt.
+    # Le seuil suit l'échelle : sur un seul département, un demi-pixel
+    # représente une distance bien plus courte, donc on décime moins.
     chemins = []
-    for anneau in anneaux:
-        d, prev = [], None
-        for lon, lat in anneau:
-            x, y = pt(lon, lat)
-            if prev and abs(x - prev[0]) < .5 and abs(y - prev[1]) < .5:
-                continue
-            d.append(f"{'M' if not d else 'L'}{x:.1f},{y:.1f}")
-            prev = (x, y)
-        if len(d) > 3:
-            chemins.append('<path class="dept" d="' + "".join(d) + 'Z"/>')
+    for code, d in retenus:
+        traces = []
+        for anneau in d["anneaux"]:
+            trace, prev = [], None
+            for lon, lat in anneau:
+                x, y = pt(lon, lat)
+                if prev and abs(x - prev[0]) < .5 and abs(y - prev[1]) < .5:
+                    continue
+                trace.append(f"{'M' if not trace else 'L'}{x:.1f},{y:.1f}")
+                prev = (x, y)
+            if len(trace) > 3:
+                traces.append("".join(trace) + "Z")
+        if not traces:
+            continue
+        forme = f'<path class="dept" d="{"".join(traces)}"/>'
+        if lien_dept and lien_dept(code):
+            chemins.append(
+                f'<a class="zone" href="{h(lien_dept(code))}">'
+                f'<title>{h(d["nom"])} ({h(code)})</title>{forme}</a>')
+        else:
+            chemins.append(forme)
 
+    focus = set(focus or ())
+    coord = {}
     points = []
     for c in sorted(lignes, key=lambda r: 0 if r["statut"] == "non_documentee" else 1):
         if c["lon"] is None or c["lat"] is None:
             continue
+        if depts is not None and c["dept"] not in depts:
+            continue
         x, y = pt(c["lon"], c["lat"])
+        coord[c["code_insee"]] = (x, y)
         r = 5.5 if c["statut"] != "non_documentee" else 4.5
+        if depts is not None and len(depts) == 1:
+            r += 1.5          # un seul département : la place ne manque pas
+        vedette = c["code_insee"] in focus
+        if vedette:
+            r += 2.5
         titre = f"{c['commune']} ({c['dept']}) — {c['libelle_statut']}"
         points.append(
-            f'<a class="pt" href="{c["url"]}" aria-label="{h(titre)}">'
+            f'<a class="pt{" vedette" if vedette else ""}" href="{prefixe}{c["url"]}" '
+            f'aria-label="{h(titre)}">'
             f'<title>{h(titre)}</title>'
             f'<circle class="{c["niveau"]}" cx="{x:.1f}" cy="{y:.1f}" r="{r}"/></a>')
 
+    # Le trait entre la commune et celle où l'analyse a été prélevée. Il n'est
+    # tracé que si les deux points sont connus : une liaison approximative
+    # dirait quelque chose de faux sur une carte, ce qu'une phrase absente ne
+    # fait pas.
+    lien = ""
+    if relier and all(k in coord for k in relier):
+        (x1, y1), (x2, y2) = coord[relier[0]], coord[relier[1]]
+        lien = (f'<line class="emprunt" x1="{x1:.1f}" y1="{y1:.1f}" '
+                f'x2="{x2:.1f}" y2="{y2:.1f}"/>')
+
     return (f'<svg viewBox="0 0 {largeur:.0f} {hauteur:.0f}" '
             f'role="img" aria-label="Carte des communes documentées">'
-            f'<g>{"".join(chemins)}</g><g>{"".join(points)}</g></svg>')
+            f'<g>{"".join(chemins)}</g>{lien}<g>{"".join(points)}</g></svg>')
 
 
 # ---------------------------------------------------------------------------
@@ -411,25 +523,29 @@ def page_accueil(lignes, these, version, calcule_le, con):
 
 def page_carte(lignes, version, calcule_le):
     n = {k: sum(1 for c in lignes if c["niveau"] == k) for k in DOT}
-    svg = carte_svg(lignes)
+    # Seuls les départements que le corpus documente sont cliquables : un lien
+    # vers une page qui n'existe pas serait une promesse de couverture que le
+    # corpus ne tient pas.
+    couverts = {c["dept"] for c in lignes}
+    svg = carte_svg(lignes,
+                    lien_dept=lambda code: f"departement/{code}.html"
+                    if code in couverts else None)
     return f"""
   <section style="margin-top:0">
     <div class="carte-bloc">{svg}
-      <div class="carte-legende">
-        <span><i class="lg-vert"></i> commune analysée, aucun dépassement à la date du prélèvement — {n['analysee-vert']}</span>
-        <span><i class="lg-bascule"></i> commune analysée, au moins une <b>bascule</b> : conforme aujourd'hui, pas selon la grille de 2016 — {n['analysee-bascule']}</span>
-        <span><i class="lg-rouge"></i> commune analysée, au moins un dépassement à la date du prélèvement — {n['analysee-rouge']}</span>
-        <span><i class="lg-rattachee"></i> commune rattachée au réseau — l'analyse a été prélevée dans une commune voisine, sur la même eau — {n['rattachee']}</span>
-        <span><i class="lg-nondoc"></i> commune <b>non documentée</b> — aucun bulletin complet, ni pour elle ni pour son réseau — {n['non_documentee']}</span>
-      </div>
+      {legende_carte(n)}
     </div>
     <div class="rappel"><b>Gris n'est pas une couleur neutre, c'est un troisième état.</b>
       Une commune non documentée n'est ni conforme ni non conforme : on ne sait pas.
       La faire disparaître de la carte reviendrait à présenter une absence de donnée
-      comme une bonne nouvelle. Un cercle ambre existe aussi : la commune est analysée,
-      sans dépassement, mais au moins une mesure est <b>indéterminée</b> — la limite de
-      quantification du laboratoire est au-dessus du seuil de comparaison, et on ne peut
-      donc pas affirmer que le seuil est respecté.</div>
+      comme une bonne nouvelle. C'est pourquoi masquer un état ne retire jamais son
+      compte de la légende : on le barre, on ne l'efface pas.</div>
+    <div class="rappel"><b>Les départements documentés sont cliquables.</b> À cette
+      échelle, un département occupe moins d'un dixième de la largeur de la carte, et
+      ses communes s'y superposent : sa page le montre de près, avec la liste de ses
+      communes et de ses gestionnaires. Les départements que le corpus ne documente pas
+      encore ne mènent nulle part — un lien y serait une promesse de couverture que le
+      corpus ne tient pas.</div>
     <div class="rappel">Le fond de carte est produit à la construction du site et
       incorporé à la page : aucune requête n'est adressée à un serveur de tuiles, donc
       aucune adresse IP de visiteur n'est transmise à un tiers. Les départements et
@@ -438,41 +554,126 @@ def page_carte(lignes, version, calcule_le):
 """
 
 
-def page_communes(lignes, version, calcule_le):
-    lig = []
+def par_departement(lignes):
+    """Le corpus regroupé par département, dans l'ordre des codes.
+
+    L'ordre est celui des codes, jamais celui d'un indicateur : un tableau de
+    départements trié par nombre de dépassements serait un classement, et le
+    §2.11 en interdit un qui n'afficherait pas l'effort de recherche de chaque
+    terme. L'effort est affiché — en étendue, jamais en moyenne — et l'ordre
+    reste neutre.
+    """
+    groupes = {}
     for c in lignes:
-        url = f"commune/{c['code_insee']}.html"
-        nom = (f"<a href='{url}'>{h(c['commune'])}</a>"
-               if c["statut"] != "non_documentee" else h(c["commune"]))
-        if c["statut"] == "non_documentee":
-            detail = "<td colspan='5' style='color:var(--gris)'>aucun bulletin complet, ni pour la commune ni pour son réseau</td>"
-        else:
-            emprunt = (f"<span class='grille'>prélevé à {h(c['commune_prelevement'])}</span>"
-                       if c["statut"] == "rattachee_reseau" else "")
-            detail = (
-                f"<td class='num'>{h(BF._date_fr(c['date_prelevement']))}{emprunt}</td>"
-                f"<td class='num'>{c['nb_parametres'] or '—'}<span class='grille'>{h(c['classe_effort'] or '')}</span></td>"
-                f"<td class='num'>{c['nb_mesures_notees'] or '—'} / {c['nb_mesures_lues'] or '—'}"
-                f"<span class='grille'>{BF._nb(c['pct_couverture'])} % de couverture</span></td>"
-                f"<td class='num'>{c['nb_depasse_applicable'] if c['nb_depasse_applicable'] is not None else '—'}"
-                f"<span class='grille'>{BF._nb(c['depassements_pour_mille'])} ‰</span></td>"
-                f"<td class='num'><b style='color:var(--bascule)'>{c['nb_bascules'] if c['nb_bascules'] is not None else '—'}</b></td>")
-        lig.append(
-            f"<tr><td>{nom}<span class='grille'>INSEE {h(c['code_insee'])}</span></td>"
-            f"<td>{h(c['dept'])}</td>"
+        groupes.setdefault(c["dept"], []).append(c)
+    return dict(sorted(groupes.items()))
+
+
+def _nom_dept(code):
+    d = geo_departements().get(code)
+    return d["nom"] if d else code
+
+
+def _etendue_effort(communes):
+    """De X à Y paramètres cherchés. Une étendue, pas une moyenne : une moyenne
+    d'efforts de recherche n'appartient à aucun bulletin réel et se lirait comme
+    une propriété du département, ce qu'elle n'est pas."""
+    eff = [c["nb_parametres"] for c in communes if c["nb_parametres"]]
+    if not eff:
+        return "—"
+    return f"{min(eff)}" if min(eff) == max(eff) else f"{min(eff)} à {max(eff)}"
+
+
+def _ligne_commune(c, prefixe="", avec_dept=True):
+    """Une ligne de commune, la même partout — liste nationale, page de
+    département, résultat de recherche. Elle porte toujours son effort de
+    recherche et son dénominateur : ce sont les obligations 1 et 2 du §8bis, et
+    une ligne compacte est exactement l'endroit où l'on serait tenté de les
+    laisser tomber."""
+    url = f"{prefixe}commune/{c['code_insee']}.html"
+    nom = (f"<a href='{url}'>{h(c['commune'])}</a>"
+           if c["statut"] != "non_documentee" else h(c["commune"]))
+    if c["statut"] == "non_documentee":
+        detail = ("<td colspan='5' style='color:var(--gris)'>aucun bulletin complet, "
+                  "ni pour la commune ni pour son réseau</td>")
+    else:
+        emprunt = (f"<span class='grille'>prélevé à {h(c['commune_prelevement'])}</span>"
+                   if c["statut"] == "rattachee_reseau" else "")
+        detail = (
+            f"<td class='num'>{h(BF._date_fr(c['date_prelevement']))}{emprunt}</td>"
+            f"<td class='num'>{c['nb_parametres'] or '—'}<span class='grille'>{h(c['classe_effort'] or '')}</span></td>"
+            f"<td class='num'>{c['nb_mesures_notees'] or '—'} / {c['nb_mesures_lues'] or '—'}"
+            f"<span class='grille'>{BF._nb(c['pct_couverture'])} % de couverture</span></td>"
+            f"<td class='num'>{c['nb_depasse_applicable'] if c['nb_depasse_applicable'] is not None else '—'}"
+            f"<span class='grille'>{BF._nb(c['depassements_pour_mille'])} ‰</span></td>"
+            f"<td class='num'><b style='color:var(--bascule)'>{c['nb_bascules'] if c['nb_bascules'] is not None else '—'}</b></td>")
+    col_dept = (f"<td><a href='{prefixe}departement/{h(c['dept'])}.html'>{h(c['dept'])}</a></td>"
+                if avec_dept else "")
+    return (f"<tr data-niveau='{h(c['niveau'])}' data-statut='{h(c['statut'])}' "
+            f"data-nom='{h((c['commune'] or '').lower())}'>"
+            f"<td>{nom}<span class='grille'>INSEE {h(c['code_insee'])}</span></td>"
+            f"{col_dept}"
             f"<td><span class='st {h(c['statut'])}'>{h(c['libelle_statut'])}</span></td>"
             f"{detail}</tr>")
 
-    return f"""
-  <section style="margin-top:0">
-    <div class="tableau-communes">
-      <table>
-        <thead><tr><th>Commune</th><th>Dépt</th><th>Statut</th><th>Prélèvement</th>
-          <th>Effort de recherche</th><th>Paramètres notés</th>
-          <th>Dépassements à la date</th><th>Bascules</th></tr></thead>
-        <tbody>{"".join(lig)}</tbody>
-      </table>
-    </div>
+
+# Les cinq états, dans l'ordre où ils se lisent : ce que l'on sait, puis ce que
+# l'on ne sait pas. L'ordre n'est pas anodin — mettre « non documentée » en
+# dernier et en petit reviendrait à la traiter comme une note de bas de page,
+# alors que c'est un état de plein droit (§8bis obligation 4).
+ETATS_CARTE = [
+    ("analysee-vert", "lg-vert",
+     "commune analysée, aucun dépassement à la date du prélèvement"),
+    ("analysee-bascule", "lg-bascule",
+     "commune analysée, au moins une <b>bascule</b> : conforme aujourd'hui, "
+     "pas selon la grille de 2016"),
+    ("analysee-ambre", "lg-ambre",
+     "commune analysée, sans dépassement, mais au moins une mesure "
+     "<b>indéterminée</b> — la limite de quantification du laboratoire est "
+     "au-dessus du seuil de comparaison"),
+    ("analysee-rouge", "lg-rouge",
+     "commune analysée, au moins un dépassement à la date du prélèvement"),
+    ("rattachee", "lg-rattachee",
+     "commune rattachée au réseau — l'analyse a été prélevée dans une commune "
+     "voisine, sur la même eau"),
+    ("non_documentee", "lg-nondoc",
+     "commune <b>non documentée</b> — aucun bulletin complet, ni pour elle ni "
+     "pour son réseau"),
+]
+
+
+def legende_carte(compte, filtrable=True):
+    """
+    La légende, qui est aussi le filtre.
+
+    Deux raisons de ne pas en faire deux objets distincts. La première est de
+    place : une légende de six lignes doublée d'une barre de filtres de six
+    boutons dit deux fois la même chose. La seconde tient à la méthode — un
+    filtre séparé se conçoit comme un réglage d'affichage, et on finit par
+    proposer « masquer les non documentées » comme une commodité. Ici, masquer
+    un état est un geste explicite du lecteur sur une légende qui continue d'en
+    afficher le compte, barré : le nombre ne disparaît jamais de l'écran.
+
+    Sans JavaScript, chaque bouton reste un libellé lisible et tout est affiché.
+    """
+    bouts = []
+    for niveau, classe, texte in ETATS_CARTE:
+        n = compte.get(niveau, 0)
+        if not n:
+            continue
+        contenu = f'<i class="{classe}"></i> <span>{texte} — <b>{n}</b></span>'
+        if filtrable:
+            bouts.append(f'<button type="button" class="lg-btn" data-niveau="{niveau}" '
+                         f'aria-pressed="true">{contenu}</button>')
+        else:
+            bouts.append(f"<span>{contenu}</span>")
+    aide = ('<p class="lg-aide">Cliquez un état pour le retirer de la carte et du '
+            'tableau. Son compte reste affiché : un état masqué n\'est pas un état '
+            'qui n\'existe pas.</p>' if filtrable else "")
+    return f'<div class="carte-legende">{"".join(bouts)}</div>{aide}'
+
+
+RAPPEL_EFFORT = """
     <div class="rappel"><b>L'effort de recherche est dans le tableau, et il n'en sortira
       pas.</b> Le nombre de paramètres cherchés n'est pas un indicateur de qualité de
       l'eau : c'est un indicateur de transparence, et il se lit à l'envers. Une eau
@@ -480,6 +681,148 @@ def page_communes(lignes, version, calcule_le):
       « moyenne » sur 700 — la première n'a pas été beaucoup interrogée. C'est pourquoi
       la colonne des dépassements porte aussi un taux (‰ des paramètres notés) : seuls
       les taux se comparent d'une commune à l'autre.</div>
+"""
+
+
+def page_communes(lignes, version, calcule_le):
+    """
+    L'entrée du parcours : un département par ligne, et non plus toutes les
+    communes d'un bloc.
+
+    Mesuré le 9 août 2026 : une ligne de commune pèse environ 530 octets. À
+    l'échelle visée — plusieurs milliers de communes —, la liste unique
+    dépasserait 2,5 Mo d'un seul tenant, sans tri ni filtre, et personne ne la
+    parcourrait. Le découpage par département n'est donc pas une commodité de
+    présentation : c'est ce qui permet à chaque page de rester un fichier que
+    l'on charge et que l'on lit.
+    """
+    groupes = par_departement(lignes)
+    lig = []
+    for dept, communes in groupes.items():
+        n_ana = sum(1 for c in communes if c["statut"] == "analysee")
+        n_rat = sum(1 for c in communes if c["statut"] == "rattachee_reseau")
+        n_nd = sum(1 for c in communes if c["statut"] == "non_documentee")
+        n_bas = sum(c["nb_bascules"] or 0 for c in communes)
+        n_dep = sum(c["nb_depasse_applicable"] or 0 for c in communes)
+        lig.append(
+            f"<tr><td><a href='departement/{h(dept)}.html'>{h(_nom_dept(dept))}</a>"
+            f"<span class='grille'>département {h(dept)}</span></td>"
+            f"<td class='num'>{n_ana + n_rat}<span class='grille'>dont {n_rat} par le réseau</span></td>"
+            f"<td class='num'>{n_nd or '—'}</td>"
+            f"<td class='num'>{h(_etendue_effort(communes))}</td>"
+            f"<td class='num'>{n_dep}</td>"
+            f"<td class='num'><b style='color:var(--bascule)'>{n_bas}</b></td></tr>")
+
+    return f"""
+  <section style="margin-top:0">
+    <div class="tableau-communes">
+      <table>
+        <thead><tr><th>Département</th><th>Communes documentées</th>
+          <th>Non documentées</th><th>Effort de recherche</th>
+          <th>Dépassements à la date</th><th>Bascules</th></tr></thead>
+        <tbody>{"".join(lig)}</tbody>
+      </table>
+    </div>
+    <div class="rappel"><b>Un département n'a pas de verdict, et ce tableau n'en donne
+      pas.</b> Les nombres d'une ligne sont des <b>sommes de bulletins</b> — chacun
+      prélevé un jour donné, sur un point d'eau donné, et noté contre la grille en
+      vigueur ce jour-là. Ils ne décrivent pas « l'eau du département » : cet objet
+      n'existe pas, il n'a pas de date, et il ne pourrait donc être noté contre aucune
+      grille. Les lignes sont dans l'ordre des codes, pas dans celui d'un indicateur :
+      un classement de départements demanderait, en plus de l'effort de recherche, que
+      chacun ait été collecté avec la même profondeur — ce qui n'est pas le cas.</div>
+    <div class="rappel">L'<b>effort de recherche</b> est donné en étendue — « de 234 à
+      627 paramètres » — et jamais en moyenne. Une moyenne d'efforts n'appartient à
+      aucun bulletin réel, et se lirait comme une propriété du territoire.</div>
+  </section>
+"""
+
+
+def page_departement(dept, communes, version, calcule_le):
+    """
+    Le niveau qui manquait entre la carte de France et la fiche d'une commune.
+
+    Il porte trois choses qu'aucun autre écran ne peut porter : le département
+    vu de près — donc lisible —, la liste de ses communes avec leurs trous, et
+    les gestionnaires qui y sont déclarés. C'est aussi le seul endroit où les
+    communes **non documentées** d'un territoire apparaissent ensemble : à
+    l'échelle nationale elles se perdent, et leur nombre est précisément ce
+    qu'un observatoire doit rendre visible.
+    """
+    n_ana = sum(1 for c in communes if c["statut"] == "analysee")
+    n_rat = sum(1 for c in communes if c["statut"] == "rattachee_reseau")
+    n_nd = sum(1 for c in communes if c["statut"] == "non_documentee")
+    n_bas = sum(c["nb_bascules"] or 0 for c in communes)
+    n_dep = sum(c["nb_depasse_applicable"] or 0 for c in communes)
+
+    svg = carte_svg(communes, largeur=760, depts={dept}, prefixe="../")
+    n = {k: sum(1 for c in communes if c["niveau"] == k) for k in DOT}
+
+    # Les gestionnaires déclarés par la source. `nom_uge` est le nom du
+    # gestionnaire, pas celui de l'unité de distribution : deux communes qui
+    # partagent un gestionnaire ne boivent pas nécessairement la même eau. Le
+    # bloc le dit plutôt que de laisser le regroupement le suggérer.
+    uge = {}
+    for c in communes:
+        if c["statut"] == "non_documentee" or not c["nom_uge"]:
+            continue
+        uge.setdefault(c["nom_uge"], []).append(c)
+    bloc_uge = ""
+    if uge:
+        items = "".join(
+            f"<li><b>{h(nom)}</b> — {len(cs)} commune(s) : "
+            + ", ".join(f"<a href='../commune/{h(c['code_insee'])}.html'>{h(c['commune'])}</a>"
+                        for c in sorted(cs, key=lambda x: x["commune"]))
+            + f"<span class='grille'>effort de recherche : {h(_etendue_effort(cs))} paramètres</span></li>"
+            for nom, cs in sorted(uge.items()))
+        bloc_uge = f"""
+  <section><h3 class="sec">Les gestionnaires déclarés — {len(uge)}</h3>
+    <div class="prose"><ul>{items}</ul></div>
+    <div class="rappel"><b>Ce regroupement est celui du gestionnaire, pas celui de
+      l'eau.</b> Le champ utilisé est le nom d'exploitant déclaré avec le bulletin par
+      la source : deux communes qui y figurent ensemble sont gérées par la même entité,
+      ce qui ne veut pas dire qu'elles sont alimentées par le même captage ni par la
+      même usine. Le lien entre un captage et une commune n'est pas exposé par les
+      données publiques — il figure parmi ce que l'outil ne sait pas encore faire.</div>
+  </section>
+"""
+
+    lig = "".join(_ligne_commune(c, prefixe="../", avec_dept=False)
+                  for c in sorted(communes, key=lambda x: x["commune"]))
+
+    return f"""
+  <section style="margin-top:0">
+    <div class="chiffres">
+      <div class="chiffre"><div class="n">{n_ana + n_rat}</div>
+        <div class="l">communes documentées<br>dont {n_rat} par le bulletin de leur réseau</div></div>
+      <div class="chiffre"><div class="n">{n_nd}</div>
+        <div class="l">communes non documentées<br>ni bulletin propre, ni bulletin de réseau</div></div>
+      <div class="chiffre bascule"><div class="n">{n_bas}</div>
+        <div class="l">bascules réglementaires<br>au-dessus de 2016, sous 2026</div></div>
+      <div class="chiffre rouge"><div class="n">{n_dep}</div>
+        <div class="l">dépassements<br>à la date du prélèvement</div></div>
+    </div>
+    <div class="carte-bloc">{svg}
+      {legende_carte(n)}
+    </div>
+    <div class="rappel"><b>Ce que la carte colorie n'est pas la qualité de l'eau</b>, mais
+      ce que l'on sait de l'eau de chaque commune, et contre quelle grille on l'a noté.
+      Une commune grise n'est ni conforme ni non conforme : elle n'a pas encore été
+      collectée, ou aucun bulletin complet n'existe pour elle ni pour son réseau.</div>
+  </section>
+
+  {bloc_uge}
+
+  <section><h3 class="sec">Les {len(communes)} communes du corpus dans ce département</h3>
+    <div class="tableau-communes">
+      <table>
+        <thead><tr><th>Commune</th><th>Statut</th><th>Prélèvement</th>
+          <th>Effort de recherche</th><th>Paramètres notés</th>
+          <th>Dépassements à la date</th><th>Bascules</th></tr></thead>
+        <tbody>{lig}</tbody>
+      </table>
+    </div>
+    {RAPPEL_EFFORT}
   </section>
 """
 
@@ -773,10 +1116,8 @@ def construire(destination=None, db=DB_PATH):
         # --- pages --------------------------------------------------------
         assets = os.path.join(public, "assets")
         os.makedirs(assets, exist_ok=True)
-        for f in ("observatoire.css", "fiche.js"):
+        for f in ("observatoire.css", "fiche.js", "recherche.js", "carte.js"):
             shutil.copyfile(os.path.join(GABARITS, f), os.path.join(assets, f))
-        shutil.copyfile(os.path.join(GABARITS, "recherche.js"),
-                        os.path.join(assets, "recherche.js"))
 
         ecrire(os.path.join(public, "index.html"), page(
             "Quelle eau buvez-vous ?",
@@ -797,16 +1138,22 @@ def construire(destination=None, db=DB_PATH):
             "pas — l'absence de donnée reste visible.", version, calcule_le,
             sous_titre="Ce que la carte colorie n'est pas la qualité de l'eau : c'est "
                        "<b>ce que l'on sait</b> de l'eau de chaque commune, et contre "
-                       "quelle grille on l'a noté.", formule=False))
+                       "quelle grille on l'a noté.", formule=False,
+            fil=[("Accueil", "index.html"), ("Carte de couverture", None)],
+            scripts=f'<script src="assets/{empreinte("carte.js")}"></script>'))
 
         ecrire(os.path.join(public, "communes.html"), page(
             "Les communes du corpus",
             page_communes(lignes, version, calcule_le), "communes.html",
-            "Toutes les communes documentées, avec leur effort de recherche, leur "
-            "taux de couverture et leurs bascules.", version, calcule_le,
-            sous_titre="Chaque ligne porte son <b>effort de recherche</b> et son "
-                       "<b>dénominateur</b> : sans eux, deux communes ne se comparent "
-                       "pas.", formule=False))
+            "Le corpus département par département : communes documentées, communes "
+            "non documentées, effort de recherche et bascules.", version, calcule_le,
+            sous_titre="Le corpus se parcourt <b>par département</b>. Chaque ligne "
+                       "porte son <b>effort de recherche</b> : sans lui, deux "
+                       "territoires ne se comparent pas.", formule=False,
+            fil=[("Accueil", "index.html"), ("Les communes du corpus", None)]))
+
+        # --- une page par département documenté ---------------------------
+        n_depts = pages_departements(lignes, version, calcule_le, public)
 
         ecrire(os.path.join(public, "methode.html"), page(
             "La méthode et ses garde-fous",
@@ -816,7 +1163,8 @@ def construire(destination=None, db=DB_PATH):
             version, calcule_le,
             sous_titre="Les règles ci-dessous ne sont pas des préférences de "
                        "présentation : ce sont les conditions auxquelles les chiffres "
-                       "de ce site ont un sens.", formule=False))
+                       "de ce site ont un sens.", formule=False,
+            fil=[("Accueil", "index.html"), ("La méthode et ses garde-fous", None)]))
 
         ecrire(os.path.join(public, "sources.html"), page(
             "Sources, référentiel et données",
@@ -825,7 +1173,8 @@ def construire(destination=None, db=DB_PATH):
             "construit, et où télécharger l'ensemble.", version, calcule_le,
             sous_titre="Tout ce qui est affiché ici est dérivé de fichiers publics et "
                        "reproductible. Les données sont téléchargeables.",
-            formule=False))
+            formule=False,
+            fil=[("Accueil", "index.html"), ("Sources, référentiel et données", None)]))
 
         # --- une page par commune documentée ------------------------------
         n_fiches = fiches_communes(con, version, lignes, public)
@@ -847,7 +1196,8 @@ def construire(destination=None, db=DB_PATH):
                 for r, _, fs in os.walk(public) for f in fs)
     print(f"vitrine générée : {public}")
     print(f"  référentiel version {version}, calculé le {calcule_le}")
-    print(f"  {len(PAGES)} pages, {n_fiches} fiche(s) de commune, "
+    print(f"  {len(PAGES)} pages, {n_depts} page(s) de département, "
+          f"{n_fiches} fiche(s) de commune, "
           f"{len(exports)} export(s) — {round(total/1024)} Ko au total")
     n_nd = sum(1 for c in lignes if c["statut"] == "non_documentee")
     if n_nd:
@@ -855,6 +1205,84 @@ def construire(destination=None, db=DB_PATH):
               "dans la liste, sans fiche — il n'y a pas de bulletin à montrer.")
     print("  publication : déposer le contenu de ce dossier sur un hébergement statique")
     return public
+
+
+def bloc_situation(c, communes_dept, commune_prelevement=None):
+    """
+    La carte de situation d'une fiche : où est cette commune dans son
+    département, et — si le bulletin est emprunté — où l'eau a été prélevée.
+
+    `commune_prelevement` n'est qu'un **nom** dans `couverture_communes` ; il
+    faut le retrouver parmi les communes du département pour en connaître les
+    coordonnées. Quand il ne s'y trouve pas — commune d'un autre département,
+    libellé qui ne correspond pas —, aucun trait n'est tracé et la phrase reste
+    seule. Un trait vers un point approximatif dirait sur une carte quelque
+    chose de faux, ce que l'absence de trait ne fait pas.
+    """
+    voisine = None
+    if commune_prelevement:
+        cible = commune_prelevement.strip().casefold()
+        for v in communes_dept:
+            if (v["commune"] or "").strip().casefold() == cible:
+                voisine = v
+                break
+
+    svg = carte_svg(communes_dept, largeur=560, depts={c["dept"]}, prefixe="../",
+                    focus={c["code_insee"]} | ({voisine["code_insee"]} if voisine else set()),
+                    relier=(c["code_insee"], voisine["code_insee"]) if voisine else None)
+
+    if commune_prelevement:
+        if voisine:
+            phrase = (
+                f"<b>Ce bulletin n'a pas été prélevé à {h(c['commune'])}.</b> Il l'a été "
+                f"à <a href='../commune/{h(voisine['code_insee'])}.html'>"
+                f"{h(commune_prelevement)}</a>, sur le réseau qui alimente les deux "
+                f"communes — le trait le relie sur la carte. C'est la même eau, "
+                f"analysée en un autre point : la commune n'a pas de bulletin complet "
+                f"à elle.")
+        else:
+            phrase = (
+                f"<b>Ce bulletin n'a pas été prélevé à {h(c['commune'])}</b>, mais à "
+                f"{h(commune_prelevement)}, sur le réseau qui alimente les deux "
+                f"communes. Cette commune n'étant pas dans le corpus de ce "
+                f"département, la carte ne peut pas la situer.")
+    else:
+        phrase = (f"Le bulletin ci-dessous a été prélevé à {h(c['commune'])} même. "
+                  f"Les autres points de la carte sont les communes du département "
+                  f"que le corpus documente.")
+
+    return f"""
+  <section><h3 class="sec">Où cette eau a été prélevée</h3>
+    <div class="carte-bloc situation">{svg}</div>
+    <div class="rappel">{phrase}</div>
+  </section>
+"""
+
+
+def pages_departements(lignes, version, calcule_le, public):
+    """Une page par département documenté."""
+    n = 0
+    for dept, communes in par_departement(lignes).items():
+        nom = _nom_dept(dept)
+        n_nd = sum(1 for c in communes if c["statut"] == "non_documentee")
+        ecrire(os.path.join(public, "departement", f"{dept}.html"), page(
+            f"{nom} ({dept})",
+            page_departement(dept, communes, version, calcule_le),
+            "communes.html",
+            f"Les {len(communes)} communes du corpus dans le département {nom} "
+            f"({dept}) : effort de recherche, dépassements à la date, bascules, "
+            f"et {n_nd} commune(s) non documentée(s).",
+            version, calcule_le,
+            sous_titre="Ce que l'Observatoire sait de l'eau de ce département — et "
+                       "ce qu'il n'en sait pas. Un département n'a pas de verdict : "
+                       "ce sont des bulletins datés, un par point d'eau.",
+            formule=False, prefixe="../",
+            fil=[("Accueil", "index.html"),
+                 ("Les communes du corpus", "communes.html"),
+                 (f"{nom} ({dept})", None)],
+            scripts=f'<script src="../assets/{empreinte("carte.js")}"></script>'))
+        n += 1
+    return n
 
 
 def fiches_communes(con, version, lignes, public):
@@ -868,6 +1296,7 @@ def fiches_communes(con, version, lignes, public):
     redactions, proposees = BF.charger_prose()
 
     corps = lire("corps_fiche.html")
+    groupes = par_departement(lignes)
     n = 0
     for c in lignes:
         if c["statut"] == "non_documentee":
@@ -922,28 +1351,29 @@ def fiches_communes(con, version, lignes, public):
             'de bulletins n\'a ni date ni grille, et ne peut donc être notée contre '
             'aucune.</div>' if len(ORDER) > 1 else "")
 
+        situation = bloc_situation(c, groupes.get(c["dept"], []),
+                                   rat["commune_prelevement"] if rat else None)
+
         html = page(
             d0["name"],
-            f'{switch}{rappel_series}\n{corps}',
+            f'{switch}{rappel_series}\n{corps}\n{situation}',
             "communes.html",
             f"Bulletin d'analyse complet de l'eau du robinet à {d0['name']} "
             f"({d0['insee']}), noté contre les grilles de 2016, d'aujourd'hui et la "
             f"plus stricte au monde.",
             version, calcule_le=d0["calcule_le"],
             sous_titre=f"{h(d0['sub'])} — bulletin du {h(d0['date'])}",
-            formule=False,
+            formule=False, prefixe="../",
+            fil=[("Accueil", "index.html"),
+                 ("Les communes du corpus", "communes.html"),
+                 (f"{_nom_dept(c['dept'])} ({c['dept']})",
+                  f"departement/{c['dept']}.html"),
+                 (d0["name"], None)],
             scripts=("<script>\n"
                      f"const KPI_LABELS={j(BF.KPI_LABELS)};\n"
                      f"const C={j(C)};\nconst PARAMS={j(PARAMS)};\n"
                      f"const ORDER={j(ORDER)};\n</script>\n"
-                     f'<script src="assets/{empreinte("fiche.js")}"></script>')
-        ).replace('href="assets/', 'href="../assets/') \
-         .replace('src="assets/', 'src="../assets/') \
-         .replace('href="index.html"', 'href="../index.html"') \
-         .replace('href="carte.html"', 'href="../carte.html"') \
-         .replace('href="communes.html"', 'href="../communes.html"') \
-         .replace('href="methode.html"', 'href="../methode.html"') \
-         .replace('href="sources.html"', 'href="../sources.html"')
+                     f'<script src="../assets/{empreinte("fiche.js")}"></script>'))
 
         ecrire(os.path.join(public, "commune", f"{insee}.html"), html)
         n += 1

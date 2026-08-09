@@ -52,6 +52,17 @@ a{color:var(--eau)} a:hover{color:var(--eau-deep)}
 .nav a:hover{color:#fff;background:rgba(255,255,255,.05)}
 .nav a[aria-current="page"]{color:#fff;border-bottom-color:#7FD4DA}
 
+/* Fil d'Ariane — accueil › département › commune › bulletin.
+   Il n'est pas décoratif : on arrive souvent sur une fiche par un lien direct,
+   sans avoir traversé le parcours, et sans lui rien ne dit où l'on est. */
+.fil{background:#fff;border-bottom:1px solid var(--line)}
+.fil ol{display:flex;flex-wrap:wrap;align-items:center;gap:0;list-style:none;
+  margin:0;padding:9px 0;font-size:12.5px;color:var(--ink-soft)}
+.fil li+li::before{content:"›";margin:0 8px;color:var(--line);font-weight:700}
+.fil a{text-decoration:none;font-weight:600}
+.fil a:hover{text-decoration:underline}
+.fil li[aria-current="page"]{color:var(--ink);font-weight:700}
+
 .switch{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .switch button{font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
   border:1px solid rgba(255,255,255,.28);background:transparent;color:#DCE7EE;
@@ -468,6 +479,13 @@ footer .tracab b{color:var(--ink)}
 .carte-bloc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
 .carte-bloc svg{width:100%;height:auto;display:block}
 .carte-bloc path.dept{fill:#E3EAEE;stroke:#fff;stroke-width:.6}
+/* Un département documenté est une porte d'entrée, pas un décor. Ceux que le
+   corpus ne couvre pas restent inertes : un survol qui promet un lien absent
+   laisserait croire à une couverture qui n'existe pas. */
+.carte-bloc a.zone{cursor:pointer}
+.carte-bloc a.zone path.dept{fill:#D5E2E8;transition:fill .12s}
+.carte-bloc a.zone:hover path.dept{fill:#B7D2DC;stroke:var(--eau-deep);stroke-width:1}
+.carte-bloc a.zone:focus-visible path.dept{stroke:var(--eau-deep);stroke-width:1.6}
 .carte-bloc a.pt{cursor:pointer}
 .carte-bloc a.pt circle{stroke:#fff;stroke-width:1.4;transition:r .12s}
 .carte-bloc a.pt:hover circle{stroke:var(--eau-deep);stroke-width:2}
@@ -477,13 +495,51 @@ footer .tracab b{color:var(--ink)}
 .carte-bloc circle.analysee-ambre{fill:var(--ambre)}
 .carte-bloc circle.rattachee{fill:#fff;stroke:var(--eau);stroke-width:2.2}
 .carte-bloc circle.non_documentee{fill:var(--gris-bg);stroke:var(--gris);stroke-width:1.6}
+
+/* Carte de situation d'une fiche : la commune qu'on regarde, et la commune où
+   l'analyse a réellement été prélevée quand ce n'est pas la même (§8bis,
+   obligation 5). Le trait n'est tracé que si les deux points sont connus. */
+.carte-bloc.situation{max-width:600px;margin:0 auto}
+.carte-bloc a.pt.vedette circle{stroke:var(--eau-deep);stroke-width:3}
+.carte-bloc line.emprunt{stroke:var(--eau-deep);stroke-width:2;stroke-dasharray:5 4;
+  opacity:.75}
 .carte-legende{display:grid;gap:7px;margin-top:14px;font-size:12.5px;color:var(--ink-soft)}
 .carte-legende span{display:flex;align-items:center;gap:9px}
 .carte-legende i{width:14px;height:14px;border-radius:50%;flex:none;display:inline-block}
 .lg-vert{background:var(--vert)}.lg-rouge{background:var(--rouge)}
 .lg-bascule{background:var(--bascule)}
+.lg-ambre{background:var(--ambre)}
 .lg-rattachee{background:#fff;border:2px solid var(--eau)}
 .lg-nondoc{background:var(--gris-bg);border:2px solid var(--gris)}
+
+/* La légende EST le filtre. Un état masqué garde son compte à l'écran, barré :
+   on retire un état de la vue, jamais du décompte. Sans JavaScript, ces boutons
+   restent de simples libellés et tout est affiché — la page ne dépend pas
+   d'eux pour être complète. */
+.carte-legende .lg-btn{display:flex;align-items:center;gap:9px;width:100%;
+  font:inherit;color:inherit;text-align:left;cursor:pointer;
+  background:transparent;border:1px solid transparent;border-radius:8px;
+  padding:4px 8px;transition:.12s}
+.carte-legende .lg-btn:hover{background:var(--paper);border-color:var(--line)}
+.carte-legende .lg-btn[aria-pressed="false"]{opacity:.55}
+.carte-legende .lg-btn[aria-pressed="false"] span{text-decoration:line-through}
+.carte-legende .lg-btn[aria-pressed="false"] i{filter:grayscale(1)}
+.lg-aide{margin:9px 0 0;font-size:11.5px;color:var(--ink-soft);font-style:italic}
+
+/* Ce que le filtre masque, dans la carte comme dans le tableau. Les deux
+   portent le même attribut `data-niveau`, donc la même règle les atteint. */
+.masque-analysee-vert circle.analysee-vert,
+.masque-analysee-bascule circle.analysee-bascule,
+.masque-analysee-ambre circle.analysee-ambre,
+.masque-analysee-rouge circle.analysee-rouge,
+.masque-rattachee circle.rattachee,
+.masque-non_documentee circle.non_documentee{display:none}
+.masque-analysee-vert tr[data-niveau="analysee-vert"],
+.masque-analysee-bascule tr[data-niveau="analysee-bascule"],
+.masque-analysee-ambre tr[data-niveau="analysee-ambre"],
+.masque-analysee-rouge tr[data-niveau="analysee-rouge"],
+.masque-rattachee tr[data-niveau="rattachee"],
+.masque-non_documentee tr[data-niveau="non_documentee"]{display:none}
 
 /* Le tableau défile horizontalement DANS son cadre : les colonnes de droite —
    dépassements, bascules — sont celles qui portent l'information, et elles
