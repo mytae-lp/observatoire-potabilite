@@ -218,7 +218,7 @@ def dossier(con, a, version):
 # ---------------------------------------------------------------------------
 # Sélection — l'idempotence
 # ---------------------------------------------------------------------------
-def a_rediger(con, version):
+def a_rediger(con, version, tous=False):
     """
     Les bulletins complets qui n'ont encore aucune prose écrite.
 
@@ -227,13 +227,34 @@ def a_rediger(con, version):
     `INSEE@date`, `INSEE` ou `PREL:` est sauté — de la main de Yannick comme
     d'un lot précédent. Relancer un lot interrompu ne coûte rien et n'écrase
     rien, exactement comme une collecte Hub'Eau.
+
+    **Par défaut, seuls les bulletins qu'une fiche de commune AFFICHE.**
+    Restriction ajoutée le 9 août 2026, quand le Tarn a fait passer le corpus de
+    45 à 1 595 bulletins : 1 550 étaient sans prose, mais **143 seulement portent
+    une fiche**. Les autres sont les bulletins antérieurs des mêmes points d'eau
+    — ils nourrissent les chantiers C2 et C3, et personne ne les lit. En rédiger
+    1 400 que rien n'affiche coûterait 1 400 agents pour zéro lecteur, et
+    encombrerait la page de validation au point de la rendre inutilisable.
+
+    Le lien est `couverture_communes.code_prelevement` : c'est LA table qui dit
+    quel bulletin chaque commune montre (§8bis). Un même point d'eau y dessert
+    souvent des dizaines de communes — Montdragon en dessert 46, Lavaur 43 —
+    d'où la clé `PREL:` de la prose, qui écrit le texte une fois pour toutes.
+
+    `tous=True` rend l'ancien comportement, pour le jour où l'on voudra une
+    prose par bulletin historique.
     """
     auteur, propose = build_fiche.charger_prose()
-    rows = con.execute("""
+    filtre = "" if tous else """
+          AND code_prelevement IN (
+              SELECT code_prelevement FROM couverture_communes
+              WHERE version_referentiel = ? AND code_prelevement IS NOT NULL)"""
+    params = [version] if tous else [version, version]
+    rows = con.execute(f"""
         SELECT * FROM analyses_figees
-        WHERE version_referentiel = ? AND est_complet
+        WHERE version_referentiel = ? AND est_complet {filtre}
         ORDER BY commune, date_prelevement DESC
-    """, [version]).fetchall()
+    """, params).fetchall()
     cols = [d[0] for d in con.description]
     manquants, vus = [], set()
     for r in rows:
@@ -251,8 +272,8 @@ def a_rediger(con, version):
     return manquants
 
 
-def fabriquer(con, version, maxi):
-    cibles = a_rediger(con, version)
+def fabriquer(con, version, maxi, tous=False):
+    cibles = a_rediger(con, version, tous=tous)
     if maxi:
         cibles = cibles[:maxi]
     if not cibles:
@@ -441,8 +462,8 @@ def verifier(con, version, ecrire_prose):
     print("  Rien n'est publié : relis-les dans l'onglet Valider de l'atelier.")
 
 
-def etat(con, version):
-    manquants = a_rediger(con, version)
+def etat(con, version, tous=False):
+    manquants = a_rediger(con, version, tous=tous)
     total = con.execute("SELECT COUNT(*) FROM analyses_figees "
                         "WHERE version_referentiel = ? AND est_complet",
                         [version]).fetchone()[0]
@@ -470,6 +491,10 @@ def main():
     g.add_argument("--verifier", action="store_true", help="contrôle les réponses, sans écrire")
     g.add_argument("--integrer", action="store_true", help="contrôle puis écrit la prose")
     p.add_argument("--maxi", type=int, help="borne le nombre de dossiers fabriqués")
+    p.add_argument("--tous-bulletins", action="store_true",
+                   help="inclure les bulletins qu'aucune fiche de commune n'affiche "
+                        "(les antérieurs d'un même point d'eau — matériau de C2/C3, "
+                        "1 452 sur 1 595 au 9 août 2026)")
     args = p.parse_args()
 
     con = duckdb.connect(DB_PATH, read_only=True)
@@ -478,9 +503,9 @@ def main():
         sys.exit("  ! aucune version figée. Lance src/figer.py d'abord.")
 
     if args.etat:
-        etat(con, version)
+        etat(con, version, tous=args.tous_bulletins)
     elif args.dossiers:
-        fabriquer(con, version, args.maxi)
+        fabriquer(con, version, args.maxi, tous=args.tous_bulletins)
     else:
         verifier(con, version, ecrire_prose=args.integrer)
     con.close()
