@@ -278,7 +278,13 @@ Ces constats sont dans les rédactions proposées, mais ils dépassent la fiche 
 
 ---
 
-## 8. Mise à jour du 9 août 2026 — la chute du panel a une cause réglementaire
+## 8. Mise à jour du 9 août 2026 — ⚠️ PÉRIMÉ, conservé comme trace de l'hypothèse
+
+> **Ne pas lire cette section comme l'état courant.** Le §9.1 ci-dessous la
+> corrige sur son point central : l'instruction invoquée est postérieure de onze
+> mois à la rupture qu'elle est censée expliquer. Le titre d'origine était « la
+> chute du panel a une cause réglementaire » ; elle a un **mécanisme** plausible,
+> pas une cause établie.
 
 Le motif « ~600 paramètres en 2019, ~300 en 2020 » observé dans le Tarn n'est pas
 un artefact de collecte : c'est l'**instruction n° DGS/EA4/2020/177 du
@@ -328,3 +334,117 @@ Deux facteurs à ne jamais confondre avec la cause principale : le **Covid**
 (baisse du nombre de *prélèvements* en 2020, pas du nombre de *paramètres*) et
 l'**effet d'échantillonnage** (le nombre de paramètres distincts sur une année
 dépend du nombre de bulletins complets réalisés cette année-là).
+
+---
+
+## 9. Mise à jour du 9 août 2026 — le Tarn est collecté en entier
+
+**314 communes sur 314**, 1 575 bulletins complets du 8 janvier 2016 au
+29 mai 2026. Le corpus passe de 45 à **1 595 bulletins** et de ~15 600 à
+**684 883 mesures**. Couverture : 91,8 % des mesures notées. La chaîne est à
+jour de bout en bout — 339 pages publiées pour 339 communes couvertes, le piège
+« collecté et figé mais pas publié » n'est pas là.
+
+### 9.1 Le test réservé au §8 a été exécuté — le §8 est infirmé sur sa date
+
+Le §8 ci-dessus attribuait la chute du panel à l'instruction
+**DGS/EA4/2020/177 du 18 décembre 2020**, en réservant le test de confirmation
+à la fin de la collecte. **Il est fait, et la section C2 de `docs/CHANTIERS.md`
+en est désormais le document de référence** — elle va bien au-delà de ce test et
+ses chiffres font foi. Ne pas recompter ici : s'y reporter.
+
+Ce qu'il faut retenir au niveau de ce fichier :
+
+- la coupure est **franche et datée de janvier 2020** — 585 paramètres en
+  décembre 2019, 324 en janvier, la signature d'un renouvellement de marché ;
+- elle porte **quasi exclusivement sur des pesticides** ;
+- **l'instruction invoquée est postérieure de onze mois.** Au 18 décembre 2020,
+  le basculement du Tarn était déjà entièrement acquis. Elle ne peut pas l'avoir
+  causé.
+
+**Conséquence : ne plus écrire que la chute du panel est causée par
+DGS/EA4/2020/177.** Une cause plausible n'est pas une cause établie (§2.7).
+Le §8 ci-dessus est conservé tel quel, comme trace de l'hypothèse, mais il est
+**périmé sur ce point** ; C2 porte la lecture à jour — dont le fait, plus
+intéressant, que le panel **n'a pas rétréci, il a tourné**.
+
+### 9.2 La thèse, démontrée sur une décennie
+
+**ESA métolachlore**, limite déplacée de 0,1 à 0,9 µg/L le **30 septembre 2022** :
+
+| année | quantifiées | dépassements | bascules | max |
+|---|---|---|---|---|
+| 2020 | 29 | 11 | 10 | 0,956 |
+| 2021 | 42 | 11 | 9 | 0,989 |
+| 2022 | 43 | 7 | 7 | 0,860 |
+| 2023 | 38 | 1 | 10 | 0,952 |
+| 2024 | 42 | 2 | 8 | 0,943 |
+| 2025 | 42 | **0** | 12 | 0,833 |
+
+Quantifications stables, maxima stables, dépassements de 11 à zéro. Sur le
+département : 135 bascules, **59 bulletins conformes aujourd'hui et porteurs
+d'une bascule**, sur 15 communes. Paulinet en concentre 22.
+
+### 9.3 Ce qui a été trouvé et qui attend une décision
+
+**a) Le moteur ne lit pas les références de qualité déclarées.**
+`seuil_2026_effectif` vaut `COALESCE(seuil du référentiel, limite_declaree)` et
+**n'utilise jamais `reference_declaree`**, pourtant renseignée sur 21 029
+mesures. Conséquence : **807 bulletins du Tarn où l'ARS déclare une
+non-conformité et où le moteur ne voit rien** — soit un sur deux. 151 mesures
+dépassent une référence déclarée sans produire aucun verdict : carbone
+organique total (20, jusqu'à 3,6 pour 2), turbidité (13, jusqu'à 23 pour 2),
+aluminium (8, jusqu'à 509 pour 200), radon 222 (8, jusqu'à 286 Bq/L pour 100),
+bactéries coliformes (43). Question de fond, pas de code : **le projet
+veut-il noter les références de qualité, et si oui les distinguer des limites ?**
+
+**b) 79 des 135 dépassements du Tarn portent sur une valeur de VIGILANCE**,
+pas sur une limite de qualité — 53 sur l'ESA métolachlore, 16 sur le
+chlorothalonil R471811. Le référentiel le sait (`statut_2026` = `vigilance
+(non pertinent depuis…)`), la fiche l'ignore et affiche « dépassement du seuil
+applicable ». C'est la leçon du R417888 du §2.7, transposée : une valeur
+indicative n'est pas une limite de conformité. Cinq bulletins de Paulinet le
+montrent — nous prononçons un dépassement d'ESA métolachlore entre 0,912 et
+0,99 µg/L là où l'ARS conclut à la conformité pleine.
+
+**c) Accord global avec l'ARS** : sur les 135 bulletins où nous voyons un
+dépassement, **130 portent une non-conformité déclarée**. L'écart est donc
+concentré sur les cinq cas ci-dessus et sur les 807 du point a).
+
+### 9.4 Une alerte que j'avais donnée, et qui était fausse
+
+J'avais signalé « 16 faux dépassements sur les chlorites », en attribuant à un
+alias manquant (`chlorite` au singulier contre `chlorites` au pluriel) la perte
+du seuil conditionnel de 0,70 mg/L. **C'était faux, et la correction aurait
+introduit un faux négatif.**
+
+Vérification faite : l'ARS déclare `conf_references_pc = 'N'` sur exactement ces
+bulletins — *« Eau d'alimentation conforme aux limites de qualité et non
+conforme aux références de qualité »*. Notre verdict est **d'accord avec
+l'administration**. La source déclare d'ailleurs elle-même `<=0,25 mg/L` pour
+« Chlorite en mg/L » et `<=0,7 mg/L` pour « Chlorites en cas de traitement
+pouvant en générer » : ce sont deux paramètres distincts, pas un défaut
+d'appariement. **Aucune modification n'a été faite au référentiel.**
+
+Ce qui reste vrai et mineur : ces trois libellés n'ont pas de `seuil_2016` ni de
+`seuil_strict`, donc **aucune bascule ne peut être détectée sur les chlorites**
+(§2.8, une limite seulement déclarée ne fabrique pas de passé réglementaire).
+
+### 9.5 Le plafond analytique à l'échelle (chantier C4)
+
+**1 295 mesures aveugles, sur 1 128 des 1 575 bulletins (72 %).** Dominé par
+l'**hydrazide maléique** : entrée au panel en 2020, cherchée sur ~1 100
+bulletins, et **jamais quantifiée une seule fois** — la LQ courante de
+0,5 µg/L vaut 5 × sa limite de 0,1. 48 mesures à 0,05-0,1 en 2024-2025 prouvent
+que dix fois plus fin est faisable et a été fait.
+
+À rapprocher de C2, qui montre que l'hydrazide maléique est l'une des entrées
+de 2020 : le panel a bien été renouvelé, mais **cette entrée-là est illisible
+là où sa conformité se joue** depuis six ans. C'est le même paramètre lu par
+les deux chantiers, et les deux lectures ne se contredisent pas — elles
+s'ajoutent.
+
+À écarter en revanche : les « facteurs 4000 » entre LQ extrêmes sont portés par
+deux ou quatre mesures isolées (prosulfocarbe 20 µg/L en 2017, aminotriazole
+50 µg/L en 2022). **Ce n'est pas une dispersion entre laboratoires, c'est un
+plafond systématique sur une molécule.**

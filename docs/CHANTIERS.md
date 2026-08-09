@@ -236,7 +236,9 @@ script d'export, huit contrôles de non-régression.
 | `v_panel_evolution` | la comparaison de deux bulletins consécutifs d'une commune |
 | `v_parametres_abandonnes` | ce qui disparaît, et chez combien de communes |
 | `v_parametre_presence` | la part des bulletins qui cherchent un paramètre, année par année |
-| `v_parametre_presence_dept` | la même, par département — le contre-feu (ajoutée le 8 août 2026) |
+| `v_parametre_presence_dept` | la même, par département — le contre-feu (ajoutée le 9 août 2026) |
+| `v_panel_constant` | les paramètres cherchés chaque année documentée d'un département (9 août 2026) |
+| `v_serie_panel_constant` | le taux de quantification à périmètre de mesure constant — la seule série lisible (§2.11) |
 
 ```bash
 py -X utf8 src/etude_panel.py
@@ -289,7 +291,7 @@ couples du corpus portent la même substance deux ou trois fois sur le même
 bulletin — microcystines à Montech, essai marbre à Rostrenen. Écart maximal :
 6 paramètres, sur un seul bulletin.
 
-### Deux défauts du détecteur, trouvés et corrigés — 8 août 2026
+### Deux défauts du détecteur, trouvés et corrigés — 9 août 2026
 
 La reprise du chantier a commencé par une vérification de ce qui était livré.
 La machinerie tournait, ses chiffres étaient justes, et **la vue qui devait
@@ -458,6 +460,156 @@ cette bascule-là. Et les ordres de grandeur qu'elle cite (PACA ~600 → 150) so
 `a_verifier` : ils viennent de reprises documentaires, le PDF officiel n'a pas
 été lu (§2.7).
 
+### Ce que le retrait a coûté — presque rien, et il faut le dire
+
+Ajouté le 9 août 2026. Les sections ci-dessus établissent **qu'on** a cessé de
+chercher. Restait la question de Yannick : **a-t-on cessé de chercher des choses
+qu'on trouvait ?** Elle se répond, et la réponse va contre l'intuition.
+
+Population : les **298 paramètres** qui passent de ≥ 90 % des bulletins du Tarn
+en 2019 à ≤ 10 % en 2020 (164 bulletins complets en 2019, 121 en 2020). C'est un
+découpage différent de celui des 278 ci-dessus — qui porte sur les 47
+installations présentes les deux années — et les deux se recoupent sans se
+confondre. Sur ces 298, avant 2020 :
+
+| | |
+|---|---|
+| mesures faites | **134 419** |
+| mesures quantifiées | **6** |
+| paramètres quantifiés au moins une fois | **2 sur 298** |
+| taux de quantification | **0,004 %** |
+
+Les deux seuls : **biphényle** (3 fois, 2 communes, 2016, max 0,01 µg/L) et
+**phosphate de tributyle** (3 fois, 3 communes, 2016-2017, max 0,27 µg/L).
+
+Et ce n'est pas un artefact d'instrument. Sur ces mêmes mesures non quantifiées,
+la **LQ médiane est de 0,005 µg/L**, soit vingt fois plus fine que la limite de
+0,1 µg/L à laquelle on compare un pesticide individuel : le laboratoire
+regardait bien en dessous de la zone qui décide. Une seule mesure sur 134 413
+n'a pas de LQ renseignée. (Réserve : la LQ maximale monte à 20 µg/L sur cette
+population — une minorité de mesures était bel et bien aveugle, et c'est le
+sujet du chantier C4, pas d'ici.)
+
+**Conclusion, et elle est asymétrique dans le bon sens (§2.13).** Le Tarn a
+retiré de son programme un bloc de molécules qu'il n'avait jamais détectées en
+quatre ans de recherche fine. Présenter ce retrait comme une perte
+d'information serait un faux positif — le genre qui se retourne contre
+l'Observatoire. Ce qu'il faut en dire est plus intéressant et plus solide : **le
+panel de 2019 cherchait massivement les mauvaises molécules.**
+
+### Ce qui l'a remplacé — le panel n'a pas rétréci, il a tourné
+
+C'est le vrai motif, et il n'apparaît qu'en regardant l'autre bout de la
+période. **34 paramètres** passent de ≤ 10 % des bulletins en 2019 à ≥ 75 % en
+2026 : 26 pesticides, 7 métabolites, 1 non apparié. Et ceux-là, on les trouve.
+
+| Entré au panel | Quantifié | Communes touchées |
+|---|---|---|
+| **Chlorothalonil R471811** | **107 mesures sur 561 — 19,1 %** | **20** |
+| Terbuthylazine et ses métabolites | 14 sur 998 — 1,4 % | 3 |
+| Métolachlore NOA 413173 | 3 sur 741 — 0,4 % | 2 |
+| Chloridazone desphényl | 2 sur 741 — 0,3 % | 2 |
+| Chloridazone méthyl desphényl | 2 sur 741 — 0,3 % | 2 |
+| Éthylènethiourée, flufénacet ESA, fluxapyroxad | 1 chacun | 1 chacun |
+
+Un paramètre absent du panel de 2019 est aujourd'hui quantifié dans **une
+analyse sur cinq et dans vingt communes du Tarn**. Mis en regard des 0,004 % du
+bloc retiré, l'écart est de **quatre ordres de grandeur**.
+
+Et les entrées sont **datées, et échelonnées** — ce n'est pas un second bloc :
+
+| Paramètre | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|
+| Hydrazide maléique | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| Flufénacet ESA | 0 | 50 | 95 | 98 | 100 | 100 | 100 | 100 |
+| Métolachlore NOA 413173 | 0 | 0 | 0 | 49 | 100 | 100 | 100 | 100 |
+| Chloridazone desphényl | 0 | 0 | 0 | 49 | 100 | 100 | 100 | 100 |
+| **Chlorothalonil R471811** | 0 | 0 | 0 | 3 | 46 | 100 | 100 | 100 |
+| **Chlorothalonil R417888** | 0 | 0 | 0 | 0 | 0 | **20** | 100 | 100 |
+
+(en % des bulletins complets du Tarn ; 164 bulletins en 2019, 217 en 2024,
+56 en 2026)
+
+La dernière ligne est la plus parlante. **Le R417888 entre au panel en 2024** —
+l'année de l'avis ANSES du 29 avril 2024 qui le classe *pertinent* à 0,1 µg/L,
+quand le R471811 est classé *non pertinent* à 0,9 (§2.7). Le programme
+d'analyse suit la décision réglementaire, dans l'année. C'est la thèse du
+projet vue par l'autre bout : **le réétalonnage ne déplace pas seulement le
+seuil auquel on compare, il déplace la liste de ce qu'on regarde.**
+
+Ce qu'il faut se garder d'en conclure, et c'est le §2.4 : on **ne sait pas** si
+le R471811 était présent dans l'eau du Tarn avant 2022. Il n'y était pas
+cherché. Ce n'est ni une absence ni une apparition — c'est un indéterminé, et
+il porte sur vingt communes et trois années.
+
+### La seule série qu'on ait le droit de lire — et elle est plate
+
+Le §2.11 interdit depuis le 9 août 2026 toute série temporelle à panel
+variable. La règle était écrite, rien ne l'outillait : deux vues le font
+désormais (`v_panel_constant`, `v_serie_panel_constant`), et le panel constant
+se définit sans arbitrage — cherché sur ≥ 75 % des bulletins **chaque** année
+documentée du département.
+
+Tarn : **260 paramètres**, constants sur les **11 années** du corpus.
+
+| Année | Bulletins | Communes | Mesures | Quantifiées | Pour mille |
+|---|---|---|---|---|---|
+| 2016 | 95 | 46 | 24 687 | 451 | 18,27 |
+| 2017 | 103 | 51 | 26 588 | 466 | 17,53 |
+| 2018 | 114 | 50 | 29 380 | 530 | 18,04 |
+| 2019 | 164 | 70 | 42 363 | 681 | 16,08 |
+| 2020 | 121 | 52 | 31 423 | 562 | 17,88 |
+| 2021 | 158 | 74 | 41 072 | 787 | 19,16 |
+| 2022 | 156 | 66 | 40 536 | 765 | 18,87 |
+| 2023 | 202 | 76 | 52 493 | 968 | 18,44 |
+| 2024 | 217 | 73 | 56 406 | 998 | 17,69 |
+| 2025 | 189 | 72 | 49 100 | 851 | 17,33 |
+| 2026 | 56 | 44 | 14 560 | 253 | 17,38 |
+
+**Onze ans, de 16,1 à 19,2 pour mille, sans tendance.** À périmètre de mesure
+constant, ce que le Tarn trouve ne bouge pas. Toute la variation du dossier
+tarnais entre 2016 et 2026 est une variation de **ce qu'on a cherché**, pas de
+ce qu'on a trouvé.
+
+C'est ce qui rend la règle du §2.11 opposable plutôt que déclarative : sans
+elle, la chute de 606 à 352 paramètres se lirait comme une amélioration.
+
+### Une seule vague — et une seconde, ailleurs et plus tard
+
+Vérifié d'une année à la suivante, le Tarn ne connaît **qu'un** basculement.
+
+| Passage | Retirés | Entrants |
+|---|---|---|
+| 2016→2017, 2017→2018, 2018→2019 | 0 | 0 |
+| **2019→2020** | **298** | **30** |
+| 2020→2021 | 9 | 4 |
+| 2021→2022 … 2025→2026 | 0 | ≤ 1 |
+
+(retiré = ≥ 75 % des bulletins une année, ≤ 10 % la suivante)
+
+Le programme d'analyse tarnais est donc **stable huit années sur dix**. Ce
+n'est pas une érosion continue : c'est une décision, prise une fois, appliquée
+d'un coup. Ce qui rend d'autant plus lisible le fait qu'elle n'ait aucune cause
+documentée à sa date.
+
+**Mais un second mouvement existe, et il ne ressemble pas au premier.** Le
+signal repéré sur 45 bulletins — l'odeur — tient à 1 575, et il se précise :
+
+| Année | 2016-2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|
+| Odeur, % des bulletins du Tarn | 93 à 100 % | **67,3 %** | **62,4 %** | **0,0 %** |
+| dénominateur | 95 à 202 | 217 | 189 | 56 |
+
+Huit ans entre 93 et 100 %, puis une décrue sur deux ans, puis **zéro sur 56
+bulletins**. Ce n'est ni la vague de 2020 (un pesticide n'y est pour rien), ni
+sa forme (une marche) : c'est un retrait progressif puis total, sur un
+paramètre organoleptique. Réserve : 2026 est une année partielle, 56 bulletins
+sur les ~190 d'une année pleine — la valeur est nette, la date de la bascule
+finale ne l'est pas encore.
+
+Deux mouvements, deux formes, deux dates. La machinerie les sépare ; elle ne
+dit d'aucun des deux **pourquoi**.
+
 ### Ce que ce constat n'est toujours pas
 
 C'est un **dénombrement**, l'indicateur A, et le piège du chantier reste entier :
@@ -479,10 +631,16 @@ suivant, et la vue `v_parametre_presence_dept` est faite pour ça.
    tarnaise, et surtout **si elle y porte la même date**. Un département qui
    basculerait début 2021 pointerait vers l'instruction ; un autre qui
    basculerait aussi en 2020 pointerait vers une pratique antérieure.
-3. **La liste nominative des 278 disparus** est calculable telle quelle et n'a
-   pas encore été versée à `data/etudes/` par `src/etude_panel.py`.
+3. ~~**La liste nominative des 278 disparus**~~ — **fait le 9 août 2026.**
+   `src/etude_panel.py` la verse dans `data/etudes/` : `journal_abandons.csv`
+   (une ligne par commune × paramètre abandonné) et `parametres_abandonnes.csv`
+   (le cumul), plus `panel_constant.csv` et `serie_panel_constant.csv`.
+4. **Le second département dira aussi si la rotation est nationale.** Le Tarn
+   montre 34 paramètres entrants et un métabolite quantifié dans 20 communes ;
+   savoir si les mêmes entrent ailleurs, et aux mêmes dates, vaut autant que la
+   question du retrait.
 
-Ce qui a changé le 8 août 2026, c'est qu'elle est prête **à dire un zéro et à
+Ce qui a changé le 9 août 2026, c'est qu'elle est prête **à dire un zéro et à
 contrôler une chute**. Les deux défauts corrigés ne se voyaient pas sur 45
 bulletins et auraient produit, sur plusieurs milliers, une lecture fausse dans
 les deux sens : des abandons complets invisibles, et des chutes de corpus prises
@@ -753,6 +911,44 @@ argumentaire au §2.4 de `docs/GARDE-FOUS.md`**, où vit désormais le « pourqu
 de chaque garde-fou. C'est là que se trouvent le cas Pont-de-Larn, le facteur 50
 sur l'hydrazide maléique, les 69 faux positifs de la bactériologie et le
 recouvrement des 46 aveugles avec les 55 indéterminés.
+
+### Ce que le Tarn entier en dit — 9 août 2026
+
+Le chantier a été construit sur 45 bulletins. Il en a maintenant 1 575 pour le
+seul Tarn, et le constat change d'échelle **et de nature**.
+
+**1 295 mesures aveugles, sur 1 128 des 1 575 bulletins — 72 %.**
+
+| Tranche de `aveugles_pour_mille` | Bulletins |
+|---|---|
+| 0 | 447 |
+| 0 à 3 ‰ | 355 |
+| 3 à 6 ‰ | 633 |
+| plus de 6 ‰ | 140 |
+
+**Une molécule porte l'essentiel : l'hydrazide maléique**, 1 051 mesures
+aveugles sur 123 communes. Elle entre au panel en 2020 — c'est l'une des
+entrées que C2 documente — et depuis six ans elle n'a **jamais été quantifiée
+une seule fois**, parce que la LQ courante de 0,5 µg/L vaut cinq fois sa limite
+de 0,1. Le contrôle sanitaire la cherche partout et ne peut rien en dire nulle
+part. Quarante-huit mesures à 0,05-0,1 µg/L en 2024-2025 établissent que dix
+fois plus fin est faisable, et a été fait.
+
+**Ce que le volume oblige à retirer.** Sur 45 bulletins, les LQ extrêmes
+suggéraient une dispersion entre laboratoires d'un facteur 4 000
+(prosulfocarbe, 0,005 à 20 µg/L). Le corpus complet la dément : ces 20 µg/L
+sont **deux mesures de 2017** sur 1 573, et l'aminotriazole à 50 µg/L en est
+**quatre**. Ce ne sont pas des laboratoires inégaux, ce sont des valeurs
+isolées. Le fait réel est l'inverse d'une dispersion — c'est un **plafond
+systématique et partagé** sur une molécule. La formulation « telle commune est
+moins bien analysée que sa voisine » ne tient pas ici et ne doit pas être
+écrite ; le niveau 3 garde tout son sens, mais ce qu'il montre est un ordre de
+grandeur commun, pas un classement.
+
+**Le taux monte quand le panel tourne.** Les bulletins d'avant 2020 (626
+paramètres en moyenne) portent 0,12 ‰ d'aveugles ; ceux d'après (355) en
+portent 3,55 ‰. Le programme d'analyse s'est resserré **et** ce qui est entré à
+la place est moins concluant. Les deux faits sont indépendants et se cumulent.
 
 ### Le même piège fermé sur `indetermine_strict` — 8 août 2026
 
@@ -1368,6 +1564,34 @@ deux règles à la fois.
 
 Repris de `docs/REPRISE.md` §4, mis à jour :
 
+- **le moteur ne lit pas les références de qualité déclarées par la source** —
+  trouvé le 9 août 2026 sur le Tarn entier, et c'est le plus gros écart connu
+  entre l'Observatoire et l'administration. `seuil_2026_effectif` vaut
+  `COALESCE(seuil du référentiel, limite_declaree)` et **n'utilise jamais
+  `reference_declaree`**, pourtant renseignée sur 21 029 mesures. Résultat :
+  **807 bulletins du Tarn — un sur deux — où l'ARS déclare une non-conformité
+  et où le moteur ne voit rien.** 151 mesures dépassent une référence déclarée
+  sans produire aucun verdict : carbone organique total (20, jusqu'à 3,6 pour
+  une référence de 2), turbidité (13, jusqu'à 23 pour 2), aluminium (8, jusqu'à
+  509 pour 200), radon 222 (8, jusqu'à 286 Bq/L pour 100), bactéries coliformes
+  (43). **La question n'est pas technique, elle est éditoriale** : une référence
+  de qualité n'est pas une limite sanitaire, et le projet doit décider s'il la
+  note — et, s'il la note, comment il l'affiche sans la confondre avec une
+  limite. En l'état, une fiche peut afficher « aucun dépassement » sous une
+  conclusion d'ARS qui dit le contraire ;
+- **`depasse_applicable` mélange limites de qualité et valeurs de vigilance** —
+  même origine, même jour. **79 des 135 dépassements du Tarn portent sur une
+  valeur de vigilance** : 53 sur l'ESA métolachlore, 16 sur le chlorothalonil
+  R471811. Le référentiel le sait — `statut_2026` vaut `vigilance (non
+  pertinent depuis…)` — mais ni le moteur ni la fiche n'en tiennent compte, et
+  la ligne s'affiche « dépassement du seuil applicable ». C'est la leçon du
+  R417888 (§2.7) transposée : **une valeur indicative n'est pas une limite de
+  conformité**. Cinq bulletins de Paulinet le montrent en clair — nous
+  prononçons un dépassement d'ESA métolachlore entre 0,912 et 0,99 µg/L là où
+  l'ARS conclut à la conformité pleine. Ce sont les **cinq seuls** désaccords de
+  ce sens sur 135 : partout ailleurs (130 sur 135) une non-conformité déclarée
+  accompagne notre dépassement ;
+
 - **le barème de finesse analytique** — chantier C4, niveau 3 : **tranché le
   8 août 2026**, on l'affiche, avec sa base — nombre de bulletins et de
   départements sur lesquels l'étendue est calculée ;
@@ -1552,12 +1776,47 @@ dans deux commentaires de code **et dans un texte publié de la vitrine**. La
 mesure donne 85 × 73. Rectifié partout. C'est le §2.7 hors de son domaine
 habituel : la règle vaut pour un chiffre d'interface comme pour un seuil.
 
-### Ce qui n'est pas encore vérifié
+### Vérifié sur les données réelles — 9 août 2026, 15 h
 
-**La construction réelle du site n'a pas été lancée** — la base est verrouillée
-par la collecte. Tout ci-dessus est vérifié fonction par fonction et dans le
-navigateur sur un corpus d'essai ; rien n'est vérifié de bout en bout sur les
-données réelles, ni contre les trois suites de tests.
+Le Tarn collecté, le site construit, **les trois suites passent**.
+
+| | |
+|---|---|
+| pages | 5 + **8 départements** + **339 fiches de commune** |
+| `tests/test_sorties.py` | **339 communes couvertes, 0 sans page** — le trou est refermé |
+| | 352 pages, **0 ressource distante**, 0 prescription générée, 0 comparaison anonyme |
+| | 1 signalement non bloquant : le « charbon actif » de Vourles, cf. C1 |
+| `departement/81.html` | 272 694 o pour 314 communes |
+| `communes.html` (index) | **5 846 o** |
+
+Le filtre tient sur les données réelles : masquer « rattachée au réseau » fait
+passer carte et tableau de 314 à 127 **ensemble**. Le Tarn déclare **60
+gestionnaires**.
+
+**Le poids du site est un vrai problème, et il n'est pas là où on le cherchait.**
+309 Mo au total, dont **173 Mo de `commune/`** et **137 Mo de `donnees/`** — les
+pages construites par ce chantier pèsent 8 Ko à 273 Ko. Trois fiches dépassent
+**5,4 Mo** à elles seules : ce sont les communes à nombreux bulletins, chaque
+bulletin embarquant tout son détail de paramètres dans la page. À 5 000
+communes, `commune/` seul dépasserait 2,5 Go. **Cela relève de la fiche
+(`sortie/build_fiche.py`, `fiche.js`) et des exports, pas des lots 1 et 2** —
+consigné ici parce que c'est le prochain mur de l'échelle, et qu'il n'était pas
+identifié.
+
+### Ce que le Tarn entier apprend, et qui n'était pas visible sur 45 bulletins
+
+**Aucune commune non documentée sur 314** : 127 analysées, 187 rattachées au
+réseau. Le carnet attendait d'un département entier qu'il révèle enfin cette
+catégorie ; il révèle l'inverse — la règle de repli du §2.3 couvre tout le monde.
+
+**Et surtout : 115 des 127 communes analysées portent au moins une mesure
+indéterminée. Une seule est verte sans réserve.** Le chantier C4 avait établi le
+plafond analytique sur 46 mesures aveugles ; à l'échelle d'un département, l'état
+« indéterminé » n'est pas un cas particulier, **c'est l'état majoritaire des
+communes analysées**. C'est le résultat le plus fort du corpus à ce jour, et il
+appartient au volet information du lot 3 autant qu'à C4.
+
+Le département porte par ailleurs 9 bascules et 13 dépassements à la date.
 
 ### Contrainte de session — 9 août 2026
 
@@ -1590,7 +1849,18 @@ en parallèle**, sans l'interrompre.
   d'Amarens : la page d'état annonçait 54 communes « sans prose » sur 60, il
   n'y en avait aucune. Corrigé dans `atelier/atelier.py` ; le reste du
   chantier — dont l'absence totale de tests sur l'atelier — est écrit.
-- **8 août 2026, reprise de C2** — deux défauts du détecteur à l'échelle,
+- **9 août 2026, C2 sur le Tarn** — la question de Yannick est répondue, et pas
+  dans le sens attendu. Les 298 paramètres retirés en 2020 n'avaient été
+  quantifiés que **6 fois sur 134 419 mesures** (0,004 %), avec une LQ médiane
+  vingt fois plus fine que la limite : le retrait n'a presque rien coûté. Le
+  motif est ailleurs — **le panel a tourné**. 34 paramètres sont entrés depuis,
+  dont le **chlorothalonil R471811, quantifié dans 19,1 % des mesures et 20
+  communes**, et le **R417888 entré en 2024**, l'année de l'avis ANSES qui le
+  classe pertinent. Enfin, `v_panel_constant` / `v_serie_panel_constant`
+  outillent le §2.11 : à panel constant, le Tarn est **plat sur onze ans**
+  (16,1 à 19,2 ‰). Toute la variation du dossier est une variation de ce qu'on
+  a cherché.
+- **9 août 2026, reprise de C2** — deux défauts du détecteur à l'échelle,
   trouvés en vérifiant le livrable et corrigés : `v_parametre_presence` ne
   savait pas écrire un 0 % (l'abandon complet était invisible, et un contrôle
   de non-régression affirmait ce défaut), et aucune vue ne permettait de
@@ -1690,3 +1960,30 @@ en parallèle**, sans l'interrompre.
   référentiel. Session contrainte : la collecte du Tarn tourne (48/314 à 12 h)
   et tient le verrou d'écriture DuckDB — le travail commence par ce qui ne
   demande pas la base.
+- **9 août 2026, C4 relu sur le Tarn entier** — 1 575 bulletins au lieu de 45.
+  **1 295 mesures aveugles sur 72 % des bulletins**, dont 1 051 pour la seule
+  **hydrazide maléique** : entrée au panel en 2020, cherchée sur 123 communes,
+  **jamais quantifiée en six ans** parce que la LQ courante vaut cinq fois sa
+  limite. Le volume oblige aussi à **retirer une affirmation** du chantier : les
+  « facteurs 4 000 » entre LQ extrêmes sont portés par deux à quatre mesures
+  isolées, ce n'est pas une dispersion entre laboratoires mais un plafond
+  partagé — aucun classement de communes ne doit en être tiré.
+  **Une alerte que j'avais donnée était fausse, et la corriger aurait fait un
+  faux négatif.** J'avais annoncé « 16 faux dépassements sur les chlorites » et
+  proposé un alias `chlorite` → `Chlorites` pour rendre son seuil conditionnel
+  de 0,70 mg/L. Vérification faite avant d'écrire quoi que ce soit : **l'ARS
+  déclare `conf_references_pc = 'N'` sur exactement ces bulletins** — « conforme
+  aux limites de qualité et non conforme aux références de qualité ». Notre
+  verdict était d'accord avec l'administration ; l'alias l'aurait transformé en
+  « indéterminé ». Et il n'y avait pas de défaut d'appariement : la source
+  déclare elle-même `<=0,25 mg/L` pour « Chlorite en mg/L » et `<=0,7 mg/L` pour
+  « Chlorites en cas de traitement pouvant en générer », ce sont deux paramètres
+  distincts. **Aucune modification n'a été faite au référentiel.** Reste vrai et
+  mineur : ces libellés n'ont ni `seuil_2016` ni `seuil_strict`, donc aucune
+  bascule n'est détectable sur les chlorites.
+  En cherchant la cause, deux écarts autrement plus gros sont apparus et sont
+  versés en attente de décision : **les références de qualité déclarées ne sont
+  jamais lues** (807 bulletins où l'ARS voit une non-conformité et nous rien),
+  et **`depasse_applicable` mélange limites et valeurs de vigilance** (79 des
+  135 dépassements du Tarn). Aucun code touché : ce sont deux décisions
+  éditoriales, pas deux bugs.
