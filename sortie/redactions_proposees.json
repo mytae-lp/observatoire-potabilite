@@ -1597,5 +1597,772 @@
   ],
   "_commune": "Mirandol-Bourgnounac (81) — 2026-02-05",
   "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100127348": {
+  "sous_titre": "Tarn (81) · réseau ST.PAUL - VILLEDIEU, alimenté en totalité par la station Saint-Paul",
+  "delta": "Le contrôle sanitaire conclut à la conformité et le bulletin ne la contredit pas ; l'écart qu'il porte est d'une autre nature : la teneur en nitrates reste sous la limite en vigueur, qui est aussi celle de 2016, mais se situe au-dessus du repère le plus strict identifié par le projet.",
+  "lecture_administrative": "L'analyse conclut à une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Cette formule est rendue à la date du prélèvement et porte sur ce qui a été mesuré ; le bulletin précise par ailleurs combien de ces paramètres ont pu être rapportés à un seuil de comparaison, et lequel est resté sans conclusion possible.",
+  "analyse": [
+   {
+    "t": "Les nitrates, entre deux repères",
+    "x": "Sur ce paramètre, la limite en vigueur et celle de 2016 sont la même valeur : aucune bascule n'est possible ici, et la mesure passe sous l'une comme sous l'autre. L'écart ne se lit que contre le troisième repère, le plus strict identifié par le projet, qui est nettement plus bas — la valeur relevée s'y situe au-dessus. Ce repère n'est pas une norme applicable en France et n'emporte aucun verdict : il indique seulement qu'une autre convention, retenue par le projet comme la plus protectrice qu'il ait identifiée, aurait placé la même mesure de l'autre côté de sa limite. C'est le seul contrefactuel que ce bulletin fasse apparaître."
+   },
+   {
+    "t": "Un métabolite, un seuil de 2016 qui n'existe pas comme tel",
+    "x": "La seule substance de synthèse quantifiée de ce prélèvement est un métabolite du chlorothalonil, mesuré sous le seuil qui lui est applicable. Se demander ce qu'il serait devenu contre la grille de 2016 n'a pas de réponse lisible dans un texte de cette année-là : le seuil de 0,1 µg/L que le projet retient pour 2016 sur les métabolites est une extrapolation assumée, appuyée sur une règle postérieure, et non la lecture d'une norme d'alors. La valeur mesurée reste en deçà de ce seuil extrapolé comme du seuil applicable, si bien que la question ne change rien au verdict de ce bulletin — mais elle mérite d'être posée là où elle en changerait un."
+   },
+   {
+    "t": "Cinq bulletins, deux périmètres de mesure",
+    "x": "Le corpus détient cinq bulletins de cette commune, tous prélevés sur la même installation amont, aucun ne portant de dépassement ni de bascule. Ils ne forment pourtant pas une série lisible : les deux plus anciens reposent sur un périmètre de mesure sensiblement plus étendu que les trois récents, et la liste des paramètres recherchés s'est recomposée entre les deux — des substances en sortent, d'autres y entrent. Ce que ce changement interdit est précis : comparer terme à terme les comptes bruts de l'ancien et du récent, comme si la même question avait été posée à chaque fois. Il n'autorise en revanche aucune conclusion sur ce que les bulletins récents auraient manqué, et le projet n'en tire pas."
+   }
+  ],
+  "_commune": "Arifat (81) — 2025-09-11",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100127871": {
+  "sous_titre": "Tarn (81) · un même point d'eau pour Pampelonne, Moularès et Tanus",
+  "delta": "Le contrôle conclut à une eau conforme et le bulletin ne porte aucune bascule : l'écart est d'une autre nature, il tient aux trihalométhanes, mesurés à 70,6 µg/L pour une limite de 100 identique sur la grille applicable et sur celle de 2016, mais très au-dessus du repère le plus strict identifié, fixé à 25.",
+  "lecture_administrative": "Le contrôle sanitaire conclut à une eau « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La formule dit ce qu'elle dit, et pas davantage : elle porte sur les paramètres mesurés, et le verdict lui-même ne peut se rendre que sur les 336 d'entre eux qui ont pu être comparés à un seuil, sur 391 recherchés, soit 85,9 % du bulletin. Un paramètre reste indéterminé, et un indéterminé n'est pas un conforme.",
+  "analyse": [
+   {
+    "t": "Un bulletin pour trois communes",
+    "x": "Le prélèvement n'a pas été fait dans chacune des trois communes : il a été fait sur l'installation de production qui les alimente toutes, une station de traitement exploitée par la REGIE E.P. EAUX DU CARMAUSIN SEGALA. Ce qui se lit ici vaut donc pour Pampelonne, Moularès et Tanus ensemble, et non pour l'eau d'un robinet particulier de l'une d'elles. Un seul réseau est déclaré desservi par ce point d'eau, le SYNDICAT DE PAMPELONNE, à 100 %. Le lieu exact du prélèvement dans le réseau n'est pas quelque chose que ces données permettent de situer."
+   },
+   {
+    "t": "Un paramètre dont la limite n'a pas bougé",
+    "x": "Les trihalométhanes sont, sur ce bulletin, le seul paramètre à franchir un repère, et ce n'est pas celui qui décide du verdict. Leur limite vaut 100 sur la grille applicable comme sur celle de 2016 : c'est un cas où la note ne dépend pas de la date du prélèvement, à rebours de ce que ce projet cherche habituellement à montrer. Ce qui s'écarte ici n'est pas la limite française d'une décennie à l'autre, c'est la distance entre elle et le repère le plus strict identifié, fixé à 25 ; la mesure de 70,6 µg/L se situe entre les deux. Elle ne constitue donc ni un dépassement ni une bascule, seulement une valeur qu'une lecture calée sur ce repère strict ne classerait pas conforme."
+   },
+   {
+    "t": "Une série qui change de périmètre",
+    "x": "Le corpus détient huit autres bulletins de ce même point d'eau, de 2017 à 2024. Les trois plus anciens portent sur 627 paramètres recherchés et 578 notés ; à partir de 2020, le nombre recherché se tient entre 361 et 369, et les 391 d'aujourd'hui restent en deçà du niveau antérieur. Le périmètre de mesure a donc changé au tournant de 2020, et ce changement interdit de comparer terme à terme un bulletin d'avant et un bulletin d'après : les listes de paramètres ne sont pas les mêmes, et ce bulletin ne dit pas lesquelles ont changé. Un seul bulletin de la série porte des dépassements, celui de 2019, et aucun ne porte de bascule ; ce que ces deux dépassements concernaient ne se lit pas ici."
+   }
+  ],
+  "_commune": "Pampelonne (81) — 2025-10-22",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100130218": {
+  "sous_titre": "Tarn (81) · Castres, réseau CASTRES, gestionnaire déclaré SPL EAUX DE CASTRES BURLATS",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme aux limites de qualité et non conforme aux références de qualité, tandis que le bulletin ne porte, lui, aucun dépassement à la date du prélèvement et aucune bascule : l'écart qu'il donne à voir est d'une autre nature, trois paramètres restant indéterminés et une valeur passant au-dessus du repère le plus strict identifié tout en restant sous la limite qui lui est applicable.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une eau « conforme aux limites de qualité » et « non conforme aux références de qualité ». Ce sont deux énoncés distincts, qui ne portent pas sur les mêmes valeurs, et le dossier ne dit pas quel paramètre motive la non-conformité aux références. Sur les 351 paramètres que le projet a pu comparer à un seuil, aucun ne dépasse celui qui lui est applicable à la date du prélèvement.",
+  "analyse": [
+   {
+    "t": "Un écart qui ne vient pas du temps",
+    "x": "Le seul contrefactuel de ce bulletin porte sur les trihalométhanes, mesurés à 34,48 µg/L. La limite qui leur est applicable est de 100 µg/L, et celle de 2016 était déjà de 100 µg/L : sur ce paramètre, la grille n'a pas bougé, et aucune bascule n'était possible. L'écart se lit donc contre un autre repère, le plus strict identifié à ce jour par le projet, fixé à 25 µg/L, que la valeur dépasse. Ce bulletin n'illustre pas un seuil qui se déplace dans le temps, mais la distance entre la limite en vigueur ici et la plus protectrice repérée à ce jour."
+   },
+   {
+    "t": "Un indéterminé faute de seuil autant que faute d'instrument",
+    "x": "La somme de quatre substances perfluoroalkylées (PFOA, PFNA, PFHXS, PFOS) est le cas le plus instructif du bulletin, pour une raison que les compteurs ne montrent pas : la grille applicable ne porte aucun seuil pour cette somme. Le seul point de comparaison disponible est donc le repère le plus strict identifié, 0,002 µg/L, et la limite de quantification du laboratoire se situe au-dessus, à 0,004 µg/L. Il en résulte un indéterminé de nature double, puisqu'il tient à la fois à l'absence de valeur de référence dans la grille et à la finesse de la mesure. Un indéterminé n'est ni un dépassement ni une conformité : c'est l'état où le dispositif ne permet pas de conclure."
+   },
+   {
+    "t": "Ce que la série de la commune permet et interdit",
+    "x": "Le corpus détient d'autres bulletins de Castres, prélevés en 2024 et en 2025, recherchés sur 369 puis 391 paramètres, quand celui-ci en porte 411. Le périmètre de mesure a donc changé entre ces bulletins, ce qui interdit toute comparaison terme à terme : ce qui varie d'un bulletin à l'autre n'est pas seulement le résultat, c'est la liste de ce que l'on regarde. Le bulletin de décembre 2025 porte 1 dépassement là où celui-ci n'en porte aucun, mais le dossier ne dit pas quel paramètre le motive, et des comptes bruts issus de panels différents ne se comparent pas. La série montre surtout que l'effort de recherche s'est élargi sur ce réseau, sans que l'on puisse en tirer de conclusion sur ce que les panels antérieurs n'auraient pas vu."
+   }
+  ],
+  "_commune": "Castres (81) — 2026-02-04",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100130379": {
+  "sous_titre": "Trébas, Tarn (81) · réseau SYNDICAT VALENCE - VALDERIES",
+  "delta": "Le contrôle sanitaire conclut à la conformité « pour l'ensemble des paramètres mesurés », alors qu'un paramètre de ce bulletin a été cherché avec une limite de quantification située au-dessus de la limite à laquelle on le compare : sur celui-là, l'analyse ne permet ni de constater un dépassement, ni d'affirmer que le seuil est tenu.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Ce verdict se rend contre la grille en vigueur à la date du prélèvement, et il porte sur les paramètres que l'analyse a effectivement pu comparer à un seuil. Il ne dit rien des paramètres pour lesquels le laboratoire n'a pas pu conclure, qui ne sont ni des conformes ni des dépassements mais un troisième état.",
+  "analyse": [
+   {
+    "t": "Le point d'eau et sa desserte",
+    "x": "Le bulletin porte sur Trébas, dans le Tarn, pour un point d'eau dont la source déclare le gestionnaire SMAEP VALENCE-VALDERIES et le réseau desservi SYNDICAT VALENCE - VALDERIES. Le dossier ne développe pas ces intitulés, ils sont donc repris tels que la source les écrit. Ce texte n'est affiché que par cette commune, et le corpus du projet ne porte à ce jour que ce seul bulletin pour elle : il n'y a donc pas de série dans le temps à lire ici, seulement un instantané."
+   },
+   {
+    "t": "Ce que suppose la comparaison à 2016",
+    "x": "Ce bulletin porte des métabolites notés contre la grille de 2016. Le seuil qui leur est appliqué pour cette année-là est une extrapolation assumée du projet, et non la lecture d'un texte de 2016 : la règle qui le fonde lui est postérieure. La comparaison entre les deux grilles reste donc lisible pour ces lignes, mais elle repose sur cette hypothèse, qui se dit chaque fois qu'on l'invoque."
+   },
+   {
+    "t": "Ce que l'ampleur du panel rend visible",
+    "x": "Le bulletin relève de la classe d'analyse dite approfondie, avec 311 paramètres recherchés. C'est cette largeur qui fait exister la ligne du paramètre hors de portée : un bulletin qui ne cherche pas cette substance ne porte pas la question du tout, et sa conformité paraît d'autant plus nette qu'elle a été moins interrogée. L'écart que porte ce bulletin n'est donc pas dans un dépassement, il est d'une autre nature : il tient à ce que le dispositif de mesure permet ou non de savoir, à l'endroit précis où la conformité se joue."
+   }
+  ],
+  "_commune": "Trébas (81) — 2026-02-05",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100131098": {
+  "sous_titre": "Tarn (81) · Graulhet, réseau GRAULHET · analyse approfondie de mai 2026",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme, et elle l'est à la grille en vigueur à la date du prélèvement ; ce que le bulletin ajoute, c'est qu'une de ses mesures aurait été non conforme à la grille de 2016, et que deux paramètres ne se concluent pas.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une eau d'alimentation « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La formule dit exactement ce qu'elle dit : elle porte sur les paramètres effectivement mesurés, et sur les exigences en vigueur à la date du prélèvement. Elle ne se prononce ni sur les paramètres auxquels aucun seuil de comparaison ne s'applique, ni sur ceux dont la limite de quantification du laboratoire se situe au-dessus du seuil auquel on voudrait les comparer.",
+  "analyse": [
+   {
+    "t": "Une bascule, portée par un métabolite",
+    "x": "La seule mesure de ce bulletin qui change de verdict d'une grille à l'autre est celle d'un métabolite, le chlorothalonil R471811. Elle se situe sous la limite qui lui est applicable aujourd'hui et au-dessus des 0,1 µg/L que le projet retient pour 2016. Ce repère de 2016 est une extrapolation assumée du projet, et non la lecture d'un texte de 2016 : la règle qui le fonde lui est postérieure. La bascule doit donc se lire pour ce qu'elle est, un écart entre deux grilles dont l'une est reconstituée, et non comme le constat d'une non-conformité qui aurait été prononcée à l'époque."
+   },
+   {
+    "t": "Sous la limite applicable, au-dessus du repère le plus strict identifié",
+    "x": "L'écart entre grilles ne tient pas au seul métabolite. Deux paramètres d'une tout autre nature se placent dans le même intervalle : les trihalométhanes, à 46,36 µg/L pour une limite applicable de 100 et un repère le plus strict identifié de 25, et les nitrates, à 13,6 mg/L pour une limite de 50 et un repère le plus strict identifié de 10. Aucune de ces valeurs ne dépasse la limite qui lui est applicable à la date du prélèvement. Ce repère ne produit aucun verdict et ne se substitue à aucune norme : il situe seulement la limite applicable par rapport à la plus basse que le projet ait identifiée pour le même paramètre."
+   },
+   {
+    "t": "Ce que le décompte des bascules ne peut pas contenir",
+    "x": "Parmi les paramètres notés de ce bulletin, 16 le sont par le seul seuil déclaré par la source, et non par le référentiel daté du projet. Ces lignes-là ne peuvent produire ni bascule ni verdict 2016 : on ne reconstitue pas un passé réglementaire à partir de la grille du jour. Le décompte des bascules est donc un plancher, établi sur les paramètres pour lesquels le projet dispose d'un seuil daté, et non sur l'ensemble de ceux qui ont pu être notés."
+   },
+   {
+    "t": "Ce que la série de la commune ne permet pas de comparer",
+    "x": "Les autres bulletins de cette commune réunis par le corpus ne portent ni dépassement ni bascule. On n'en tire pas un avant et un après : le nombre de paramètres recherchés diffère d'un bulletin à l'autre, et le périmètre de mesure a changé au fil de la série. Deux bulletins dont la liste des paramètres n'est pas la même ne se comparent pas terme à terme, et ces données ne disent pas ce qu'une liste aurait donné si elle avait porté sur d'autres paramètres. Les bulletins les plus anciens de la série déclarent une installation de production amont, TTP INTERCO GRAULHET ; celui d'avril 2026 ne la renseigne pas, et le dossier du présent prélèvement n'en indique pas non plus, ce qui empêche de rattacher ces bulletins à une même installation."
+   }
+  ],
+  "_commune": "Graulhet (81) — 2026-05-26",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100131104": {
+  "sous_titre": "Le Bez, Tarn (81) · réseau GAROUSSE, eau gérée par la commune",
+  "delta": "La conclusion sanitaire porte sur « l'ensemble des paramètres mesurés », mais mesurer n'est pas noter : une partie des paramètres recherchés sur ce bulletin n'est comparée à aucun seuil, et deux de ceux qui le sont ne débouchent sur aucune conclusion.",
+  "lecture_administrative": "Le contrôle sanitaire conclut à une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». C'est un verdict rendu contre la grille en vigueur à la date du prélèvement, et le bulletin ne porte effectivement ni dépassement ni bascule à cette date. Il s'applique aux paramètres qui disposent d'un seuil de comparaison, 349 des 411 recherchés, soit 84,9 % du bulletin ; les autres restent mesurés sans être notés.",
+  "analyse": [
+   {
+    "t": "Trois points d'eau pour une commune",
+    "x": "Le corpus du projet détient huit autres bulletins de Le Bez, répartis sur trois points d'eau distincts : GAROUSSE, COMBE ROUGE et LE BEZ TTP. Celui-ci porte sur GAROUSSE. La conséquence est directe pour la lecture : deux bulletins successifs de la commune ne décrivent pas nécessairement la même eau, et un écart entre eux peut tenir au point d'eau autant qu'au programme d'analyse. Sur GAROUSSE seul, les bulletins que détient le corpus vont de 368 à 370 paramètres recherchés, quand celui-ci en porte 411 : le périmètre de mesure a changé, et ce changement interdit la comparaison terme à terme avec les précédents."
+   },
+   {
+    "t": "Une somme de PFAS sans limite applicable",
+    "x": "La somme de quatre substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) figure parmi les paramètres recherchés, mais la grille applicable à la date du prélèvement ne lui oppose aucune limite : elle ne peut donc produire ni verdict ni bascule. La comparaison ne devient possible qu'au repère le plus strict identifié par le projet, 0,002 µg/L — et la limite de quantification du laboratoire, 0,004 µg/L, se situe au-dessus. L'indétermination ne porte donc pas sur la conformité au sens du contrôle sanitaire, mais sur ce que le corpus retient de plus protecteur."
+   },
+   {
+    "t": "Ce que vaut ici la grille de 2016",
+    "x": "Ce bulletin comporte des métabolites, et ceux-là sont notés contre la grille de 2016 avec une limite de 0,1 µg/L. Cette valeur est une extrapolation assumée du projet, non la lecture d'un texte de 2016 : la règle qui la fonde lui est postérieure. Le compte de bascules de ce bulletin, qui est nul, se lit avec cette réserve — ce que la comparaison à 2016 vaut pour un métabolite tient à une convention du projet, pas à un seuil relevé dans un texte de l'époque."
+   }
+  ],
+  "_commune": "Le Bez (81) — 2026-05-19",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100131144": {
+  "sous_titre": "Tarn (81) · réseau LE BANQUET, gestionnaire déclaré la mairie",
+  "delta": "Le contrôle sanitaire conclut à une eau « conforme aux limites de qualité » et « non conforme aux références de qualité », quand la notation seuil par seuil du projet ne prononce aucun dépassement à la date du prélèvement — et le dossier ne nomme pas le paramètre qui porte cette seconde mention.",
+  "lecture_administrative": "La conclusion rendue sur ce prélèvement tient en deux mentions inscrites dans la même phrase de la source : l'eau d'alimentation est déclarée « conforme aux limites de qualité », et « non conforme aux références de qualité ». Les deux coexistent, aucune ne remplace l'autre, et la source s'en tient là. La notation du projet, qui compare chaque paramètre à son seuil daté, ne prononce de son côté aucun dépassement à la date du prélèvement, et laisse un paramètre indéterminé, faute d'une limite de quantification assez basse pour conclure.",
+  "analyse": [
+   {
+    "t": "Un réseau tenu à l'échelle communale",
+    "x": "Saint-Amans-Valtoret est une commune du Tarn. Le prélèvement porte sur le réseau LE BANQUET, et la source déclare la mairie comme gestionnaire : l'exploitation est tenue à l'échelle de la commune. Le corpus du projet rattache par ailleurs à ce territoire deux points d'eau nommés, LE BANQUET TTP et SAINT AMANS VALTORET TTP, tandis que d'autres bulletins n'en nomment aucun. Ce texte ne vaut que pour ce prélèvement et pour le réseau qu'il dessert."
+   },
+   {
+    "t": "Un métabolite lu sous deux grilles",
+    "x": "La seule substance de synthèse quantifiée ici, l'ESA metolachlore, relève de la famille des métabolites au référentiel du projet, et son seuil applicable à la date du prélèvement est de 0,9 µg/L. La grille de 2016 lui oppose 0,1 µg/L : cette valeur est une extrapolation assumée du projet et non la lecture d'un texte de 2016, la règle qui la fonde lui étant postérieure. La mesure relevée, 0,072 µg/L, passe sous l'une comme sous l'autre. C'est ce qui sépare ce bulletin de ceux qui portent une bascule : l'écart entre les deux grilles existe bien pour cette famille, mais cette mesure-ci ne le fait pas jouer."
+   },
+   {
+    "t": "Une série dont le périmètre bouge",
+    "x": "Le corpus réunit d'autres bulletins complets de cette commune, de 2025 à 2026, et aucun ne porte de dépassement ni de bascule. Le nombre de paramètres cherchés n'y est pourtant pas constant, et l'un de ces prélèvements a été fait sur un autre point d'eau que celui-ci. Le périmètre de mesure change donc d'une ligne à l'autre, ce qui interdit de comparer les comptes terme à terme : seuls les taux, rapportés au nombre de paramètres notés, se lisent d'un bulletin au suivant. Le dossier ne dit pas ce qui commande ce périmètre, et rien ici ne permet de le dater."
+   }
+  ],
+  "_commune": "Saint-Amans-Valtoret (81) — 2026-05-28",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100131208": {
+  "sous_titre": "Tarn (81) · réseau RAYSSAC - TIBARIE",
+  "delta": "Le contrôle conclut à la conformité « pour l'ensemble des paramètres mesurés », et la formule est exacte à la lettre : elle ne dit pas que tous les paramètres mesurés ont pu être conclus, ce qui n'est pas le cas de deux d'entre eux.",
+  "lecture_administrative": "Le contrôle sanitaire conclut à une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Le verdict est rendu contre les exigences en vigueur à la date du prélèvement, et il porte sur les paramètres que l'analyse a effectivement mesurés : les deux réserves sont dans la phrase de l'administration elle-même.",
+  "analyse": [
+   {
+    "t": "Le territoire et la portée de ce texte",
+    "x": "Rayssac est une commune du Tarn. Le prélèvement de mai 2026 relève du réseau RAYSSAC - TIBARIE, dont le gestionnaire déclaré par la source est le SYNDICAT MIXTE DU DADOU. Le corpus du projet ne détient aucun autre bulletin pour cette commune : la lecture ne porte donc que sur un instant, et aucune série dans le temps n'est disponible ici. Ce texte n'est affiché que par Rayssac."
+   },
+   {
+    "t": "Un indéterminé sans seuil applicable",
+    "x": "Le premier des deux indéterminés porte sur la somme de quatre substances perfluoroalkylées. Le dossier ne lui associe aucun seuil applicable à la date du prélèvement : le seul repère auquel elle est comparée est le plus strict identifié, et la limite de quantification du laboratoire se situe au-dessus de lui. L'analyse ne peut donc ni constater un écart à ce repère, ni établir qu'il est tenu. Cet état n'est pas une conformité, et il ne se déduit d'aucun verdict rendu sur ce bulletin."
+   },
+   {
+    "t": "Ce que la comparaison à 2016 suppose",
+    "x": "Ce bulletin ne porte aucune bascule : rien n'y dépassait la grille de 2016 sans dépasser celle d'aujourd'hui. Cette lecture rétrospective demande une réserve. Le bulletin comporte des métabolites notés contre la grille de 2016, et le seuil de 0,1 µg/L qui leur est appliqué pour cette année-là est une extrapolation assumée du projet, non la lecture d'un texte de 2016 : la règle qui le fonde lui est postérieure. Le compte de bascules n'en est pas modifié ici, mais la réserve se dit chaque fois que la grille de 2016 est invoquée sur un métabolite."
+   }
+  ],
+  "_commune": "Rayssac (81) — 2026-05-20",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100131217": {
+  "sous_titre": "Tarn (81) · un point d'eau pour huit communes",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme aux limites de qualité et la lecture du projet ne relève pas davantage de dépassement à la date du prélèvement, mais deux paramètres ne reçoivent ici aucun verdict, ce qu'une conclusion de conformité ne dit pas.",
+  "lecture_administrative": "La conclusion officielle porte deux jugements et non un seul : l'eau est déclarée « conforme aux limites de qualité » et, dans le même temps, « non conforme aux références de qualité ». Le premier terme est celui qui se compare à la lecture du projet, et les deux vont dans le même sens : aucun dépassement de seuil applicable n'est relevé sur ce prélèvement. Le second terme relève d'un autre registre, et le dossier ne nomme pas le paramètre qui le motive : il ne peut donc être ni vérifié ni détaillé ici.",
+  "analyse": [
+   {
+    "t": "Un bulletin, huit communes",
+    "x": "Ce prélèvement n'appartient pas à une commune mais à un point d'eau, celui que déclare le gestionnaire SYNDICAT IAEP PAS DU SANT, sur le réseau SYNDICAT DU PAS DU SANT. Les habitants de Puylaurens, Cambounet-sur-le-Sor, Escoussens, Lagardiolle, Lempaut, Lescout, Saint-Affrique-les-Montagnes et Soual lisent donc le même bulletin, avec les mêmes valeurs et le même verdict. C'est l'unité réelle de l'information dans ce département : ce qui est mesuré l'est pour un ensemble intercommunal, et une question posée à l'échelle d'une seule des huit communes n'a pas de réponse séparée dans les données. Le corpus du projet ne détient par ailleurs aucun autre bulletin complet pour cette commune, ce qui interdit toute lecture d'évolution dans le temps."
+   },
+   {
+    "t": "Un écart entre deux grilles, pas entre deux dates",
+    "x": "Le seul paramètre qui franchit un repère est la somme de quatre trihalométhanes, mesurée à 26,71 µg/L. La limite qui lui est applicable vaut 100 µg/L, et le seuil de 2016 vaut également 100 µg/L : les deux grilles disent la même chose, aucune bascule réglementaire n'est possible sur cette ligne. La valeur se situe en revanche au-dessus du repère le plus strict identifié, fixé à 25 µg/L. L'écart que porte ce bulletin n'est donc pas d'ordre chronologique — la limite appliquée n'a pas bougé sur ce point entre les deux grilles — mais tient à la distance entre la limite en vigueur et la plus protectrice des limites recensées par le projet."
+   },
+   {
+    "t": "Ce que l'analyse ne conclut pas",
+    "x": "Ce prélèvement relève de la classe d'analyse dite « approfondie », et 350 des 412 paramètres recherchés ont pu être confrontés à un seuil. Deux d'entre eux restent pourtant sans verdict, et pour une raison qui n'est pas la qualité de l'eau. La somme de quatre substances perfluoroalkylées ne dispose d'aucun seuil dans la grille applicable ; le seul repère auquel on voudrait la comparer vaut 0,002 µg/L, quand la limite de quantification du laboratoire se situe plus haut, à 0,004 µg/L. Ce paramètre n'est ni conforme ni en dépassement : il est indéterminé, et cet état ne se convertit pas en résultat rassurant. Le second paramètre est hors de portée du laboratoire pour la même raison d'instrument, non de norme."
+   }
+  ],
+  "_commune": "Puylaurens (81) — 2026-05-07",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100131222": {
+  "sous_titre": "Tarn (81) · treize communes desservies par un même point d'eau",
+  "delta": "Le contrôle sanitaire conclut à la conformité pour l'ensemble des paramètres mesurés, mais deux d'entre eux restent indéterminés : la limite de quantification du laboratoire s'y situe au-dessus du repère auquel on voudrait les comparer, et un indéterminé n'est pas un conforme.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Cette conclusion porte sur ce qui a été mesuré, et sur la grille en vigueur à la date du prélèvement. Sur ce périmètre, le bulletin ne porte effectivement aucun dépassement.",
+  "analyse": [
+   {
+    "t": "Un seul bulletin pour treize communes",
+    "x": "Le prélèvement a été fait sur un point d'eau du gestionnaire déclaré SMAEP VALENCE-VALDERIES, qui dessert le réseau SYNDICAT VALENCE - VALDERIES. Le même bulletin vaut pour treize communes du Tarn : Cadix, Andouque, Assac, Courris, Fraissines, Lacapelle-Pinet, Le Dourn, Padiès, Saint-Grégoire, Saint-Julien-Gaulène, Saint-Michel-Labadié, Saussenac et Tréban. Ce qu'un habitant peut savoir de son eau dépend donc d'une analyse unique et des choix qui l'ont composée : la liste des paramètres cherchés, et la finesse des instruments employés pour les chercher. Ce qui échappe à ce laboratoire échappe du même coup aux treize communes à la fois."
+   },
+   {
+    "t": "La somme de quatre perfluorés",
+    "x": "Le paramètre « Somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) » a bien été recherché, mais le dossier ne lui attache aucun seuil applicable à la date du prélèvement : le seul point de comparaison disponible est le repère le plus strict identifié, 0,002 µg/L. La limite de quantification employée se situe au-dessus de ce repère. On ne peut donc ni constater un écart, ni affirmer que le repère est tenu : c'est un indéterminé, et il le restera tant que l'instrument ne descendra pas sous cette valeur. Ce n'est pas un résultat, c'est l'absence de résultat possible à cette échelle."
+   },
+   {
+    "t": "Ce que recouvre le zéro bascule",
+    "x": "Le bulletin ne porte aucune bascule : aucune mesure n'y dépassait la limite de 2016 pour passer sous celle d'aujourd'hui. Ce constat ne repose pas sur les 351 paramètres notés, mais sur les 335 que le référentiel daté du projet permet de confronter à deux grilles ; les 16 autres ne sont notés que par la limite déclarée par la source, qui ne fabrique pas de passé réglementaire et ne peut donc produire ni bascule ni verdict pour 2016. Parmi les paramètres confrontés à la grille de 2016 figurent des métabolites : le seuil de 0,1 µg/L qui leur est appliqué pour cette année-là est une extrapolation assumée du projet, la règle qui le fonde lui étant postérieure, et non la lecture d'un texte de 2016. Le zéro bascule se lit avec cette réserve."
+   },
+   {
+    "t": "Ce que ce bulletin ne dit pas du temps",
+    "x": "Le corpus du projet ne détient à ce jour aucun autre bulletin pour la commune où ce prélèvement a été fait. Cette analyse est un point, pas une série : rien ici ne permet de dire si le profil observé est stable, ni ce qu'il était auparavant. Une lecture dans le temps supposerait d'autres bulletins du même point d'eau, comparés à périmètre de recherche identique, faute de quoi la comparaison terme à terme mesurerait le changement de la liste des paramètres plutôt que celui de l'eau."
+   }
+  ],
+  "_commune": "Cadix (81) — 2026-05-20",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133386": {
+  "sous_titre": "Tarn (81) · réseau SYNDICAT VSP FIAC · analyse approfondie de 2026",
+  "delta": "Le contrôle conclut à la conformité pour l'ensemble des paramètres mesurés ; le bulletin montre que cette conclusion repose sur 350 paramètres notés parmi les 410 recherchés, que deux valeurs conformes à la grille française dépasseraient le repère le plus strict identifié, et que deux paramètres ne reçoivent aucun verdict.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La conclusion est exacte dans ses termes : à la date du prélèvement, aucun paramètre ne dépasse le seuil qui lui est applicable. Elle porte sur ceux qui ont pu être comparés à un seuil, 350 sur les 410 recherchés, et ne dit rien de ceux pour lesquels la limite de quantification du laboratoire se situe au-dessus du seuil de comparaison.",
+  "analyse": [
+   {
+    "t": "Un seul point d'observation",
+    "x": "Fiac se situe dans le Tarn (81) et son eau est distribuée par le réseau SYNDICAT VSP FIAC, rattaché au gestionnaire déclaré SYNDICAT IAEP VIELMUR ST.PAUL. Le corpus du projet ne détient aucun autre bulletin pour cette commune : ce prélèvement de 2026 est le seul point d'observation disponible, et rien ne peut donc en être lu comme une évolution dans le temps. Aucune comparaison de territoire n'est proposée ici, faute d'une zone nommée dont le corpus détienne les bulletins. L'analyse relève de la classe dite approfondie, avec 410 paramètres recherchés dont 321 substances de synthèse : c'est cet effort de recherche, plus que le verdict lui-même, qui donne son poids au constat qu'aucun paramètre ne dépasse son seuil."
+   },
+   {
+    "t": "Deux valeurs conformes, et un repère plus bas",
+    "x": "Deux paramètres notés conformes portent tout l'écart de ce bulletin : les nitrates, mesurés à 15,3 mg/L pour une limite applicable de 50 mg/L, et les fluorures, à 0,52 mg/L pour une limite de 1,5 mg/L. L'un et l'autre restent nettement sous la grille en vigueur et dépassent l'un et l'autre le repère le plus strict identifié par le projet, 10 mg/L pour les nitrates et 0,5 mg/L pour les fluorures. Cet écart n'est pas un déplacement dans le temps : pour ces deux paramètres, le seuil de 2016 et celui d'aujourd'hui portent la même valeur, et c'est pourquoi le bulletin ne comporte aucune bascule. Il ne se lit qu'entre deux grilles contemporaines, celle qui fait foi et la plus protectrice qui ait été identifiée. Ce bulletin porte par ailleurs des métabolites notés contre la grille de 2016 : le seuil de 0,1 µg/L qui leur est alors appliqué est une extrapolation assumée du projet et non la lecture d'un texte de 2016, la règle qui le fonde lui étant postérieure."
+   },
+   {
+    "t": "Ce que la mesure ne tranche pas",
+    "x": "La somme de quatre substances perfluoroalkylées est le cas le plus net. La grille applicable ne lui oppose aucune limite dans ce bulletin, et le seul repère disponible, 0,002 µg/L, se situe sous la limite de quantification du laboratoire, 0,004 µg/L. Même conduite sans défaut, l'analyse ne pouvait donc pas conclure contre ce repère : ce qui est en cause n'est pas la mesure, mais ce que le dispositif de contrôle permet d'en dire. C'est la différence entre les deux paramètres indéterminés de ce bulletin — pour l'un, c'est le repère le plus strict qui est hors d'atteinte ; pour l'autre, la limite réglementaire elle-même."
+   }
+  ],
+  "_commune": "Fiac (81) — 2026-03-19",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133404": {
+  "sous_titre": "Tarn (81) · réseau BRASSAC, gestionnaire déclaré par la source : la mairie",
+  "delta": "Le contrôle sanitaire rend une conclusion en deux parties — conforme aux limites de qualité, non conforme aux références de qualité — sans que le dossier dise quel paramètre porte ce second constat, alors que la notation du projet ne relève aucun dépassement du seuil applicable et laisse 2 paramètres indéterminés.",
+  "lecture_administrative": "Le contrôle sanitaire déclare cette eau « conforme aux limites de qualité » et « non conforme aux références de qualité ». Ce sont deux registres distincts dans la phrase de l'administration, et la conclusion ne les résume pas en un verdict unique. Le dossier ne nomme pas le paramètre visé par le second terme, et la notation du projet, qui compare chaque mesure à son seuil applicable, n'enregistre pour sa part aucun dépassement à la date du prélèvement.",
+  "analyse": [
+   {
+    "t": "Une commune, plusieurs points d'eau",
+    "x": "Le dossier situe ce prélèvement à Brassac, dans le Tarn, sur le réseau BRASSAC, la mairie étant le gestionnaire déclaré par la source. Les autres bulletins que le corpus détient pour cette commune ne portent pas tous sur le même point d'eau : STATION TRAITEMENT BOURG, RESERVOIR CROIX DE CASTRES, COMBESPINAS STATION et LE VIALA y figurent tour à tour, de 2022 à 2025, aucun ne relevant de dépassement ni de bascule. Le nombre de paramètres cherchés change d'un bulletin à l'autre. Cette constance se lit donc sur un périmètre de mesure qui bouge, et non sur une même liste suivie dans le temps : elle ne se compare pas terme à terme."
+   },
+   {
+    "t": "Un indéterminé sans seuil de comparaison",
+    "x": "La somme de quatre substances perfluoroalkylées est le paramètre que la table des indéterminés retient. Sa particularité tient à ce qu'aucun seuil ne lui est applicable à la date du prélèvement, ni au titre de 2016 : la seule valeur à laquelle le comparer est le repère le plus strict identifié, 0,002 µg/L, et la limite de quantification du laboratoire, 0,004 µg/L, se situe au-dessus. L'analyse ne dit donc ni que ce repère est tenu ni qu'il est franchi. Ce silence est un troisième état, et il ne se lit pas comme un résultat conforme."
+   },
+   {
+    "t": "La réserve qui pèse sur la grille de 2016",
+    "x": "L'absence de bascule et l'absence de contrefactuel contre la grille de 2016 se lisent avec la réserve que porte ce dossier. Les métabolites y sont notés pour 2016 contre un seuil de 0,1 µg/L qui est une extrapolation assumée du projet, et non la lecture d'un texte de 2016 : la règle qui le fonde lui est postérieure. Ce qui est comparé pour cette année-là n'est donc pas entièrement un état du droit d'alors, et c'est une limite de la démonstration, pas un résultat de mesure."
+   }
+  ],
+  "_commune": "Brassac (81) — 2026-03-13",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133407": {
+  "sous_titre": "Tarn (81) · réseau LACAPELLE, gestion communale",
+  "delta": "Le contrôle conclut à la conformité « pour l'ensemble des paramètres mesurés », mais deux paramètres n'ont pas pu être tranchés faute d'une limite de quantification assez basse, et pour l'un d'eux c'est la limite réglementaire elle-même qui restait hors de portée du laboratoire.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Rendu à la date du prélèvement, en mars 2026, ce verdict ne rencontre aucun dépassement et aucune bascule réglementaire. Il porte sur les paramètres auxquels un seuil pouvait être opposé, soit 351 des 411 recherchés ; les 60 autres n'entrent dans aucun verdict, ni dans un sens ni dans l'autre.",
+  "analyse": [
+   {
+    "t": "Un réseau tenu par la commune",
+    "x": "Le gestionnaire déclaré par la source est la mairie de Lacapelle-Escroux, et un seul réseau est desservi, LACAPELLE. Le bulletin ne vaut que pour cette commune : il n'est pas emprunté au réseau d'une autre, et le corpus ne lui rattache aucune commune supplémentaire. Le point d'eau du prélèvement de 2019 est nommé ESCROUX dans le corpus ; le dossier ne nomme pas celui de mars 2026, et rien n'y permet de dire s'il s'agit du même."
+   },
+   {
+    "t": "La somme des quatre PFAS, un indéterminé sans seuil applicable",
+    "x": "La somme de quatre substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) ne reçoit ici aucun seuil applicable : le seul repère qui lui soit opposé est le plus strict identifié, 0,002 µg/L. La limite de quantification du laboratoire, 0,004 µg/L, se situe au-dessus de ce repère. Le résultat n'est donc ni un dépassement ni une conformité, mais un indéterminé, et il le reste indépendamment de la conclusion administrative : celle-ci se rend contre le seuil applicable, qui fait défaut sur cette somme. Ce que le bulletin dit de ces quatre substances est ce que l'instrument savait voir, pas ce que l'eau contient."
+   },
+   {
+    "t": "La lecture de 2016 ne couvre pas tout le bulletin",
+    "x": "Sur les 351 paramètres notés, 335 le sont contre le référentiel daté du projet et 16 contre la seule limite déclarée par la source. Ces 16 derniers ne peuvent produire ni verdict de 2016 ni bascule : on ne reconstitue pas un passé réglementaire à partir de la grille du jour. L'absence de bascule vaut donc pour les paramètres adossés au référentiel daté, non pour la totalité des notés. Et lorsque cette grille de 2016 est opposée à un métabolite, le seuil de 0,1 µg/L qui lui est prêté est une extrapolation assumée du projet, fondée sur une règle postérieure à 2016 et non sur la lecture d'un texte de cette année-là."
+   },
+   {
+    "t": "Deux bulletins, deux périmètres de mesure",
+    "x": "Le corpus retient un second bulletin de cette commune, prélevé en octobre 2019, sur un panel de recherche plus large que celui de mars 2026. Le périmètre de mesure a changé entre les deux dates, ce qui interdit de comparer terme à terme les comptes de paramètres ou de dépassements. Le dossier ne dit ni quels paramètres sont sortis de la liste, ni lesquels y sont entrés : aucune lecture d'évolution ne peut en être tirée, dans un sens comme dans l'autre. Ce qui a bougé entre ces deux bulletins est la liste de ce qu'on regarde, et le dossier ne permet pas d'en dire la cause."
+   }
+  ],
+  "_commune": "Lacapelle-Escroux (81) — 2026-03-06",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133443": {
+  "sous_titre": "Tarn (81) · une adduction lue pour deux communes",
+  "delta": "Le contrôle sanitaire conclut à la conformité « pour l'ensemble des paramètres mesurés », alors que sur les 411 paramètres recherchés 60 n'ont aucun seuil auquel les comparer et 2 ne permettent pas de conclure : le verdict porte sur ce qui pouvait être noté, pas sur tout ce qui a été mesuré.",
+  "lecture_administrative": "Le contrôle sanitaire retient une eau « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». À la date du prélèvement, la lecture du projet ne le contredit pas : aucun paramètre noté ne dépasse le seuil qui lui était alors applicable. Elle ajoute seulement ce que la formule administrative ne distingue pas — « mesuré » et « noté » ne désignent pas le même ensemble, et deux paramètres ne se rangent ni dans le conforme ni dans le dépassement.",
+  "analyse": [
+   {
+    "t": "Un bulletin, deux communes",
+    "x": "Le prélèvement porte sur l'installation de production amont ADDUCTION LA TRAVALLE, dans le Tarn, déclarée au SIVOM DU PLO DU LAC. Ce même point d'eau alimente Saint-Salvi-de-Carcavès et Massals, et les réseaux desservis déclarés par la source sont MIOLLES HAUT, RAYSSAC - TIBARIE, MASSALS, LACAPELLE et l'adduction elle-même : c'est donc la même eau qui est lue ici pour les deux communes, et ce texte vaut pour l'une comme pour l'autre. Le corpus du projet ne détient aucun autre bulletin pour la commune du prélèvement. Il n'y a par conséquent pas de série à lire dans le temps, mais un état daté, dont l'intérêt tient d'abord à l'ampleur de ce qui a été cherché."
+   },
+   {
+    "t": "Deux indéterminés, deux raisons distinctes",
+    "x": "Les deux paramètres qui ne concluent pas ne le font pas pour le même motif, et l'amalgame les rendrait illisibles. La somme de quatre substances perfluoroalkylées n'a pas de seuil applicable à la date du prélèvement : le seul repère auquel on puisse la comparer est le plus strict identifié par le projet, 0,002 µg/L, et la limite de quantification du laboratoire se situe à 0,004 µg/L. Ce qui échappe là n'est pas une limite réglementaire, c'est un repère sans force réglementaire ici et que l'instrument n'atteint pas. L'hydrazide maleïque relève de l'autre cas : le seuil applicable existe, 0,1 µg/L, et c'est lui que la limite de quantification de 0,5 µg/L place hors d'atteinte. Dans les deux cas, le résultat n'est ni un dépassement ni un conforme, et il ne se présente pas comme tel."
+   },
+   {
+    "t": "Ce que recouvre l'absence de bascule",
+    "x": "Ce bulletin ne porte aucune bascule : la lecture contre la grille de 2016 donne le même résultat que la lecture contre la grille applicable au prélèvement. Cette lecture rétrospective repose, pour les métabolites recherchés ici, sur un seuil de 0,1 µg/L que le projet applique à 2016 par extrapolation assumée — la règle qui le fonde est postérieure à cette date, ce n'est donc pas la lecture d'un texte de 2016, et cela se dit chaque fois que la grille de 2016 est invoquée sur un métabolite. La conséquence pratique est simple : l'écart que porte ce bulletin n'est pas d'ordre chronologique, il ne montre pas une limite qui se serait déplacée. Il est d'une autre nature, entre ce que l'analyse a mesuré et ce qu'elle a pu noter."
+   }
+  ],
+  "_commune": "Saint-Salvi-de-Carcavès (81) — 2026-03-11",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133445": {
+  "sous_titre": "Saïx, Tarn (81) · réseau SYNDICAT SAIX NAVES",
+  "delta": "Le contrôle conclut à la conformité « pour l'ensemble des paramètres mesurés », mais l'un des paramètres mesurés a été cherché avec une limite de quantification cinq fois plus haute que le seuil auquel on le compare : sur celui-là, l'analyse ne conclut ni dans un sens ni dans l'autre.",
+  "lecture_administrative": "Le contrôle sanitaire déclare cette eau « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Ce verdict est rendu contre la grille applicable à la date du prélèvement, en 2026, et il ne relève aucun dépassement. La lecture du projet le confirme sur son propre périmètre : 307 paramètres ont pu être comparés à un seuil, sur 311 recherchés, soit 98,7 % du bulletin, et parmi eux un reste indéterminé.",
+  "analyse": [
+   {
+    "t": "Un métabolite noté contre 0,9 µg/L",
+    "x": "La seule substance de synthèse quantifiée de ce prélèvement est le chlorothalonil R471811, à 0,026 µg/L, rattaché par le référentiel du projet à la famille des métabolites, dont le seuil applicable est ici de 0,9 µg/L. Le dossier ne relève aucun contrefactuel : cette valeur ne franchirait ni la grille de 2016, ni celle de 2026, ni le repère le plus strict identifié. Cette lecture de 2016 appelle toutefois une réserve que le projet énonce lui-même : le seuil de 0,1 µg/L appliqué aux métabolites pour 2016 est une extrapolation assumée, non la lecture d'un texte de cette année-là, puisque la règle qui le fonde lui est postérieure. Le chiffre qui engage le verdict reste donc celui de la grille applicable au jour du prélèvement."
+   },
+   {
+    "t": "Une série stable, un périmètre qui ne l'est pas",
+    "x": "Le corpus détient plusieurs autres bulletins de cette commune, de 2023 à 2025, et aucun ne porte de dépassement ni de bascule. Mais la liste des paramètres recherchés n'est pas la même d'un bulletin à l'autre : 325 puis 324 paramètres cherchés en 2023, 310 en 2024, 311 ensuite. Un compte de dépassements ne se compare donc pas terme à terme d'une année sur l'autre, puisque ce n'est pas la même analyse qui est reconduite. Le dossier décrit ce changement de périmètre, il ne le date pas et ne l'attribue à aucune décision : ce qui varie d'une ligne à l'autre est la liste de ce que l'on regarde, et rien dans ces données ne permet d'en tirer une conclusion sur ce que les listes successives auraient laissé de côté."
+   },
+   {
+    "t": "Ce que le dossier ne nomme pas",
+    "x": "Les bulletins antérieurs de la commune sont enregistrés sans point d'eau nommé. Rien ne permet donc d'affirmer qu'ils proviennent tous de la même installation de production, et la stabilité de la série se lit à l'échelle de la commune, pas à celle d'un captage identifié. Le prélèvement est rattaché au réseau SYNDICAT SAIX NAVES, déclaré au gestionnaire SMAEP DE SAIX-NAVES ; le texte de ce bulletin n'est affiché que par Saïx."
+   }
+  ],
+  "_commune": "Saïx (81) — 2026-04-17",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133447": {
+  "sous_titre": "Tarn (81) · réseau CAGNAC LES MINES, régie E.P. EAUX DU CARMAUSIN SEGALA",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme aux limites de qualité et la notation du projet ne relève, à la date du prélèvement, ni dépassement ni bascule : l'écart que porte ce bulletin est d'une autre nature, celui qui sépare la grille applicable du repère le plus strict identifié, franchi par deux valeurs.",
+  "lecture_administrative": "La conclusion du contrôle sanitaire tient en deux registres distincts : l'eau est déclarée « conforme aux limites de qualité » et « non conforme aux références de qualité ». Le dossier ne dit pas quel paramètre porte cette seconde mention, et la notation faite ici contre le référentiel daté du projet ne relève aucun dépassement du seuil applicable à la date du prélèvement. Ce point ne peut pas être tranché avec le seul contenu de ce dossier, et il n'est pas tranché.",
+  "analyse": [
+   {
+    "t": "Deux valeurs entre deux conventions",
+    "x": "Aucune valeur de ce prélèvement ne franchit le seuil qui lui est applicable, mais deux d'entre elles dépasseraient le repère le plus strict identifié par le projet. Les trihalométhanes sont mesurés à 29,3 µg/L pour une limite applicable de 100 µg/L et un repère strict de 25 µg/L ; les nitrates à 13,8 mg/L pour une limite de 50 mg/L et un repère strict de 10 mg/L. Ce repère strict n'est pas la norme en vigueur ici, et le citer ne transforme pas ces mesures en dépassements. Il montre seulement que, entre la limite retenue et la valeur la plus protectrice identifiée à ce jour, l'écart est assez large pour que la même mesure change de lecture sans que l'eau ait changé."
+   },
+   {
+    "t": "Un métabolite noté contre deux grilles",
+    "x": "La seule substance de synthèse quantifiée de ce prélèvement est l'ESA metazachlore, à 0,037 µg/L pour un seuil applicable de 0,9 µg/L. Rapportée à la grille de 2016, cette famille est notée dans ce projet contre 0,1 µg/L, et cela demande une réserve explicite : ce 0,1 µg/L est une extrapolation assumée du projet, non la lecture d'un texte de 2016, la règle qui le fonde étant postérieure au prélèvement de référence. L'écart entre les deux notations est large ; la mesure se tient sous l'une comme sous l'autre, et aucune bascule n'est donc constatée sur ce bulletin."
+   },
+   {
+    "t": "Un périmètre de mesure qui change d'un bulletin à l'autre",
+    "x": "Le corpus détient plusieurs autres bulletins de cette commune, dont le nombre de paramètres recherchés va de 310 à 370, quand celui-ci en porte 409. Le périmètre de mesure n'est donc pas le même d'un prélèvement au suivant, ce qui interdit de lire ces bulletins comme une série : un compte de dépassements ne se compare pas d'un panel à l'autre. Le dossier ne porte rien qui explique ces variations de périmètre, et rien ici ne permet de les rattacher à une décision ni à une date. Ce qui se constate, en revanche, est qu'aucun de ces bulletins ne porte de dépassement ni de bascule, et que deux d'entre eux seulement nomment le point d'eau dont ils proviennent."
+   }
+  ],
+  "_commune": "Cagnac-les-Mines (81) — 2026-03-26",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133465": {
+  "sous_titre": "Tarn (81) · un point d'eau du réseau SYNDICAT MOYENNE VALLEE TARN, partagé par 19 communes",
+  "delta": "Le contrôle sanitaire conclut à la conformité et rien dans ce bulletin ne le contredit ; l'écart qu'il porte est d'une autre nature, puisque sur deux paramètres l'analyse ne conclut ni au respect du seuil ni à son dépassement.",
+  "lecture_administrative": "Le contrôle sanitaire déclare l'eau d'alimentation « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La formule dit exactement sa portée : elle vaut pour les paramètres effectivement mesurés, et pour les exigences en vigueur à la date du prélèvement. Elle ne se prononce pas sur ce qui n'a pas été cherché, ni sur les paramètres où la limite de quantification du laboratoire se situe au-dessus du seuil de comparaison.",
+  "analyse": [
+   {
+    "t": "Un bulletin, 19 communes",
+    "x": "Ce prélèvement de mars 2026 ne décrit pas 19 eaux mais une seule : celle d'un point d'eau commun, déclaré au gestionnaire SMAEP DU GAILLACOIS et desservant le réseau SYNDICAT MOYENNE VALLEE TARN. Un habitant de chacune de ces communes lit donc le même bulletin, et la lecture qui vaut pour l'une vaut pour les autres. Cela déplace la question habituelle : ce n'est pas la commune qui est l'unité pertinente ici, c'est l'installation qui la dessert."
+   },
+   {
+    "t": "La somme des quatre perfluoroalkylées, sans seuil applicable et sous le repère strict",
+    "x": "Pour la somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS), le dossier ne porte aucun seuil applicable à la date du prélèvement : la question ne se pose donc pas ici en termes de conformité, et son absence de la liste des dépassements ne signifie pas qu'un seuil a été franchi ou respecté. Le repère le plus strict identifié est de 0,002 µg/L, quand la limite de quantification du laboratoire est de 0,004 µg/L : le repère se situe sous ce que l'instrument permet de distinguer. On ne peut donc rien dire de cette somme au regard de ce repère, ni dans un sens ni dans l'autre — c'est un indéterminé, et un indéterminé n'est pas un résultat conforme."
+   },
+   {
+    "t": "Ce que la grille de 2016 ne peut pas dire sur ce bulletin",
+    "x": "Sur les 351 paramètres notés, 335 le sont par le référentiel daté du projet et 16 par la seule limite déclarée par la source. Ces 16 derniers ne permettent ni verdict de 2016 ni bascule : on ne reconstitue pas un passé réglementaire à partir de la grille du jour, et l'absence de bascule sur ce bulletin doit se lire en tenant compte de cette réserve de périmètre. S'y ajoute une réserve propre aux métabolites : le seuil de 0,1 µg/L qui leur est appliqué pour la grille de 2016 est une extrapolation assumée du projet, non la lecture d'un texte de cette époque, la règle qui le fonde lui étant postérieure. Partout où ce bulletin est lu à l'aune de 2016 sur un métabolite, c'est cette extrapolation qui est lue, et elle est signalée comme telle."
+   },
+   {
+    "t": "Aucun point de comparaison dans le temps",
+    "x": "Le corpus du projet ne détient, à ce jour, aucun autre bulletin de cette commune. Il n'existe donc pas de série à lire ici : ce prélèvement est un instantané, et rien ne permet de dire s'il ressemble ou non à ce qui a été mesuré avant sur ce même point d'eau. Une comparaison dans le temps supposerait en outre de se restreindre aux paramètres cherchés aux deux dates, faute de quoi c'est le périmètre de mesure que l'on comparerait, et non l'eau."
+   }
+  ],
+  "_commune": "Grazac (81) — 2026-03-31",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133489": {
+  "sous_titre": "Tarn (81) · réseau ALBI - LESCURE · analyse approfondie de 411 paramètres",
+  "delta": "Le contrôle conclut à la conformité « pour l'ensemble des paramètres mesurés », alors qu'un paramètre de ce bulletin ne conclut rien — sa limite de quantification se situe au-dessus du seuil auquel on le compare — et que la somme de 4 substances perfluoroalkylées, à 0,003 µg/L, dépasse le repère le plus strict identifié, 0,002 µg/L, sans qu'aucun seuil applicable ne lui soit opposé.",
+  "lecture_administrative": "Le contrôle sanitaire conclut à une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Ce verdict est rendu à la date du prélèvement, contre les exigences « en vigueur » à ce moment-là, et il s'appuie sur les paramètres qui ont pu être comparés à une limite : 351 des 411 recherchés, soit 85,4 %. Les 60 autres n'ont aucun seuil de comparaison et ne pèsent sur aucun verdict. Le paramètre cherché avec une limite de quantification cinq fois plus haute que son seuil reste, lui, un indéterminé : il ne se range ni du côté du dépassement ni du côté de la conformité.",
+  "analyse": [
+   {
+    "t": "Un réseau qui déborde la commune",
+    "x": "Le prélèvement relève du réseau nommé ALBI - LESCURE, exploité par la REGIE EAU POTABLE GRAND ALBIGEOIS : le nom même du réseau associe la commune à Albi, et la distribution qu'il décrit ne se lit pas à l'échelle de la seule commune. Ce bulletin n'est pourtant affiché que pour Lescure-d'Albigeois, et le corpus du projet ne détient aucun autre bulletin la concernant. Il n'y a donc ici ni série dans le temps ni second terme de comparaison : ce texte décrit un état ponctuel, pas une trajectoire."
+   },
+   {
+    "t": "Une somme sans seuil, au-dessus du repère le plus strict",
+    "x": "Trois substances perfluoroalkylées sont quantifiées dans ce prélèvement, et le bulletin porte en outre un paramètre distinct, qui leur est agrégé : la somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS), mesurée à 0,003 µg/L. À cette somme, le dossier n'oppose aucun seuil applicable, ni pour aujourd'hui ni pour 2016 ; elle ne peut donc produire aucun dépassement, et elle n'en produit pas. Elle se situe en revanche au-dessus du repère le plus strict identifié pour ce paramètre, 0,002 µg/L. L'écart que porte ce bulletin est de cette nature : il tient au référentiel auquel on rapporte la mesure, non à la mesure elle-même, qui ne change pas d'un chiffre selon la grille qu'on lui applique."
+   },
+   {
+    "t": "Ce que recouvre « aucune bascule »",
+    "x": "Ce bulletin ne porte aucune bascule, c'est-à-dire aucune mesure qui aurait dépassé la limite de 2016 sans dépasser celle d'aujourd'hui. Cette lecture rétrospective ne s'applique cependant pas à tous les paramètres notés : 17 d'entre eux ne le sont que par la limite déclarée par la source, et ceux-là ne peuvent produire ni bascule ni verdict 2016 — on ne reconstruit pas un passé réglementaire à partir de la grille du jour. Sur les métabolites que ce bulletin porte, le seuil de 0,1 µg/L retenu pour 2016 est par ailleurs une extrapolation assumée du projet et non la lecture d'un texte de cette année-là : la règle qui le fonde lui est postérieure. Le constat reste un résultat, mais un résultat dont il faut connaître l'assise."
+   }
+  ],
+  "_commune": "Lescure-d'Albigeois (81) — 2026-03-02",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133543": {
+  "sous_titre": "Saint-Juéry, Tarn (81) · réseau ST JUERY, régie eau potable Grand Albigeois",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme aux limites de qualité et non conforme aux références de qualité, tandis que la notation du projet ne relève aucun dépassement du seuil applicable mais laisse 2 paramètres indéterminés, faute d'une limite de quantification assez basse.",
+  "lecture_administrative": "La conclusion du contrôle sanitaire est double : l'eau est déclarée « conforme aux limites de qualité » et « non conforme aux références de qualité ». Ces deux mentions ne relèvent pas du même registre, et le dossier ne dit pas quel paramètre motive la seconde. La notation du projet, qui compare chaque mesure à un seuil daté et rend son verdict à la date du prélèvement, ne relève de son côté aucun dépassement du seuil applicable.",
+  "analyse": [
+   {
+    "t": "Une série plate, un panel qui s'élargit",
+    "x": "Le corpus détient d'autres bulletins pour cette commune, de fin 2023 à début 2026, tous sans dépassement et sans bascule. Le nombre de paramètres recherchés y passe de 369 à 370, puis à 391, puis à 411 — celui du présent prélèvement. Le périmètre de mesure a donc changé plusieurs fois sur la période, et cela interdit de comparer terme à terme les résultats d'une année à l'autre : ce n'est pas la même liste de substances qui est interrogée. Les bulletins antérieurs déclarent un point d'eau amont, STATION SABANEL ; le plus récent d'entre eux ne le déclare pas."
+   },
+   {
+    "t": "Une somme sans seuil applicable",
+    "x": "La somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) occupe une position particulière dans ce bulletin : la grille applicable à la date du prélèvement ne lui oppose aucun seuil, et le seul repère disponible pour la comparer est le plus strict identifié par le projet, 0,002 µg/L. La limite de quantification du laboratoire se situe à 0,004 µg/L, au-dessus de ce repère. Le paramètre a bien été recherché, mais aucune des deux voies ne permet de conclure : ni la grille, qui ne fixe rien pour lui, ni le repère strict, que l'instrument n'atteint pas. C'est un indéterminé, et il ne se lit pas comme un résultat conforme."
+   },
+   {
+    "t": "Trois provenances de seuil, une lecture rétrospective plus étroite",
+    "x": "Les paramètres notés ne le sont pas tous de la même façon : 334 le sont par le référentiel daté du projet, 17 par la seule limite déclarée par la source. Ces derniers ne peuvent produire ni bascule ni verdict 2016, puisqu'on ne reconstitue pas un passé réglementaire à partir de la grille du jour. La lecture rétrospective de ce bulletin porte donc sur un ensemble plus étroit que sa lecture au seuil applicable. Une réserve s'y ajoute, propre à ce bulletin : il porte des métabolites notés contre la grille de 2016, et le seuil de 0,1 µg/L qui leur est appliqué pour cette année-là est une extrapolation assumée du projet, la règle qui le fonde lui étant postérieure — ce n'est pas la lecture d'un texte de 2016."
+   }
+  ],
+  "_commune": "Saint-Juéry (81) — 2026-04-01",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133571": {
+  "sous_titre": "Tarn (81) · point d'eau du SYNDICAT DU DADOU, bulletin partagé par 46 communes",
+  "delta": "L'administration conclut à la conformité pour l'ensemble des paramètres mesurés ; le bulletin montre que deux d'entre eux ne sont ni conformes ni en dépassement, mais indéterminés, la limite de quantification du laboratoire se situant au-dessus du seuil auquel on voudrait les comparer.",
+  "lecture_administrative": "Le contrôle sanitaire conclut à une eau « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Cette conclusion vaut à la date du prélèvement, et la lecture du projet ne la contredit pas : aucun paramètre ne dépasse le seuil qui lui était applicable ce jour-là, et aucune bascule n'est constatée entre la grille de 2016 et celle de 2026. Elle porte sur les paramètres auxquels un seuil a pu être opposé, 351 des 411 mesurés, et laisse de côté deux indéterminés, qui ne sont pas des conformes.",
+  "analyse": [
+   {
+    "t": "Un bulletin qui n'est pas celui d'une commune",
+    "x": "Ce prélèvement d'avril 2026 décrit une installation de production amont, déclarée SYNDICAT DU DADOU, et non le robinet d'un village : le même texte s'affiche sur les 46 communes qu'elle alimente, de Montdragon à Ambialet, Briatexte ou Cunac. Le gestionnaire déclaré par la source est le SYNDICAT MIXTE DU DADOU. Les réseaux desservis portent une part déclarée de 100 % pour ce point d'eau, si bien que la lecture qui suit vaut pour chacun d'eux et pour aucune commune en particulier. C'est un bulletin de ressource partagée, et il se lit comme tel."
+   },
+   {
+    "t": "Deux valeurs entre deux repères",
+    "x": "Deux paramètres se tiennent sous leur limite applicable tout en dépassant le repère le plus strict identifié : les nitrates, mesurés à 14,3 mg/L pour une limite de 50 mg/L et un repère strict de 10, et les fluorures, à 0,81 mg/L pour une limite de 1,5 et un repère de 0,5. Ce ne sont pas des dépassements, et le bulletin ne les compte pas comme tels. Sur ces deux paramètres, la grille de 2016 et celle de 2026 portent la même valeur : la limite n'a pas bougé d'une grille à l'autre, et il n'y a donc ici aucun réétalonnage à montrer. L'écart que porte ce bulletin est d'une autre nature : il tient à la distance entre la limite réglementaire et le repère le plus strict identifié, pas à un déplacement du seuil dans le temps. Une précision est due partout où la grille de 2016 est invoquée : pour les métabolites, le seuil de 0,1 µg/L qui leur est appliqué pour 2016 est une extrapolation assumée par le projet, la règle qui le fonde lui étant postérieure, et non la lecture d'un texte de cette année-là."
+   },
+   {
+    "t": "Là où la mesure s'arrête",
+    "x": "L'un des indéterminés porte sur la somme de quatre substances perfluoroalkylées. Le dossier ne lui oppose aucun seuil applicable : la seule valeur à laquelle la comparer est le repère le plus strict identifié, et la limite de quantification du laboratoire se situe au-dessus. Ce n'est donc ni un résultat conforme, ni un dépassement, mais une question que la mesure laisse ouverte. Un bulletin peut être exact sur toute la part qui conclut et rester muet là où l'instrument s'arrête ; c'est cette part muette, et non le verdict, qui distingue ce bulletin."
+   }
+  ],
+  "_commune": "Montdragon (81) — 2026-04-02",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133575": {
+  "sous_titre": "Tarn (81) · réseau LABRUGUIERE · analyse approfondie d'avril 2026",
+  "delta": "Le contrôle sanitaire conclut à la conformité, et le bulletin le confirme à la date du prélèvement ; ce qu'il ajoute est d'une autre nature, la distance entre la limite applicable et le repère le plus strict identifié, et deux paramètres sur lesquels l'analyse ne conclut pas.",
+  "lecture_administrative": "« Eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés » : c'est la conclusion rendue sur ce prélèvement d'avril 2026, sur le réseau LABRUGUIERE, dont le gestionnaire déclaré par la source est le SMAEP DU PAS DES BETES. Cette conclusion porte, comme elle le dit, sur les paramètres mesurés. Le projet a pu en rapprocher 350 d'un seuil de comparaison sur les 410 recherchés, soit 85,4 % du bulletin ; les autres n'entrent dans aucun verdict, ni dans le sien, ni dans celui de l'administration.",
+  "analyse": [
+   {
+    "t": "Une limite qui n'a pas bougé",
+    "x": "Les trihalométhanes, comptés comme quatre substances, sont mesurés à 38,9 µg/L pour une limite applicable de 100 µg/L : le bulletin est en règle, et il l'aurait été aussi contre la grille de 2016, où la limite retenue pour ce paramètre est la même. Sur ce point, la thèse du projet ne trouve rien à montrer : la limite ne s'est pas déplacée, il n'y a donc pas de bascule. L'écart que porte ce bulletin est d'une autre nature. Le repère le plus strict identifié pour ce paramètre est de 25 µg/L, et la valeur mesurée le dépasse : la même eau, notée contre ce repère, ne serait pas dite conforme."
+   },
+   {
+    "t": "Ce que la relecture de 2016 peut atteindre",
+    "x": "Sur les 350 paramètres notés, 335 le sont par le référentiel daté du projet et 15 par la seule limite déclarée par la source. Ces 15 derniers ne peuvent produire ni bascule ni verdict de 2016 : on ne reconstruit pas un passé réglementaire à partir de la grille du jour. La relecture historique de ce bulletin ne porte donc pas sur les 350, mais sur les 335. Et pour les métabolites que ce prélèvement recherche, le seuil de 0,1 µg/L appliqué à 2016 est une extrapolation assumée du projet, pas la lecture d'un texte de cette année-là : la règle qui le fonde lui est postérieure."
+   },
+   {
+    "t": "Deux indéterminés qui ne se ressemblent pas",
+    "x": "Les deux paramètres sur lesquels l'analyse ne conclut pas ne le sont pas pour la même raison, et ce sont deux constats de portée différente. Pour la somme de quatre substances perfluoroalkylées, le référentiel du projet ne retient aucun seuil applicable : la comparaison ne se fait qu'au repère le plus strict identifié, 0,002 µg/L, que la limite de quantification du laboratoire, à 0,004 µg/L, ne permet pas d'atteindre. L'indétermination porte donc ici sur un repère qui n'est pas la règle en vigueur. Pour l'hydrazide maleïque, c'est la limite applicable elle-même, 0,1 µg/L, qui est hors de portée d'une limite de quantification à 0,5 µg/L : sur ce paramètre, l'analyse ne peut ni constater un dépassement, ni établir que la limite est tenue. Une limite de quantification est une capacité d'instrument ; ce qui se lit ici est l'étendue de ce que le dispositif permet de savoir."
+   },
+   {
+    "t": "Un bulletin isolé dans le temps",
+    "x": "Le corpus du projet ne détient aucun autre bulletin complet de cette commune. La seule substance de synthèse quantifiée, l'anthraquinone, à 0,014 µg/L pour une limite de 0,1 µg/L, ne peut donc être rapportée à aucune valeur antérieure du même réseau : rien ne dit si elle s'y trouve depuis longtemps, ni à quel niveau. Une lecture dans le temps, comme une comparaison avec une autre zone, suppose des bulletins d'effort de recherche comparable, et le corpus n'en tient pas ici."
+   }
+  ],
+  "_commune": "Labruguière (81) — 2026-04-23",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133583": {
+  "sous_titre": "Tarn (81) · réseau SYNDICAT MONTAGNE NOIRE, 43 communes desservies",
+  "delta": "Le contrôle conclut à la conformité « pour l'ensemble des paramètres mesurés », et le bulletin ne porte en effet ni dépassement à la date du prélèvement ni bascule réglementaire ; mais la lecture se fait sur 351 paramètres notés parmi les 411 mesurés, et deux paramètres n'y concluent pas.",
+  "lecture_administrative": "Le contrôle sanitaire déclare l'eau « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La formule dit ce qu'elle dit, et pas davantage : elle porte sur les paramètres qui ont été mesurés, et sur les exigences « en vigueur », c'est-à-dire la grille applicable à la date du prélèvement. Le projet ne la contredit pas : aucun des 351 paramètres notés ne dépasse le seuil qui lui était applicable.",
+  "analyse": [
+   {
+    "t": "Un bulletin, 43 communes",
+    "x": "Ce prélèvement n'est pas celui d'une commune, c'est celui d'un point d'eau commun : le même bulletin est affiché par les 43 communes qu'il alimente, sous le gestionnaire déclaré SYNDICAT MAEP MONTAGNE NOIRE et le réseau SYNDICAT MONTAGNE NOIRE. Ce qui vaut ici vaut donc pour toute la zone desservie, la conformité comme les deux paramètres qui ne concluent pas. Le corpus du projet ne détient aucun autre bulletin pour cette commune : il n'y a pas de série à lire dans le temps, seulement ce point unique."
+   },
+   {
+    "t": "L'écart de ce bulletin n'est pas un écart de date",
+    "x": "Aucun paramètre ne dépasse le seuil qui lui était applicable, et aucun n'aurait dépassé la grille de 2016 : la bascule, qui est l'indicateur central du projet, ne produit rien ici. L'écart que porte ce bulletin est d'une autre nature. Les trihalométhanes, notés comme une somme de 4 substances, sont mesurés à 33,54 µg/L, pour une limite de 100 identique en 2016 et en 2026, quand le repère le plus strict identifié par le projet est de 25. Le verdict ne change donc pas selon la date à laquelle on se place, il change selon le repère auquel on choisit de comparer."
+   },
+   {
+    "t": "Une somme sans seuil applicable",
+    "x": "La somme de 4 substances perfluoroalkylées (PFOA, PFNA, PFHXS, PFOS) a bien été recherchée, mais la grille applicable ne lui oppose aucune limite : la seule valeur de comparaison dont le projet dispose pour elle est le repère le plus strict identifié, 0,002 µg/L. Même quantifiée, cette somme n'aurait donc produit aucun verdict réglementaire sur ce bulletin. Ce qui manque ici n'est pas la mesure, c'est le seuil auquel la rapporter."
+   },
+   {
+    "t": "Ce que couvre exactement le zéro bascule",
+    "x": "Des 351 paramètres notés, 335 le sont par le référentiel daté du projet et 16 par la seule limite déclarée par la source. Ces 16 derniers ne peuvent produire ni bascule ni verdict 2016, faute d'un passé réglementaire que la grille du jour ne permet pas de reconstituer. Le décompte de 0 bascule porte donc sur les 335 autres, et sur eux seuls."
+   }
+  ],
+  "_commune": "Lavaur (81) — 2026-04-14",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133647": {
+  "sous_titre": "Tarn (81) · un point d'eau communal desservant 2 communes",
+  "delta": "Le contrôle sanitaire conclut à la conformité « pour l'ensemble des paramètres mesurés », alors que 2 paramètres de ce bulletin ne reçoivent aucun verdict : la limite de quantification du laboratoire s'y situe au-dessus du seuil de comparaison, et pour l'un d'eux au-dessus de la limite réglementaire elle-même.",
+  "lecture_administrative": "Le contrôle sanitaire conclut à une eau « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Ce verdict se rend à la date du prélèvement, en avril 2026, et contre la grille alors en vigueur ; la lecture du projet ne le contredit pas, aucun paramètre ne franchissant son seuil applicable. Elle en précise seulement la portée : sur les 413 paramètres mesurés, 351 ont pu être rapportés à un seuil, et 2 paramètres ne reçoivent pas de verdict faute d'une limite de quantification assez basse.",
+  "analyse": [
+   {
+    "t": "Un service tenu à l'échelle communale",
+    "x": "Le gestionnaire déclaré par la source est la MAIRIE DE MIOLLES, et le réseau desservi est MIOLLES HAUT. Le même point d'eau alimente aussi Le Masnau-Massuguiès : ce bulletin est le document de référence des deux communes, et le dossier ne distingue pas ce qui arrive à l'une de ce qui arrive à l'autre. Il n'existe donc pas ici de lecture communale séparée — une seule analyse approfondie documente les deux territoires desservis."
+   },
+   {
+    "t": "Sur quoi porte l'absence de bascule",
+    "x": "Le compte de bascules est nul, mais il ne se lit pas sur la totalité du bulletin. Sur les 351 paramètres notés, 335 le sont par le référentiel daté du projet et 16 par la seule limite déclarée par la source ; ces derniers ne peuvent produire ni bascule ni verdict 2016, parce qu'on ne reconstitue pas un passé réglementaire à partir de la grille du jour. L'absence de déplacement de seuil est donc établie sur 335 paramètres, non sur 351. Et partout où la grille de 2016 est invoquée sur un métabolite, le seuil de 0,1 µg/L qui lui est appliqué est une extrapolation assumée du projet, non la lecture d'un texte de 2016 : la règle qui la fonde lui est postérieure."
+   },
+   {
+    "t": "Une somme sans seuil applicable",
+    "x": "L'indétermination qui porte sur la Somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) n'est pas un écart à une limite en vigueur : le dossier n'attache aucun seuil applicable à cette somme, et le seul repère auquel elle se compare est le repère le plus strict identifié, 0,002 µg/L. La limite de quantification du laboratoire, 0,004 µg/L, se tient au-dessus de ce repère. Le bulletin ne dit donc ni que ce repère est franchi, ni qu'il est tenu : il dit que l'instrument ne descend pas jusque-là."
+   },
+   {
+    "t": "Des bulletins successifs, des périmètres différents",
+    "x": "Le corpus détient d'autres bulletins de cette commune, de 2018, 2020, 2022 et 2024, tous sans dépassement ni bascule. Ces comptes ne forment pas pour autant une série lisible : le périmètre mesuré s'est déplacé entre 2018 et 2020, de 621 paramètres recherchés à 339, avant de remonter jusqu'aux 413 de ce prélèvement. Un compte de paramètres recherchés ne dit pas lesquels, et le dossier ne porte pas la liste qui permettrait de restreindre la comparaison aux paramètres cherchés les deux fois. Ce déplacement de périmètre se décrit ; il interdit la comparaison terme à terme d'une année à l'autre, et rien dans le dossier ne permet de lui attribuer une cause."
+   }
+  ],
+  "_commune": "Miolles (81) — 2026-04-29",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133669": {
+  "sous_titre": "Tarn (81) · réseau SAUVETERRE, géré par la mairie de la commune",
+  "delta": "Le contrôle sanitaire conclut à la conformité « pour l'ensemble des paramètres mesurés », alors que deux paramètres de ce bulletin restent sans conclusion possible : la limite de quantification du laboratoire s'y situe au-dessus du seuil auquel on voudrait les comparer.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Cette formule porte sur ce qui a été mesuré : 409 paramètres recherchés, dont 349 ont pu être opposés à un seuil, soit 85,3 % du bulletin.",
+  "analyse": [
+   {
+    "t": "Deux régimes de seuil derrière un seul taux",
+    "x": "Les 349 paramètres notés ne le sont pas tous de la même manière : 334 le sont contre le référentiel daté du projet, 15 contre la seule limite déclarée par la source. Ces quinze-là ne peuvent produire ni bascule ni verdict 2016, puisqu'on ne reconstitue pas un passé réglementaire à partir de la grille du jour. La comparaison historique que porte ce bulletin s'appuie donc sur un ensemble un peu plus étroit que le taux de couverture ne le laisse voir. Et là où la grille de 2016 est invoquée sur un métabolite, le seuil de 0,1 µg/L qui lui est appliqué est une extrapolation assumée du projet : la règle qui le fonde est postérieure, ce n'est pas la lecture d'un texte de 2016."
+   },
+   {
+    "t": "Un paramètre cherché sans seuil pour le juger",
+    "x": "La somme de quatre substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) a bien été recherchée, mais la grille applicable ne lui oppose aucune limite : le seul point de comparaison disponible est le repère le plus strict identifié, 0,002 µg/L, et la limite de quantification du laboratoire, 0,004 µg/L, se situe au-dessus. Le résultat n'est donc ni un dépassement ni une conformité, mais un indéterminé, et il le resterait quelle que soit la valeur réelle sous cette limite. Ce que ce paramètre documente n'est pas l'état de l'eau : c'est l'écart entre ce que l'instrument sait voir et le repère auquel on voudrait comparer."
+   },
+   {
+    "t": "Un bulletin sans passé dans le corpus",
+    "x": "Le corpus du projet ne détient aucun autre bulletin de cette commune : ce prélèvement d'avril 2026 y tient seul. Aucune lecture dans le temps n'est donc possible. Elle ne le serait d'ailleurs pas mécaniquement avec un second bulletin, car le périmètre des paramètres recherchés se renouvelle d'une année sur l'autre, et deux analyses ne se comparent terme à terme que sur les paramètres cherchés dans les deux. Ce qui se lit ici est un instantané, pris avec un panel large — c'est ce qui lui donne son poids, un même constat sur un panel étroit disant beaucoup moins."
+   }
+  ],
+  "_commune": "Sauveterre (81) — 2026-04-24",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133675": {
+  "sous_titre": "Navès, Tarn (81) · réseau SYNDICAT SAIX NAVES",
+  "delta": "Le contrôle sanitaire conclut à la conformité « pour l'ensemble des paramètres mesurés », mais l'un des paramètres notés a été cherché avec une limite de quantification supérieure à sa propre limite réglementaire : sur celui-là, l'analyse ne conclut ni au dépassement, ni au respect du seuil.",
+  "lecture_administrative": "Le contrôle sanitaire rend un verdict unique : « Eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés. » Ce verdict se rend à la date du prélèvement, contre la grille alors en vigueur, et la lecture du projet ne le contredit sur aucun paramètre : sur 307 paramètres notés parmi les 311 mesurés, aucun ne franchit son seuil applicable. L'écart tient au nombre d'états disponibles — la conclusion administrative en emploie deux, le projet en distingue trois, et le troisième, l'indéterminé, n'a pas de case dans laquelle s'inscrire.",
+  "analyse": [
+   {
+    "t": "La seule substance de synthèse quantifiée",
+    "x": "Chlorothalonil R471811 relève de la famille des métabolites, et c'est la seule substance de synthèse quantifiée de ce prélèvement. Le seuil qui lui est applicable à la date du prélèvement est de 0,9 µg/L. Pour répondre à la question de 2016, le projet lui applique 0,1 µg/L, et cette valeur est une extrapolation assumée : la règle qui la fonde est postérieure à 2016, ce n'est pas la lecture d'un texte de cette année-là. La mesure, 0,02 µg/L, se tient sous l'un comme sous l'autre. Le zéro bascule de ce bulletin ne repose donc pas sur la partie la plus fragile de la méthode."
+   },
+   {
+    "t": "Un indéterminé que la date ne déplace pas",
+    "x": "Une bascule est un effet de calendrier : la mesure ne bouge pas, c'est la grille à laquelle on la compare qui se déplace, et le verdict change avec elle. L'indéterminé de ce bulletin n'a pas cette propriété. La limite de quantification retenue pour Hydrazide maleïque, 0,5 µg/L, se situe au-dessus du seuil applicable de 0,1 µg/L comme au-dessus du repère le plus strict identifié par le projet. Sur ce paramètre, ni le verdict à la date du prélèvement ni la comparaison au repère le plus strict ne peuvent être rendus, et cela ne tient pas à l'année : ce qui limite la lecture est la finesse de l'instrument, pas la position d'un seuil."
+   },
+   {
+    "t": "Ce que les autres bulletins de la commune permettent de comparer",
+    "x": "Les autres bulletins de Navès retenus par le corpus ne portent aucun dépassement ni aucune bascule. Le nombre de paramètres recherchés y varie en revanche de 310 à 391 d'un prélèvement au suivant, et les listes les plus larges sont celles des bulletins qui nomment le point d'eau NAVES. Un périmètre de mesure qui change d'un bulletin à l'autre interdit la comparaison terme à terme : ce qui varie alors est la liste de ce que l'on regarde, et non ce que l'on regarde. Le projet n'en tire aucune conclusion sur les paramètres entrés ou sortis de cette liste, et n'attribue ce changement de périmètre à aucune décision ni à aucune date."
+   }
+  ],
+  "_commune": "Navès (81) — 2026-04-03",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133678": {
+  "sous_titre": "Paulinet, Tarn (81) · réseau CABANNES BESSIE · gestionnaire déclaré par la source : MAIRIE DE PAULINET",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme, quand la notation du projet contre son référentiel daté relève un paramètre au-dessus du seuil qui lui était applicable le jour du prélèvement : l'écart porte sur la grille de comparaison, pas sur la mesure.",
+  "lecture_administrative": "Le contrôle sanitaire conclut à une eau d'alimentation « conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La formule se rapporte aux exigences « en vigueur », donc à celles applicables au jour du prélèvement, et elle vaut pour le périmètre effectivement mesuré, qu'elle ne détaille pas.",
+  "analyse": [
+   {
+    "t": "Un dépassement, et non une bascule",
+    "x": "L'indicateur que ce projet suit en priorité est la bascule : une mesure qui dépassait la limite de 2016 et ne dépasse plus celle d'aujourd'hui. Ce bulletin ne relève pas de ce cas. L'ESA metolachlore y est mesuré à 0,99 µg/L pour un seuil applicable de 0,9 µg/L : la valeur passe au-dessus de la limite en vigueur le jour du prélèvement, et elle passerait également au-dessus de la grille de 2016 comme du repère le plus strict identifié, l'une et l'autre à 0,1 µg/L. Le relèvement de la limite n'absorbe donc pas cette mesure, contrairement aux situations que le projet documente le plus souvent. Pour les métabolites, le seuil de 0,1 µg/L retenu au titre de 2016 est une extrapolation assumée du projet et non la lecture d'un texte de cette époque : la règle qui le fonde lui est postérieure."
+   },
+   {
+    "t": "Deux limites dans le même bulletin",
+    "x": "Les substances de synthèse quantifiées dans ce prélèvement ne sont pas notées contre la même limite, et la différence ne suit pas la famille indiquée. Deux métabolites y figurent avec deux seuils distincts : le Chlorothalonil R471811 est comparé à 0,9 µg/L, l'Atrazine déséthyl à 0,1 µg/L, tandis que le Prosulfocarbe, porté comme pesticide, relève lui aussi de 0,1 µg/L. La réglementation note chaque substance séparément, ligne par ligne, et l'écart entre ces limites tient à la construction du référentiel, non à ce qui a été mesuré. Ce que le dossier ne dit pas, c'est ce qui distingue ces deux lignes l'une de l'autre."
+   },
+   {
+    "t": "Ce bulletin parmi ceux de la commune",
+    "x": "Le corpus détient d'autres bulletins de Paulinet, prélevés depuis septembre 2025. Plusieurs d'entre eux portent une bascule, la configuration que le projet suit en priorité. Celui-ci n'en porte aucune, et l'écart qu'il documente est d'une autre nature, puisque la mesure franchit la limite en vigueur elle-même. Les efforts de recherche de ces bulletins ne sont pas identiques, ce qui interdit de comparer terme à terme leurs comptes bruts."
+   }
+  ],
+  "_commune": "Paulinet (81) — 2026-04-21",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133680": {
+  "sous_titre": "Tarn (81) · réseau LE PEYROU, gestion communale déclarée",
+  "delta": "Le contrôle sanitaire conclut à une eau « conforme » pour l'ensemble des paramètres mesurés, alors que sur l'un d'eux la limite de quantification du laboratoire se situe au-dessus du seuil réglementaire lui-même, de sorte que l'analyse n'y constate ni dépassement ni respect.",
+  "lecture_administrative": "Le contrôle sanitaire déclare cette eau d'alimentation « conforme aux exigences de qualité en vigueur » pour l'ensemble des paramètres mesurés. La conclusion porte sur ce prélèvement d'avril 2026, sur le réseau LE PEYROU, et sur les paramètres effectivement recherchés à cette occasion : 307 des 311 mesurés ont pu être comparés à un seuil, soit 98,7 %. Elle ne se prononce pas sur ce qui n'a pas été cherché.",
+  "analyse": [
+   {
+    "t": "Un réseau, pas une commune",
+    "x": "Le prélèvement porte sur le réseau LE PEYROU, à Lacaune, dans le Tarn, dont la source déclare la mairie comme gestionnaire. Le corpus réunit pour cette même commune d'autres bulletins rattachés à des points d'eau distincts — PEYROU TTP, LES VIDALS, LE GOURP TTP, CALMELS TTP RESERVOIR — dont certains ont été prélevés le même jour de septembre 2025 sur deux installations différentes. Ce qui est décrit ici est donc l'eau d'un réseau à une date, et non l'eau de la commune en général. Un habitant desservi par une autre installation ne lit pas son bulletin dans celui-ci."
+   },
+   {
+    "t": "Un périmètre de mesure qui se déplace",
+    "x": "Les bulletins que le corpus détient pour cette commune ne portent pas sur le même panel : 311 paramètres ici, 409 sur le prélèvement précédent de février 2026, 391 et 370 sur d'autres de 2025. Ce qui est recherché change donc d'un prélèvement au suivant, et cela interdit de lire ces bulletins comme une série continue : deux comptes de dépassements ne se comparent qu'à effort égal. Le déplacement se constate ; le dossier ne porte ni décision ni calendrier qui l'expliqueraient, et rien ici ne permet de dire ce qu'un panel différent aurait montré."
+   },
+   {
+    "t": "Ce que vaut un bulletin sans quantification",
+    "x": "L'effort de recherche se lit à l'envers : un panel approfondi de 311 paramètres, dont la quasi-totalité sont des substances de synthèse, donne à un bulletin sans quantification une portée que le même résultat n'aurait pas sur un panel étroit. C'est la principale information de ce prélèvement, et elle tient autant à ce qui a été cherché qu'à ce qui a été trouvé. Elle s'arrête toutefois en un point précis : l'Hydrazide maleïque, seul paramètre que le laboratoire ne pouvait pas atteindre, n'entre ni dans les conformes ni dans les dépassements, et un indéterminé ne se lit jamais comme un conforme."
+   }
+  ],
+  "_commune": "Lacaune (81) — 2026-04-03",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133681": {
+  "sous_titre": "Tarn (81) · Gijounet, réseau COL DE LA BASSINE",
+  "delta": "Le contrôle sanitaire conclut à une eau « non conforme aux références de qualité » alors qu'aucun des 307 paramètres notés ne dépasse le seuil qui lui était applicable, et le dossier ne nomme pas la référence en cause : l'écart de ce bulletin porte sur ce qui n'est pas dit, pas sur une mesure.",
+  "lecture_administrative": "Le contrôle sanitaire rend deux verdicts distincts sur le même prélèvement : « conforme aux limites de qualité », et « non conforme aux références de qualité ». La notation du projet, elle, ne relève aucun dépassement de seuil applicable et aucune bascule, sur 307 paramètres notés parmi les 311 mesurés. Le dossier ne permet pas de savoir quelle référence de qualité motive la seconde mention.",
+  "analyse": [
+   {
+    "t": "Un point d'eau parmi ceux de la commune",
+    "x": "Le prélèvement d'avril 2026 est rattaché au réseau COL DE LA BASSINE, dont le gestionnaire déclaré par la source est la mairie de Gijounet. Le corpus du projet garde trace, pour les mois précédents, de bulletins de la même commune rattachés à d'autres points d'eau — GIJOUNET TTP, STATION UD CENTRE (CALOUZE) — et d'autres encore dont le point d'eau n'est pas renseigné. Ce texte ne dit donc rien de ces installations : il porte sur ce bulletin et sur lui seul."
+   },
+   {
+    "t": "Une série qui ne se compare pas terme à terme",
+    "x": "Huit autres bulletins de Gijounet figurent au corpus. Six recherchent le même nombre de paramètres que celui-ci, 311, pour 307 notés. Deux en recherchent davantage — 391 pour 336 notés en septembre 2025, 370 pour 335 notés en novembre 2024 — et portent sur d'autres points d'eau. Le périmètre de mesure n'est donc pas le même d'un bulletin à l'autre, ce qui interdit d'aligner leurs comptes comme s'il s'agissait de la même liste. Le dossier ne dit pas ce qui explique cette différence de périmètre, et ce texte ne le suppose pas."
+   },
+   {
+    "t": "Une bascule au corpus de la commune, pas sur ce bulletin",
+    "x": "Le bulletin de septembre 2025, prélevé sur le point d'eau GIJOUNET TTP avec le panel le plus large de la série, porte une bascule : une mesure qui aurait dépassé la limite de 2016 sans dépasser celle qui lui était applicable à sa date. Celui-ci n'en porte aucune. Les deux ne se lisent pas l'un contre l'autre, ni le point d'eau ni le panel n'étant les mêmes. Et lorsque la grille de 2016 est invoquée sur un métabolite, le seuil de 0,1 µg/L que le projet lui applique est une extrapolation assumée : la règle qui le fonde est postérieure à cette date, et ce n'est donc pas la lecture d'un texte de 2016."
+   }
+  ],
+  "_commune": "Gijounet (81) — 2026-04-17",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133686": {
+  "sous_titre": "Crespinet, Tarn (81) · réseau SYNDICAT VALENCE - VALDERIES",
+  "delta": "Le contrôle sanitaire conclut à une eau conforme pour l'ensemble des paramètres mesurés, et le bulletin ne porte effectivement aucun dépassement ni aucune bascule : le seul écart tient à un paramètre sur lequel l'analyse ne pouvait rien conclure, ni dans un sens ni dans l'autre.",
+  "lecture_administrative": "L'ARS conclut à une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». Ce verdict est rendu à la date du prélèvement, en avril 2026, et porte sur les paramètres que le laboratoire a effectivement pu comparer à une limite : 307 paramètres notés parmi les 311 mesurés.",
+  "analyse": [
+   {
+    "t": "Un panel large, et un point aveugle",
+    "x": "Avec 311 paramètres recherchés, dont 306 substances de synthèse, ce prélèvement relève de l'analyse dite approfondie : c'est un bulletin très interrogé, et l'absence de dépassement y pèse donc plus lourd qu'un même résultat obtenu sur un panel restreint. Sur ces 311 paramètres, un seul a été cherché avec une limite de quantification supérieure à la limite réglementaire à laquelle il est comparé — l'hydrazide maléique, cherchée à 0,5 µg/L pour un seuil applicable de 0,1. Ce paramètre n'est ni conforme ni en dépassement : il est indéterminé, et c'est un troisième état, qui ne se replie sur aucun des deux autres. Ce que mesure ce chiffre n'est pas la qualité de l'eau, mais ce que le dispositif d'analyse permet de savoir d'elle."
+   },
+   {
+    "t": "Ce que la grille de 2016 dit ici",
+    "x": "Aucun des paramètres notés ne dépasserait la grille de 2016, et le bulletin ne porte aucune bascule : sur ce prélèvement, le déplacement des limites entre 2016 et 2026 ne change rien au verdict. C'est le cas de figure inverse de celui que le projet cherche, et il mérite d'être dit tel quel. Une réserve accompagne cette lecture : ce bulletin porte des métabolites notés contre la grille de 2016, et le seuil de 0,1 µg/L qui leur est appliqué pour cette année-là est une extrapolation assumée du projet, non la lecture d'un texte de 2016 — la règle qui le fonde lui est postérieure. La comparaison rétrospective de ces paramètres est donc un raisonnement du projet, pas un constat administratif."
+   },
+   {
+    "t": "Un bulletin sans avant ni après",
+    "x": "Le corpus ne détient aucun autre bulletin de cette commune. Ce prélèvement d'avril 2026 est donc un instantané : il ne dit rien de ce que l'eau montrait les années précédentes, ni de ce qu'elle montrera ensuite, et aucune série ne peut en être tirée. Un paramètre non quantifié à cette date ne se lit pas comme une propriété stable de la ressource, mais comme le résultat d'une analyse, à une date, avec les limites de quantification de ce laboratoire-là."
+   }
+  ],
+  "_commune": "Crespinet (81) — 2026-04-21",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100134534": {
+  "sous_titre": "Tarn (81) · réseau MONTDURAUSSE, desservi à 100 % par une seule installation amont",
+  "delta": "Le contrôle sanitaire prononce une non-conformité aux références de qualité que le détail du bulletin ne permet pas de situer, tandis que la lecture par seuils datés ne relève aucun dépassement à la date du prélèvement : l'écart que porte ce bulletin n'est pas une valeur trouvée, c'est un paramètre que le laboratoire ne pouvait pas atteindre.",
+  "lecture_administrative": "La conclusion déclarée est celle d'une eau d'alimentation « conforme aux limites de qualité » et « non conforme aux références de qualité » : la phrase administrative distingue deux registres, et le dossier ne rattache le second à aucun paramètre nommé. La lecture faite ici porte sur 327 paramètres notés parmi les 374 mesurés ; elle ne compte aucun dépassement du seuil applicable à la date du prélèvement, ni aucune bascule entre la grille de 2016 et celle d'aujourd'hui. Elle laisse un paramètre indéterminé, ce qui n'est pas un conforme.",
+  "analyse": [
+   {
+    "t": "Un réseau, un point d'eau",
+    "x": "Le prélèvement d'octobre 2025 a été fait sur l'installation amont TTP SUQUET SY MONCLAR- ST NAUPHARY, déclarée par le SYNDICAT IAEP MONCLAR ST.NAUPHARY, et le réseau MONTDURAUSSE est desservi à 100 % par elle. Les autres bulletins que le corpus détient pour cette commune, depuis 2021, portent tous ce même point d'eau. La série est donc homogène quant à l'origine de l'eau : les écarts qu'on y lit d'un prélèvement à l'autre ne peuvent pas venir d'un changement d'installation amont."
+   },
+   {
+    "t": "Le métabolite quantifié",
+    "x": "La seule substance de synthèse quantifiée dans ce prélèvement est un métabolite, le chlorothalonil R471811, à 0,1 µg/L pour un seuil applicable de 0,9. Cette valeur est exactement celle du repère de 0,1 µg/L que le projet applique aux métabolites pour la grille de 2016 — repère qui est une extrapolation assumée du projet et non la lecture d'un texte de 2016, la règle qui le fonde lui étant postérieure. À égalité avec ce repère, la mesure ne le franchit pas, et le dossier ne compte aucun dépassement de la grille de 2016 : ce bulletin ne porte pas de bascule, il se tient à la valeur même où elle se serait jouée."
+   },
+   {
+    "t": "Trois états, pas deux",
+    "x": "Le seul point de ce bulletin qui échappe à la lecture n'est pas une valeur trouvée, c'est une valeur hors d'atteinte : pour le Diquat, la limite de quantification du laboratoire se situe au-dessus du seuil auquel on le compare. Sous cette valeur, l'analyse ne permet ni de constater un dépassement, ni d'affirmer que le seuil est respecté. Un tel paramètre n'est donc ni conforme ni en dépassement, il est indéterminé — et un bulletin qui n'affiche aucun dépassement n'est pas pour autant un bulletin sans zone où l'on ne conclut pas. Une limite de quantification est une capacité d'instrument, pas une négligence : ce qui est en cause est ce que le dispositif permettait de savoir."
+   },
+   {
+    "t": "Ce que la série peut et ne peut pas dire",
+    "x": "Plusieurs bulletins antérieurs de ce même point d'eau, en 2022 et en 2023, portent chacun un dépassement et une bascule ; le plus récent d'entre eux, en février 2025, porte une bascule sans dépassement. Ces verdicts ont été rendus à la date de leur prélèvement et le restent : une bascule constatée en 2023 n'est pas effacée par un bulletin d'octobre 2025 qui n'en porte aucune. Le nombre de paramètres recherchés varie d'un prélèvement à l'autre sur toute la série ; ce changement de périmètre se constate, il ne s'explique pas ici, et il interdit de lire ces comptes les uns contre les autres comme une évolution."
+   }
+  ],
+  "_commune": "Montdurausse (81) — 2025-10-07",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100131147": {
+  "sous_titre": "Lacaze, Tarn (81) · réseau JONCOUS, analyse approfondie",
+  "delta": "Le contrôle sanitaire conclut à la conformité aux limites de qualité et ce bulletin ne porte aucune bascule ; l'écart est d'une autre nature — deux paramètres conformes à la grille applicable se situent au-dessus du repère le plus strict identifié, et un troisième ne reçoit aucun verdict, la limite de quantification du laboratoire se tenant au-dessus du seul repère auquel on pourrait le comparer.",
+  "lecture_administrative": "La source déclare une eau « conforme aux limites de qualité » et « non conforme aux références de qualité » : la conformité prononcée porte sur les limites, la réserve sur les références, et le bulletin ne dit pas quel paramètre motive cette seconde mention. La lecture du projet, faite à la date du prélèvement, ne relève de son côté aucun dépassement du seuil applicable parmi les paramètres qu'elle a pu noter, et aucune bascule entre la grille de 2016 et celle d'aujourd'hui.",
+  "analyse": [
+   {
+    "t": "Un réseau, un gestionnaire déclaré",
+    "x": "Le prélèvement de mai 2026 porte sur le réseau JONCOUS, et le gestionnaire déclaré par la source n'est pas la commune de Lacaze mais la mairie de Saint-Pierre-de-Trivisy : l'eau notée ici est celle d'un réseau dont la gestion déclarée se tient hors de la commune desservie. Le corpus du projet retient d'autres bulletins de Lacaze, dont un seul nomme son point d'eau, LA SATJARIE. Celui de mars 2026 porte une bascule, celui-ci n'en porte aucune ; les deux ne reposent pas sur le même périmètre de paramètres, ce qui interdit d'y lire une évolution."
+   },
+   {
+    "t": "Conformes à la grille, au-dessus du repère strict",
+    "x": "Deux paramètres restent sous le seuil de la grille applicable tout en se situant au-dessus du repère le plus strict identifié : les trihalométhanes, à 32,42 µg/L quand la grille applicable retient 100 et le repère strict 25, et les nitrates, à 12,3 mg/L quand la grille retient 50 et le repère strict 10. Cette double lecture ne dit rien de l'eau elle-même : elle dit qu'une même mesure ne reçoit pas le même verdict selon la grille qu'on lui applique. Un troisième paramètre, la somme de quatre substances perfluoroalkylées, n'a aucun seuil dans la grille applicable ; son unique point de comparaison est le repère strict, 0,002 µg/L, et la limite de quantification du laboratoire, 0,004 µg/L, se tient au-dessus. Le résultat n'est donc ni un dépassement ni un conforme : il est indéterminé."
+   },
+   {
+    "t": "Deux métabolites et une grille de 2016 reconstituée",
+    "x": "Les deux métabolites quantifiés, ESA metolachlore et ESA metazachlore, sont notés contre la grille applicable, où leur seuil est de 0,9, puis contre celle de 2016. Sur ce second point une réserve s'impose, et elle appartient au projet : le seuil de 0,1 µg/L appliqué à un métabolite pour 2016 est une extrapolation assumée, la règle qui le fonde étant postérieure à cette date — ce n'est pas la lecture d'un texte de 2016. Aucune des deux valeurs n'atteint ce seuil reconstitué, et c'est pourquoi ces substances ne produisent ici aucune bascule. Le compte est nul, mais il l'est contre une grille passée que le projet a dû reconstruire, pas contre une grille lue."
+   }
+  ],
+  "_commune": "Lacaze (81) — 2026-05-20",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133347": {
+  "sous_titre": "Tarn (81) · Gaillac, station et réseau de Gaillac",
+  "delta": "Le contrôle sanitaire conclut à la conformité pour l'ensemble des paramètres mesurés, alors que deux paramètres de ce bulletin ne se laissent pas trancher — la limite de quantification du laboratoire s'y situe au-dessus du repère auquel on voudrait les comparer, et un indéterminé n'est pas un conforme.",
+  "lecture_administrative": "L'administration retient une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La formule est exacte, et elle se lit avec ses propres mots : elle porte sur les exigences « en vigueur », c'est-à-dire la grille applicable à la date du prélèvement, et sur les paramètres « mesurés », c'est-à-dire ceux que le programme d'analyse a retenus. Elle ne se prononce pas sur les paramètres pour lesquels l'analyse n'a pas pu conclure.",
+  "analyse": [
+   {
+    "t": "Une station, une série suivie",
+    "x": "Les bulletins antérieurs que le corpus détient pour Gaillac portent tous sur le même point d'eau, STATION GAILLAC, et le compte de dépassements y est nul comme ici. Cette stabilité du point de prélèvement est ce qui rend la série lisible : on suit bien le même ouvrage d'un bulletin à l'autre. Le périmètre de mesure, lui, ne cesse de s'élargir au fil de la série. Un tel changement de périmètre interdit de comparer terme à terme les comptes bruts d'un bulletin à l'autre : ce qui se compare est le taux, rapporté au nombre de paramètres notés."
+   },
+   {
+    "t": "Une somme de PFAS que la grille ne note pas",
+    "x": "La Somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) n'a, sur ce bulletin, aucun seuil applicable : elle ne peut donc produire aucun verdict à la date du prélèvement. Le seul point de comparaison disponible est le repère le plus strict identifié, 0,002 µg/L, et la limite de quantification du laboratoire, 0,004 µg/L, se situe au-dessus. On ne peut donc ni constater un écart, ni affirmer que ce repère est tenu : le paramètre reste indéterminé, troisième état qui n'est ni le dépassement ni la conformité. Le mot « identifié » compte : ce repère est le plus strict que le projet a relevé, pas un maximum du monde."
+   },
+   {
+    "t": "Ce que ce bulletin ne démontre pas",
+    "x": "L'indicateur que suit ce projet est la bascule : une mesure qui dépassait la limite de 2016 et ne dépasse plus celle d'aujourd'hui. Ce bulletin n'en porte aucune, et les contrefactuels sont nuls eux aussi — il n'illustre donc pas le déplacement des seuils. L'écart qu'il porte est d'une autre nature : il tient à ce que l'analyse ne peut pas trancher, non à une limite qui aurait bougé. Une réserve accompagne du reste toute lecture de la grille de 2016 sur ce bulletin, qui note des métabolites : le seuil qui leur est appliqué pour 2016 est une extrapolation assumée du projet, la règle qui le fonde étant postérieure à cette date — ce n'est pas la lecture d'un texte de 2016."
+   }
+  ],
+  "_commune": "Gaillac (81) — 2026-03-31",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133378": {
+  "sous_titre": "Tarn (81) · réseau ST AMANS SOULT, gestionnaire S.I.V.A.T.",
+  "delta": "Le contrôle sanitaire retient une non-conformité aux « références de qualité » alors que la notation paramètre par paramètre ne relève aucun dépassement du seuil applicable et laisse 2 paramètres indéterminés.",
+  "lecture_administrative": "La conclusion déclare cette eau « conforme aux limites de qualité » et « non conforme aux références de qualité » : elle emploie deux registres distincts et ne retient l'écart que sur le second. Le dossier ne nomme pas le paramètre qui fonde cette seconde mention, et la notation du projet, faite sur 351 paramètres parmi les 411 mesurés, n'en porte aucun en dépassement. Les deux lectures ne se contredisent donc pas : elles ne portent pas sur le même objet, et celle du projet ne dit rien du registre où l'écart a été prononcé.",
+  "analyse": [
+   {
+    "t": "Un réseau, des points d'eau distincts",
+    "x": "Le dossier rattache ce prélèvement au réseau ST AMANS SOULT et au gestionnaire S.I.V.A.T., que la source ne développe pas et qu'on écrit donc tel quel. Les autres bulletins du corpus pour cette commune ne sont pas identifiés par un réseau mais par leur point d'eau, et ils en nomment trois : MAS NAFFRE ST.AMANS MAIRIE, LES ESTRABAUTS, LES RAYNAUDS. Une commune n'est donc pas ici une eau unique mais un ensemble de points de production suivis séparément, et chaque bulletin ne vaut que pour le sien. C'est une précision qui compte pour lire la suite : le corpus communal n'est pas une série d'un même robinet."
+   },
+   {
+    "t": "Ce que le repère le plus strict laisse ouvert",
+    "x": "La somme de 4 substances perfluoroalkylées (PFOA+PFNA+PFHXS+PFOS) est le seul indéterminé nommé de ce bulletin, et sa situation est particulière : le dossier ne lui attache aucun seuil applicable, ni au référentiel daté ni dans la limite déclarée par la source. Le seul point de comparaison disponible est le repère le plus strict identifié, 0,002 µg/L, et la limite de quantification du laboratoire, 0,004 µg/L, se situe au-dessus. Ce paramètre ne peut donc produire aucun verdict : il n'y a pas de norme à laquelle le confronter dans ce dossier, et l'instrument ne descend pas jusqu'au repère qui existe. « Le plus strict identifié » est d'ailleurs à prendre au mot — c'est le plus bas que le projet ait relevé, pas une borne établie une fois pour toutes."
+   },
+   {
+    "t": "Un panel qui bouge, une série qui ne se compare pas terme à terme",
+    "x": "Les huit autres bulletins du corpus communal portent sur 368 à 391 paramètres recherchés ; celui-ci en porte 411. Le périmètre de mesure a donc changé plusieurs fois sur la période, et cela suffit à interdire la comparaison directe des comptes d'un bulletin à l'autre : ce n'est pas la même liste qu'on interroge. Ce que la série permet de dire tient en peu de mots : aucune bascule n'apparaît sur aucun de ces bulletins, et un seul dépassement y figure, sur un bulletin de 2023 au point d'eau LES RAYNAUDS. Le reste relève de ce qu'on a choisi de chercher, pas de ce que l'eau a fait."
+   }
+  ],
+  "_commune": "Saint-Amans-Soult (81) — 2026-03-23",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133391": {
+  "sous_titre": "Tarn (81) · station de Picotalen, réseau Syndicat Montagne Noire — un bulletin partagé par 3 communes",
+  "delta": "Le contrôle sanitaire conclut à la conformité pour l'ensemble des paramètres mesurés, alors que deux paramètres de ce bulletin restent indéterminés : la limite de quantification du laboratoire s'y trouve au-dessus du seuil auquel on voudrait comparer, et l'analyse n'y conclut donc ni dans un sens ni dans l'autre.",
+  "lecture_administrative": "Le contrôle sanitaire déclare une « eau d'alimentation conforme aux exigences de qualité en vigueur pour l'ensemble des paramètres mesurés ». La formule dit exactement ce qu'elle dit, et pas davantage : elle porte sur les paramètres mesurés, et elle rend son verdict contre les exigences en vigueur à la date du prélèvement, en mars 2026. Sur les 405 paramètres recherchés, 351 ont pu être comparés à un seuil, soit 86,7 % du bulletin ; les autres ne pèsent sur aucun verdict, ni sur celui de l'administration ni sur celui du projet.",
+  "analyse": [
+   {
+    "t": "Un point d'eau, trois communes",
+    "x": "La station de Picotalen est l'installation de production placée en amont de ce prélèvement, et elle ne dessert pas la seule commune de Sorèze : le même point d'eau alimente aussi Les Cammazes et Sémalens, et ce texte s'affiche sur les trois. La source déclare trois réseaux desservis — Syndicat Montagne Noire, Les Cammazes, Sémalens — qu'elle porte chacun à 100 %, et un gestionnaire, I.E.M.N., dont le dossier ne développe pas le sigle. Ce que décrit ce bulletin n'est donc pas l'eau d'une commune mais celle d'une ressource partagée : lu depuis chacune des trois, il porte les mêmes verdicts et les mêmes angles morts."
+   },
+   {
+    "t": "Deux paramètres sur lesquels l'analyse ne conclut pas",
+    "x": "Le premier est la somme de quatre substances perfluoroalkylées. La grille applicable à la date du prélèvement ne lui attache aucun seuil : le seul repère dont dispose le projet est le plus strict identifié à ce jour, 0,002 µg/L, et la limite de quantification du laboratoire, 0,004 µg/L, se situe au-dessus. Ce n'est pas un dépassement, et ce n'est pas non plus une conformité : c'est le troisième état, l'indéterminé, et il ne se présente jamais comme un résultat conforme. Le second paramètre est hors de portée plus profondément encore, puisque c'est la limite réglementaire elle-même, et non le seul repère le plus strict, que la sensibilité de la mesure surplombe."
+   },
+   {
+    "t": "Une série qui ne se compare pas terme à terme",
+    "x": "Le corpus détient huit autres bulletins de cette commune sur la même station, du milieu de l'année 2025 au début de 2026, tous sans dépassement et sans bascule. Le compte de bascules est nul ici comme sur les précédents : rien dans cette série ne donne à voir le déplacement d'une limite. La lecture s'arrête cependant là, car le périmètre de mesure a bougé au fil de ces bulletins, de 391 paramètres recherchés à l'automne 2025 à 405 sur celui-ci ; une liste qui se renouvelle interdit la comparaison terme à terme des comptes d'un bulletin à l'autre, et le dossier ne porte rien qui permette d'attribuer ce changement à une décision ou à une date. Une réserve tient enfin à la grille de 2016 elle-même : ce bulletin porte des métabolites, et le seuil que le projet leur applique pour 2016 est une extrapolation assumée, la règle qui le fonde étant postérieure à cette date — le compte nul de bascules se lit avec cette réserve."
+   }
+  ],
+  "_commune": "Sorèze (81) — 2026-03-12",
+  "_lot": "proposé en Claude Code, non relu"
+ },
+ "PREL:08100133683": {
+  "sous_titre": "Tarn (81) · Barre, réseau BARRE, gestionnaire déclaré : la mairie",
+  "delta": "Le contrôle sanitaire conclut à la conformité « pour l'ensemble des paramètres mesurés », alors qu'un paramètre a bien été mesuré sans que l'analyse puisse conclure à son sujet.",
+  "lecture_administrative": "L'administration retient une « eau d'alimentation conforme aux exigences de qualité en vigueur », et elle prend soin de borner sa phrase : la conformité vaut « pour l'ensemble des paramètres mesurés ». C'est un verdict rendu sur ce qui a été cherché, avec les instruments qui l'ont cherché, à la date du prélèvement.",
+  "analyse": [
+   {
+    "t": "Un troisième état, que la conclusion ne porte pas",
+    "x": "La conclusion administrative distingue deux issues : conforme, ou non. La lecture du projet en distingue trois, et c'est la troisième qui vaut ici pour l'hydrazide maléïque. La limite de quantification du laboratoire, 0,5 µg/L, se situe au-dessus du seuil de 0,1 auquel ce paramètre se compare : sous cette valeur, l'analyse ne constate pas de dépassement, mais elle ne permet pas davantage d'affirmer que le seuil est tenu. Ce n'est ni un dépassement ni une conformité, c'est un indéterminé, et il ne se lit pas dans le verdict rendu. Une limite de quantification est une capacité d'instrument : ce qui se décrit ici est ce que le dispositif d'analyse permet de savoir, pas la manière dont il a été mis en œuvre."
+   },
+   {
+    "t": "Aucune bascule, et ce que cela recouvre",
+    "x": "Ce bulletin ne porte aucune bascule : aucune mesure n'y dépasse la limite de 2016 tout en tenant celle d'aujourd'hui. Une réserve accompagne cette lecture. Le bulletin comprend des métabolites, et le seuil de 0,1 µg/L qui leur est appliqué pour la grille de 2016 est une extrapolation assumée du projet, non la lecture d'un texte de cette époque : la règle qui fonde cette valeur lui est postérieure. La comparaison au passé réglementaire est donc, pour ces substances-là, une reconstitution raisonnée et déclarée comme telle."
+   },
+   {
+    "t": "Un périmètre de mesure qui ne se répète pas d'un bulletin à l'autre",
+    "x": "Le corpus détient plusieurs autres bulletins de Barre. Le nombre de paramètres cherchés y varie : 311 sur la plupart, 370 sur l'un d'eux, 313 sur celui-ci. Le périmètre de ce qui est recherché change donc d'un prélèvement au suivant, et cela interdit d'aligner ces bulletins terme à terme comme s'ils décrivaient la même liste de substances. La liste tourne : des paramètres en sortent, d'autres y entrent, et ce qui n'a pas été cherché sur un prélèvement donné n'y est ni constaté ni écarté. Ici, 307 paramètres ont pu être comparés à un seuil, soit 98,1 % de ce qui a été mesuré : c'est sur cette assiette-là, et pas sur une autre, que le verdict porte."
+   }
+  ],
+  "_commune": "Barre (81) — 2026-04-24",
+  "_lot": "proposé en Claude Code, non relu"
  }
 }

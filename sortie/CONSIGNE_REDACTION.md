@@ -89,6 +89,12 @@ Une seule de ces règles enfreinte, et le texte est rejeté à l'intégration.
   paramètres est une information plus faible qu'une eau moyenne sur 700 : la
   première n'a pas été beaucoup interrogée. Ne jamais comparer des comptes bruts
   de dépassements entre deux bulletins d'effort différent.
+- **N'écris jamais « à zéro », même pour un compteur.** Quatre textes du lot du
+  Tarn ont été refusés pour « la bascule est à zéro », qui parle d'un compte de
+  verdicts et non d'une concentration — le contrôle §2.4, lui, ne fait pas la
+  différence, et il a raison de ne pas la faire : la même tournure appliquée à
+  une mesure serait une affirmation d'absence. Écris « aucune bascule »,
+  « le compte est nul », « ce bulletin n'en porte pas ».
 - **N'emploie jamais le mot « ailleurs » seul.** Le contrôle 8 le refuse, et il a
   raison de le faire : dans « on sait la chercher plus finement ailleurs », le
   mot désigne bien des territoires qu'on ne nomme pas. Mais il attrape aussi
