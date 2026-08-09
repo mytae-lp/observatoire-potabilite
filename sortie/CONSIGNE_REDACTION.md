@@ -89,6 +89,14 @@ Une seule de ces règles enfreinte, et le texte est rejeté à l'intégration.
   paramètres est une information plus faible qu'une eau moyenne sur 700 : la
   première n'a pas été beaucoup interrogée. Ne jamais comparer des comptes bruts
   de dépassements entre deux bulletins d'effort différent.
+- **N'emploie jamais le mot « ailleurs » seul.** Le contrôle 8 le refuse, et il a
+  raison de le faire : dans « on sait la chercher plus finement ailleurs », le
+  mot désigne bien des territoires qu'on ne nomme pas. Mais il attrape aussi
+  « l'écart que porte ce bulletin est ailleurs », qui ne compare aucun lieu.
+  Plutôt que d'ajouter des exceptions au garde-fou — chacune l'affaiblit un peu,
+  et il finit par ne plus rien attraper — écris autrement : « l'écart est
+  d'une autre nature », « sur d'autres bulletins du corpus ». Seul « par
+  ailleurs » et « prélevé ailleurs » restent admis, et le contrôle les connaît.
 - **Un sigle que le dossier ne développe pas ne se développe pas.** SMAEP, UGE,
   UDI : écris-les tels quels, ou évite-les. Six rédacteurs du lot du Tarn ont
   buté sur la contradiction entre « développe les sigles » et « rien hors du
