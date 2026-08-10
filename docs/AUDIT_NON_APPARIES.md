@@ -87,8 +87,15 @@ la source. Les mesures « (pesticide) » sont notées parce que l'administration
 déclare une limite de 0,1 µg/L, que `regles_famille` rattache à la ligne
 « pesticide - substance individuelle ». Les 39 mesures « (HAP) » ne portent ni
 limite ni référence déclarée, donc aucun verdict — **alors qu'elles sont toutes
-quantifiées, et au-dessus de la valeur qui, sous l'autre libellé, produit un
-dépassement**, dans 22 communes.
+quantifiées**, dans 22 communes.
+
+**Correction du 10 août 2026.** Ce paragraphe a d'abord écrit que ces 39 mesures
+étaient « au-dessus de la valeur qui, sous l'autre libellé, produit un
+dépassement ». C'était faux, et la formulation a circulé plusieurs fois : les 39
+sont toutes quantifiées, mais **4 seulement dépassent 0,1 µg/L**, et le maximum
+est de 0,15. L'enjeu reste — quatre dépassements invisibles, c'est quatre de
+trop — mais il n'est pas de 39. Un ordre de grandeur faux dans un audit se
+propage exactement comme un chiffre inventé dans une prose.
 
 Ce n'est donc pas le libellé qui décide, c'est **ce que l'ARS a déclaré sur ce
 bulletin-là** (`g.limite_declaree = m.limite_declaree`, `src/build_db.py:193`).
@@ -96,18 +103,23 @@ Trois autres libellés sont dans ce cas, sans enjeu de quantification : biphény
 (40 mesures notées sur 1 413), chloroneb (30 sur 1 065), bromométhane (2 sur
 580).
 
-**La décision n'est pas technique** : ajouter une ligne de référentiel portant
-le code 2013 apparierait les deux libellés d'un coup, mais cela revient à dire
-que la limite « pesticide » s'applique à la molécule mesurée sous son étiquette
-HAP. C'est un raisonnement réglementaire, à sourcer.
+### Tranché le 10 août 2026 — la ligne est ajoutée
 
-**Et le §11.2 impose un contrôle préalable** : vérifier que le code 2013 ne
-porte pas deux limites déclarées différentes selon les bulletins — c'est
-exactement le piège qui a produit deux faux dépassements de sélénium dans la
-journée.
+**Décision de Yannick** : une ligne de référentiel portant le code 2013, qui
+apparie les deux libellés d'un coup. C'est dire que la limite « pesticide »
+s'applique à la molécule mesurée sous son étiquette HAP — un raisonnement
+réglementaire, pas la lecture d'un texte qui nomme l'anthraquinone. **D'où
+`fiabilite = a_verifier`** : toute sortie publique doit le signaler (§2.7).
 
-**En attendant, ne rien publier sur l'anthraquinone**, ni comme présence ni
-comme absence (§2.4).
+**Le contrôle préalable du §11.2 a été fait, et il passe** : le code 2013 ne
+porte qu'**une seule** limite déclarée — 0,1 sur les mesures « (pesticide) »,
+aucune sur les « (HAP) ». Pas de second objet réglementaire, donc pas le piège
+qui avait produit deux faux dépassements de sélénium.
+
+Effet mesuré après appariement : les deux libellés passent en
+`mode_appariement = code_parametre`, et les mesures « (HAP) » produisent
+**4 dépassements** — les 4 valeurs supérieures à 0,1 µg/L sur 39 quantifications.
+Les « (pesticide) » en gardent 2, inchangés.
 
 ---
 

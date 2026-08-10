@@ -19,21 +19,29 @@
       {
         "t": "Dix jours",
         "x": "Cinq analyses prélevées à moins de deux semaines de la date de bascule suffisent à montrer ce que le reste démontre par le nombre. Alluyes, le 19 avril 2024 : 0,94 µg/L, dix jours trop tôt. Le même prélèvement, effectué dix jours plus tard, aurait été conforme — la valeur mesurée passant sous les 0,9 µg/L entrés en vigueur entre-temps. Cloyes-les-Trois-Rivières est dans le même cas six jours avant, à 0,969 µg/L. Et la frontière n'absout pas tout : Châteaudun, quatre jours après le reclassement, dépasse encore avec 1,792 µg/L, comme Béthonvilliers l'aurait fait de toute façon à 2,572 µg/L. Le déplacement d'un seuil ne rend pas conforme n'importe quelle eau — il rend conformes celles qui se situaient entre l'ancienne valeur et la nouvelle."
+      },
+      {
+        "t": "Ce que le reclassement retire aussi, et qui est une limite opposable",
+        "x": "La valeur de 0,9 µg/L n'a pas de portée contraignante. Mais le 29 avril 2024, ce métabolite n'a pas seulement changé de seuil : il est sorti du périmètre du « total des pesticides », qui est, lui, une limite de qualité opposable fixée à 0,5 µg/L. Un métabolite déclaré non pertinent cesse d'être compté dans cette somme. Deux verdicts tombent donc le même jour, et le second porte sur un paramètre que rien ne signale au lecteur. Le corpus permet de le mesurer : sur les 794 analyses contenant un métabolite déjà reclassé, 645 déclarent un total qui exclut effectivement ce métabolite, 138 l'incluent encore, et 11 ne se rattachent à aucun des deux cas. Sur les 645 où l'exclusion est constatée, 591 affichent un total sous la limite de 0,5 µg/L — et 255 d'entre eux, dans 103 communes, repasseraient au-dessus si le métabolite reclassé y était encore compté. Barjouville, le 3 juillet 2025, en donne la version la plus nette : un total déclaré à 0,499 µg/L, à un millième de la limite, pendant que la part reclassée pèse à elle seule 4,392 µg/L."
+      },
+      {
+        "t": "Une installation, dix ans, deux courbes qui se séparent",
+        "x": "L'installation des Friches Blanches-Autheuil, qui alimente Cloyes-les-Trois-Rivières, est suivie chaque année depuis 2016. Le métabolite n'y est quantifié qu'à partir de septembre 2023 — avant, il n'était pas cherché, et le corpus n'en dit rien. Trois relevés suffisent ensuite. Le 14 septembre 2023 : 0,828 µg/L, pour un total déclaré de 0,936. Le 23 avril 2024, six jours avant le reclassement : 0,969 µg/L, total 1,131 — au-dessus de la limite du total. Le 16 avril 2025 : 1,658 µg/L, la plus forte des trois, et un total déclaré de 0,208. La concentration a doublé, l'indicateur agrégé a été divisé par cinq. Ce n'est pas l'eau qui a changé entre ces deux dates, c'est la liste de ce qu'on additionne."
       }
     ],
     "limites": [
       "Cette page ne compare pas les territoires entre eux. Le Tarn quantifie dans 19,1 % de ses analyses, l'Eure-et-Loir dans 88,3 % — mais les laboratoires y descendent à la même finesse, une limite de quantification médiane de 0,02 µg/L des deux côtés. L'écart n'est donc pas un artefact d'instrument. Ce qu'il est, ces données ne le disent pas.",
       "Elle ne dit rien d'avant l'entrée au programme d'analyse : juin 2022 dans le Tarn, septembre 2023 en Eure-et-Loir. Avant, c'est un indéterminé, ni absence ni présence.",
       "Aucune mesure n'était hors de portée du laboratoire sur cette substance : les limites de quantification rencontrées restent sous les valeurs de comparaison.",
+      "Sur 138 des 794 analyses concernées, le total déclaré inclut encore un métabolite reclassé, contrairement à ce que prévoit le texte. Cet écart est signalé, pas expliqué : ces données ne disent pas pourquoi.",
       "Quatre bulletins portent un écart de lecture : la conclusion sanitaire n'y prononce aucune non-conformité alors que le résultat dépasse la valeur applicable ce jour-là. Ces cas sont signalés, non tranchés.",
       "Elle ne dit pas s'il faut faire quelque chose. Ce n'est pas son objet. Les informations sur l'eau distribuée relèvent de l'agence régionale de santé, de la mairie et du rapport annuel du service."
     ],
     "manques": [
-      "La part du total des pesticides analysés portée par ce seul métabolite n'est pas dans le dossier de faits : à Alluyes le total déclaré et la valeur du R471811 coïncident, ce qui mériterait une requête dédiée avant d'être écrit.",
-      "Le dossier ne dit pas si un métabolite déclaré non pertinent reste compté dans le total réglementaire des pesticides. C'est une question de texte, pas de base."
+      "La règle d'exclusion des métabolites non pertinents du total des pesticides a été établie sur les textes par un autre fil de travail, pas déduite de la base. Elle doit être inscrite dans docs/GARDE-FOUS.md avec ses références dans docs/INDEX_SOURCES.md avant que cette page ne soit publiée comme validée.",
+      "Le cas où la pertinence d'un métabolite n'a pas encore été évaluée par l'ANSES n'est pas tranché : ni le dossier de faits ni le référentiel ne le distinguent."
     ]
   },
-
   "esa-metolachlore": {
     "libelle_parametre": "ESA metolachlore",
     "titre": "Paulinet, 0,789 puis 0,793 µg/L — quatre mois d'écart, deux verdicts",
@@ -67,7 +75,6 @@
       "Le dossier donne les valeurs de Paulinet mais pas le nom de l'installation qui les produit : impossible de vérifier depuis ce seul dossier qu'il s'agit bien du même point d'eau, et non de deux points d'une même commune."
     ]
   },
-
   "esa-metazachlore": {
     "libelle_parametre": "ESA metazachlore",
     "titre": "Une substance qui dépasse quinze fois par an, sans qu'aucun dépassement ne soit prononcé",
@@ -99,7 +106,6 @@
     ],
     "manques": []
   },
-
   "cga-369873": {
     "libelle_parametre": "CGA 369873",
     "titre": "Une substance entrée au programme d'analyse après son propre reclassement",

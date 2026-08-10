@@ -152,6 +152,8 @@ Trois sources de seuil qui ne se confondent pas : le référentiel daté,
 seulement déclarée ne produit jamais une bascule ni un verdict 2016** — on ne
 fabrique pas de passé réglementaire à partir de la grille du jour. Les
 contradictions sont listées dans `v_ecarts_referentiel_source`.
+**Le dénominateur d'un agrégat peut changer sans que la mesure bouge — cf.
+§2.13.**
 
 **2.9 — Un seuil et une mesure dans deux unités différentes ne se comparent
 pas.** Le chlorate était au référentiel en mg/L et mesuré en µg/L : facteur
@@ -240,6 +242,15 @@ mesure franchit AUSSI la valeur la plus permissive ; entre les deux c'est
 `indetermine_condition` (`v_verdicts_sous_condition`, à vérifier à la main avant
 publication). Choix asymétrique assumé : **un faux positif coûte plus cher au
 projet qu'un faux négatif.**
+
+**Cinquième cas, ajouté le 10 août 2026 — la condition n'est ni le procédé ni
+la ressource, c'est le statut de la substance.** Un reclassement de pertinence
+déplace deux verdicts, et ils n'ont pas la même portée : la valeur propre du
+métabolite, qui devient indicative et cesse d'être opposable, et le périmètre
+du « total pesticides », limite de qualité **opposable** dont il sort le même
+jour. **Une somme ne se compare jamais sans sa date et son périmètre.**
+Détail et citations : `docs/GARDE-FOUS.md` §2.13 ; chiffres :
+`data/dossiers/SUBSTANCE-chlorothalonil-r471811.md`.
 
 **2.14 — « Le plus strict identifié », jamais « le plus strict au monde ».** Un
 balayage mondial n'a été fait que pour les PFAS. Sur la somme des 20 PFAS,
