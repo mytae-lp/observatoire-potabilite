@@ -30,13 +30,26 @@ TROIS PROPRIÉTÉS TENUES, dans l'ordre d'importance :
    jour, la publication est considérée comme inachevée.
 
 IDENTIFIANTS — jamais dans le dépôt, jamais en argument de ligne de commande
-(ils resteraient dans l'historique du shell). Quatre variables d'environnement :
+(ils resteraient dans l'historique du shell).
 
-    OBS_FTP_HOTE          ex. ftp.yannick-mytae.fr
+Trois variables d'environnement, qui ne sont PAS des secrets et peuvent donc
+être posées durablement :
+
+    OBS_FTP_HOTE          nom d'hôte ou adresse IP du serveur FTP
     OBS_FTP_UTILISATEUR   l'utilisateur FTP créé dans hPanel
-    OBS_FTP_MOTDEPASSE    son mot de passe
     OBS_FTP_RACINE        le dossier distant du sous-domaine,
                           à découvrir avec `--explorer`
+    OBS_FTP_PORT          facultatif, 21 par défaut
+
+Le mot de passe, lui, ne se range nulle part : le script le DEMANDE à chaque
+publication, en saisie masquée. Il ne touche donc ni le disque, ni le registre,
+ni l'historique du shell, et il n'existe que le temps du transfert. La variable
+OBS_FTP_MOTDEPASSE reste lue si elle est présente — utile pour un lancement
+automatisé — mais ce n'est pas le mode recommandé.
+
+Conseil de portée : créer dans hPanel un compte FTP dédié, dont la racine est
+le dossier du sous-domaine. Si l'identifiant fuite, il n'ouvre que la vitrine,
+pas le reste de l'hébergement.
 
 USAGE
 
@@ -47,6 +60,7 @@ USAGE
 
 import argparse
 import ftplib
+import getpass
 import hashlib
 import json
 import os
@@ -86,30 +100,77 @@ class FTPS(ftplib.FTP_TLS):
 
 
 def config():
-    """Lit les identifiants dans l'environnement. Ne les affiche jamais."""
+    """Rassemble les identifiants. Ne les affiche jamais, n'en écrit aucun."""
     manquantes = []
     valeurs = {}
-    for cle in ("OBS_FTP_HOTE", "OBS_FTP_UTILISATEUR", "OBS_FTP_MOTDEPASSE"):
+    for cle in ("OBS_FTP_HOTE", "OBS_FTP_UTILISATEUR"):
         v = os.environ.get(cle, "").strip()
         if not v:
             manquantes.append(cle)
         valeurs[cle] = v
     if manquantes:
         sys.exit(
-            "Identifiants absents de l'environnement : "
-            + ", ".join(manquantes)
-            + "\nLes poser dans la session, puis relancer. Voir l'en-tête du script."
+            "Réglages absents de l'environnement : " + ", ".join(manquantes)
+            + "\nLes poser, puis relancer. Voir l'en-tête du script."
         )
     valeurs["OBS_FTP_RACINE"] = os.environ.get("OBS_FTP_RACINE", "").strip()
+    port = os.environ.get("OBS_FTP_PORT", "").strip()
+    valeurs["OBS_FTP_PORT"] = int(port) if port.isdigit() else 21
+
+    # Le mot de passe est demandé plutôt que rangé. getpass n'écrit rien et
+    # n'affiche rien ; il échoue franchement si l'entrée n'est pas un terminal,
+    # ce qui est le comportement voulu — mieux vaut une erreur qu'un secret
+    # tapé en clair dans un journal d'exécution.
+    mdp = os.environ.get("OBS_FTP_MOTDEPASSE", "").strip()
+    if not mdp:
+        try:
+            mdp = getpass.getpass(
+                f"Mot de passe FTP de {valeurs['OBS_FTP_UTILISATEUR']} : ")
+        except (EOFError, OSError):
+            sys.exit("Pas de terminal pour la saisie du mot de passe. "
+                     "Pour un lancement non interactif, poser "
+                     "OBS_FTP_MOTDEPASSE dans l'environnement.")
+    if not mdp:
+        sys.exit("Mot de passe vide — rien n'a été tenté.")
+    valeurs["OBS_FTP_MOTDEPASSE"] = mdp
     return valeurs
 
 
-def connexion(cfg):
-    ctx = ssl.create_default_context()
+def connexion(cfg, verifier=True):
+    """Ouvre la session FTPS.
+
+    `verifier=False` conserve le CHIFFREMENT mais renonce à vérifier l'identité
+    du serveur. Ce n'est pas un détail : le trafic reste illisible pour un tiers
+    passif, mais plus rien ne prouve qu'on parle bien à l'hébergeur. On ne le
+    fait donc jamais par défaut — seulement sur demande explicite, et le script
+    le dit à chaque fois.
+    """
+    if verifier:
+        ctx = ssl.create_default_context()
+    else:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        print("  ! identité du serveur NON vérifiée (--certificat-non-verifie)")
+
     ftp = FTPS(context=ctx, timeout=60)
     ftp.encoding = "utf-8"
-    ftp.connect(cfg["OBS_FTP_HOTE"], 21)
-    ftp.login(cfg["OBS_FTP_UTILISATEUR"], cfg["OBS_FTP_MOTDEPASSE"])
+    try:
+        ftp.connect(cfg["OBS_FTP_HOTE"], cfg["OBS_FTP_PORT"])
+        ftp.login(cfg["OBS_FTP_UTILISATEUR"], cfg["OBS_FTP_MOTDEPASSE"])
+    except ssl.SSLCertVerificationError as e:
+        sys.exit(
+            f"\nLe certificat du serveur n'a pas pu être validé :\n  {e}\n\n"
+            "C'est le cas attendu quand on se connecte à une ADRESSE IP : un\n"
+            "certificat est émis pour un nom d'hôte, jamais pour une IP.\n\n"
+            "Deux façons d'en sortir, dans cet ordre :\n"
+            "  1. utiliser le NOM D'HÔTE du serveur plutôt que son IP —\n"
+            "     à demander au support Hostinger, ou visible dans hPanel ;\n"
+            "  2. à défaut, relancer avec --certificat-non-verifie : le\n"
+            "     transfert reste chiffré, mais l'identité du serveur n'est\n"
+            "     plus contrôlée. Acceptable ici — le site publié est public\n"
+            "     et ne contient aucune donnée personnelle — mais c'est une\n"
+            "     décision, pas un défaut.")
     ftp.prot_p()          # chiffre aussi le canal de données
     ftp.set_pasv(True)
     return ftp
@@ -346,11 +407,15 @@ def main():
     p.add_argument("--sauf", action="append", default=[], metavar="MOTIF",
                    help="écarte les chemins correspondants, répétable "
                         "(ex. --sauf 'donnees/verdicts.csv')")
+    p.add_argument("--certificat-non-verifie", action="store_true",
+                   dest="sans_verif",
+                   help="conserve le chiffrement mais ne vérifie pas "
+                        "l'identité du serveur (cas d'une connexion par IP)")
     args = p.parse_args()
 
     cfg = config()
-    print(f"  connexion à {cfg['OBS_FTP_HOTE']} …")
-    ftp = connexion(cfg)
+    print(f"  connexion à {cfg['OBS_FTP_HOTE']}:{cfg['OBS_FTP_PORT']} …")
+    ftp = connexion(cfg, verifier=not args.sans_verif)
     try:
         if args.explorer:
             print(f"  connecté. Dossier courant : {ftp.pwd()}\n")

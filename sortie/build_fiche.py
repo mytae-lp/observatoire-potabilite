@@ -660,6 +660,147 @@ def bloc_parametres(con, code_prel, version):
 
 
 # ---------------------------------------------------------------------------
+# Encodage des données de la page.
+#
+# Mesuré le 10 août 2026 sur les 678 fiches communes, sur la forme précédente
+# — un objet complet par paramètre et par instantané, tout écrit en clair.
+#
+#   PARAMS, le détail paramètre par paramètre :
+#     34,3 % du poids   les noms de champs JSON ("p":, "v":, "lqr"…), soit
+#                       douze chaînes courtes répétées 1,4 million de fois ;
+#     10,5 %            les noms de paramètres, 706 valeurs uniques pour
+#                       25 905 occurrences sur une SEULE fiche ;
+#      9,1 %            les seuils, même phénomène.
+#
+#   C, le bloc des indicateurs et de la prose (59,3 Mo cumulés) :
+#     70,9 %            les scalaires, 38 228 valeurs distinctes pour
+#                       1,72 million d'occurrences — les explications longues
+#                       sont réécrites à l'identique à chaque instantané ;
+#     28,1 %            les noms de champs, 1,73 million d'occurrences pour
+#                       708 combinaisons de clés distinctes seulement.
+#
+# D'où trois transformations, sans perte et sans changement d'affichage :
+#
+#   DICTIONNAIRE  tout scalaire (chaîne, nombre, booléen) est remplacé par son
+#                 rang dans une table déposée une fois par page, PARTAGÉE entre
+#                 C et PARAMS — un seuil comme « ≤ 0,1 µg/L » vit dans les deux.
+#                 L'indice 0 est réservé à `null` : un état à part, jamais une
+#                 chaîne vide (§2.4, trois états et pas deux).
+#   COLONNES      pour PARAMS, qui est une table régulière : une liste par champ
+#                 au lieu d'un objet par ligne.
+#   FORMES        pour C, qui ne l'est pas : chaque objet devient un tableau
+#                 précédé du rang de sa combinaison de clés. Les noms de champs
+#                 sont écrits une fois pour la page, plus une fois par forme.
+#
+# Le dictionnaire reste PAR PAGE et non global au site : une fiche continue à
+# se lire seule, hors ligne, sans dépendre d'un fichier tiers. C'est ce qui la
+# rend citable telle quelle.
+#
+# Les décodeurs vivent dans site/gabarits/fiche.js et rendent des objets
+# identiques à ceux d'avant : rien d'autre dans le rendu n'a eu à changer.
+# ---------------------------------------------------------------------------
+
+# Rares, donc stockés en liste des rangs où le drapeau est vrai plutôt qu'en
+# un booléen par ligne : « d » est vrai 6,7 % du temps, les autres moins.
+DRAPEAUX = ("d", "x", "i", "a4", "b", "a")
+
+# Denses (presque toujours renseignés) : une colonne pleine d'indices.
+CHAINES_DENSES = ("p", "v", "s", "g")
+
+
+class Dictionnaire:
+    """Table des scalaires de la page. Un seul exemplaire, partagé.
+
+    La clé de déduplication porte le TYPE en plus de la valeur : en Python
+    `True == 1` et `hash(True) == hash(1)`, si bien qu'un dictionnaire naïf
+    rendrait `true` là où `1` était attendu. Le bogue serait silencieux et
+    n'apparaîtrait qu'à l'affichage.
+    """
+
+    def __init__(self):
+        self.valeurs = []
+        self._rangs = {}
+
+    def idx(self, v):
+        """Rang 1-based dans la table. 0 est réservé à `null`."""
+        if v is None:
+            return 0
+        cle = (type(v), v)
+        rang = self._rangs.get(cle)
+        if rang is None:
+            self.valeurs.append(v)
+            rang = self._rangs[cle] = len(self.valeurs)
+        return rang
+
+
+def encoder_params(params_par_cle, dico):
+    """{clé: bloc_parametres()} → colonnes. Alimente `dico` au passage."""
+    cols = {}
+    for cle, bloc in params_par_cle.items():
+        lignes = bloc["params"]
+        c = {"n": bloc["count"]}
+        for champ in CHAINES_DENSES:
+            c[champ] = [dico.idx(l[champ]) for l in lignes]
+        for champ in DRAPEAUX:
+            c[champ] = [k for k, l in enumerate(lignes) if l[champ]]
+        # Creux : renseignés seulement sur bascule, ou quand la LQ est au-dessus
+        # de la limite. Une paire [rang, valeur] par ligne concernée.
+        c["s16"] = [[k, dico.idx(l["s16"])] for k, l in enumerate(lignes)
+                    if l["s16"] is not None]
+        c["lqr"] = [[k, dico.idx(l["lqr"])] for k, l in enumerate(lignes)
+                    if l["lqr"] is not None]
+        cols[cle] = c
+    return cols
+
+
+def encoder_arbre(v, dico, formes, rangs_formes):
+    """Encodage générique d'une structure hétérogène (le bloc C).
+
+    Trois cas, distinguables sans ambiguïté au décodage :
+
+      scalaire  → un entier POSITIF OU NUL, rang dans le dictionnaire ;
+      liste     → un tableau dont le premier élément n'est jamais un entier
+                  négatif (ses éléments sont eux-mêmes des encodages) ;
+      objet     → un tableau dont le premier élément EST un entier négatif,
+                  `-(1 + rang de la forme)`, suivi des valeurs dans l'ordre
+                  des clés de cette forme.
+
+    Le signe suffit donc à trancher, et les deux cas limites tiennent : une
+    liste vide reste `[]`, un objet sans champ devient `[-n]`.
+    """
+    if isinstance(v, dict):
+        forme = tuple(v)
+        rang = rangs_formes.get(forme)
+        if rang is None:
+            formes.append(list(forme))
+            rang = rangs_formes[forme] = len(formes)
+        return [-rang] + [encoder_arbre(x, dico, formes, rangs_formes)
+                          for x in v.values()]
+    if isinstance(v, list):
+        return [encoder_arbre(x, dico, formes, rangs_formes) for x in v]
+    return dico.idx(v)
+
+
+def js_donnees(commune_par_cle, params_par_cle):
+    """Le fragment JavaScript à déposer dans la page.
+
+    Un seul producteur pour les deux sorties — la fiche autonome et la vitrine
+    — afin qu'elles ne puissent pas diverger sur le format.
+    """
+    dico = Dictionnaire()
+    formes, rangs_formes = [], {}
+    # C d'abord : ses chaînes sont les plus longues, donc les mieux amorties.
+    cenc = encoder_arbre(commune_par_cle, dico, formes, rangs_formes)
+    pcols = encoder_params(params_par_cle, dico)
+    compact = lambda x: json.dumps(x, ensure_ascii=False,  # noqa: E731
+                                   separators=(",", ":"))
+    return (f"const DICT={compact(dico.valeurs)};\n"
+            f"const CFORM={compact(formes)};\n"
+            f"const CENC={compact(cenc)};\n"
+            f"const PCOLS={compact(pcols)};")
+
+
+# ---------------------------------------------------------------------------
 def construire(insees=None, destination=None, historique=False, db=DB_PATH):
     if not os.path.exists(db):
         print(f"base absente : {db}\nlance d'abord : python3 src/build_db.py "
@@ -727,8 +868,9 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             .replace("<!--__CORPS__-->", lire("corps_fiche.html"))
             .replace("/*__FICHE_JS__*/", lire("fiche.js"))
             .replace("/*__KPI_LABELS__*/", "const KPI_LABELS=" + j(KPI_LABELS) + ";")
-            .replace("/*__C__*/", "const C=" + j(C) + ";")
-            .replace("/*__PARAMS__*/", "const PARAMS=" + j(PARAMS) + ";")
+            # C et PARAMS partagent un dictionnaire : ils sortent ensemble.
+            .replace("/*__C__*/", "")
+            .replace("/*__PARAMS__*/", js_donnees(C, PARAMS))
             .replace("/*__ORDER__*/", "const ORDER=" + j(ORDER) + ";"))
 
     destination = destination or os.path.join(ICI, "Resultat_Analyse_Standardise.html")

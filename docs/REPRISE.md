@@ -877,6 +877,18 @@ même journée, sans qu'un seul prélèvement change :
    un repère périmé jusqu'à republication.
 6. `--termine` **est le seul juge** de la complétude d'une collecte. Le code de
    sortie 0 et le compteur `[N/N]` ne le sont pas (§10.1).
+7. **`fetch_departement.py` refige de lui-même en fin de course** —
+   `run(..., figeage=True)` par défaut. Conséquence constatée le 10 août 2026 :
+   une sonde `--limite 3` censée coûter 5 minutes en a coûté 25, dont 20 de
+   refigeage du corpus entier. Deux corollaires. **Il n'y a pas de sonde
+   bon marché** : toute collecte, même de trois communes, entraîne le
+   refigeage — utiliser `--sans-repli`/`--limite` ne l'évite pas, seul un
+   `--rapport` est vraiment sans effet. Et **l'étape 4 de la séquence du §13.5
+   est déjà faite** à la sortie d'une collecte non interrompue : le vérifier
+   plutôt que relancer `figer.py` à l'aveugle. Aucune version nouvelle n'est
+   créée au passage — `version_referentiel()` est une empreinte du référentiel,
+   qui n'a pas bougé : le figeage réécrit dans la version courante, et rien
+   n'est à purger.
 
 ### 13.5 La séquence complète, dans l'ordre
 
@@ -902,13 +914,298 @@ py -X utf8 tests/test_sorties.py                            # les 8 blocs
   Deux règles publiées s'y appuient (turbidité, §2.13) et restent
   `a_verifier`. **REG-03, lui, est extractible et porte la définition du total
   pesticides** : la dépendance est réduite, pas levée ;
-- **`CLAUDE.md` fait 607 lignes** pour une cible de 400. Le tri est à refaire :
-  la règle et le pointeur restent, l'argumentaire descend dans `docs/` ;
+- **`CLAUDE.md` fait 607 lignes** pour une cible de 400, et le tri est
+  **déprioritisé — décision de Yannick, 10 août 2026.** Motif : le dégraissage
+  était une mesure d'économie de tokens, et le poste dominant a changé. Le
+  fichier vaut ~9–10 k tokens rechargés une fois par session (estimation sur
+  32 750 octets, non mesurée) ; en retirer un tiers économiserait ~3 k. Un seul
+  agent de fond qui recale une prose sur son dossier de faits en consomme
+  plusieurs dizaines de milliers, et il y en a cinq. **Optimiser le coût fixe
+  pendant que le coût variable a pris toute la place n'est pas le levier** :
+  celui-ci est la découpe du §3 du mode opératoire — un agent de fond par
+  unité, contexte neuf — et le variateur `effort`. À rouvrir si la rédaction
+  se tarit ou si le fichier repart à la hausse ;
 - **la fiche autonome pèse 134 Mo** — elle n'est plus « un fichier qu'on peut
   transmettre », et elle grossira ;
 - **le choix du prochain département n'est pas une question technique** : un
   voisin de la Beauce rend les nitrates et les métabolites comparables sur un
   même bassin ; un département de profil très différent teste mieux la
   robustesse du référentiel. Ce n'est pas la même enquête ;
+- **La cause C devient un chantier de fond — décision de Yannick, 10 août
+  2026.** *« C'est la plus-value du travail. Documenter l'invisible qui est
+  pourtant officiellement collecté. »* Les 145 libellés de cause C (§11.1) ne
+  sont plus un reliquat de diagnostic à résorber : ils sont un **objet
+  d'enquête à part entière**. Une substance mesurée par l'ARS, quantifiée dans
+  l'eau, et qu'aucun texte ne permet de déclarer conforme ou non conforme —
+  c'est la thèse fondatrice déplacée du seuil qui bouge vers **le seuil qui
+  n'existe pas**.
+
+  Ce que le chantier suppose, et qui n'est pas fait :
+
+  1. **Trier C en deux**, ce que le compteur actuel confond — (C1) une limite
+     réglementaire existe et nous ne l'avons pas identifiée : c'est notre
+     manque, réparable ligne par ligne avec `sources` et `fiabilite` ; (C2)
+     **aucune limite n'existe**, et c'est le sujet. Le tri ne se déduit
+     d'aucune donnée du corpus : il se fait source en main, substance par
+     substance. **Tant qu'il n'est pas fait, on ne peut rien affirmer sur le
+     volume de C2** — dire « 145 substances sans norme » aujourd'hui serait un
+     faux positif de méthode ;
+  2. **le modèle sait déjà porter C2** : le perchlorate en est le précédent
+     (§11.4) — `seuil_2016` et `seuil_2026` vides parce qu'il n'y a rien à y
+     mettre, `seuil_strict` documenté et assumé comme tel. C'est le patron à
+     reprendre, pas à réinventer ;
+  3. **§2.7 s'applique entier** : une substance sans norme se démontre par une
+     recherche qui n'a rien trouvé, et cette recherche se date et se source.
+     « Nous n'avons pas trouvé de limite » et « il n'existe pas de limite » ne
+     sont pas le même énoncé — le second demande d'avoir cherché où il aurait
+     fallu, et de le dire ;
+  4. **§2.4 transposé** : une substance sans seuil n'est pas « sans risque »,
+     elle est **indéterminée**. Aucune sortie ne doit laisser lire l'absence de
+     norme comme une absence de problème — ni l'inverse.
+
+  Prérequis matériel : `v_parametres_non_apparies` sur le corpus élargi au 69,
+  donc après la collecte et le figeage. L'inventaire du 9 août est dans
+  `data/etudes/parametres_non_apparies_2026-08-09.md` — il est à refaire, pas à
+  compléter ;
 - les cinq proses (quatre substances, un panel) sont **PROPOSÉES, à relire** :
   `py -X utf8 sortie/dossier_substance.py --relire`.
+
+
+---
+
+## 14. Mise à jour du 10 août 2026, soir — le lot pilote de sourçage C
+
+Trois substances témoins et un dossier de famille, lancés pendant la collecte du
+69 en agents de fond `opus`. Rendus dans `data/etudes/sourcage_C/`.
+**Le pilote a validé le brief et trouvé trois défauts qui auraient coûté cher
+sur un lot de quarante.**
+
+### 14.1 §2.14 de `CLAUDE.md` est FAUX et doit être révisé
+
+**La contradiction la plus grave, et c'est notre propre règle qui tombe.**
+
+§2.14 énonce : « Sur la somme des 20 PFAS, personne n'est plus strict que l'UE
+(0,100 µg/L) ». Lu en source primaire, c'est inexact — non sur la valeur, mais
+sur le **périmètre** :
+
+| pays | valeur | nombre de substances |
+|---|---|---|
+| UE / France | 0,10 µg/L | **20** |
+| Suède | 100 ng/L | **21** |
+| Danemark | 100 ng/L | **22** |
+| Canada (recommandation) | 30 ng/L | **25** |
+| Italie | — | 24 à 30 (`a_verifier`, à ne pas publier) |
+
+**Même valeur sur un périmètre plus large = plus strict.** C'est très
+exactement le §2.13 cinquième cas retourné contre nous : *une somme ne se
+compare jamais sans sa date et son périmètre* — nous avons comparé des valeurs
+en négligeant l'assiette.
+
+Seule formulation défendable, à substituer : **« à périmètre strictement
+identique, aucune valeur opposable inférieure n'a été trouvée »** — avec le
+« identifié » du §2.14 lui-même, qui reste la bonne posture.
+
+Le reste de §2.14 est **confirmé** en primaire (DK 2 ng/L, SE 4, DE 20 en 2028
+sur la somme des 4), à compléter : Danemark en vigueur depuis 2022, Norvège
+4 ng/L en 2026. **Décision de Yannick requise avant de toucher `CLAUDE.md`.**
+
+### 14.2 Les 16 PFAS non appariés entrent TOUS dans la somme des 20
+
+Croisement fait sur l'annexe III B.3 de la directive lue en primaire. Les quatre
+substances de la somme absentes de nos non-appariés sont exactement PFOA, PFOS,
+PFNA et PFHxS — déjà au référentiel.
+
+**Conséquence : « ces mesures ne pèsent sur aucun verdict » est faux en droit.**
+Elles n'ont pas de limite individuelle — c'est normal et ce n'est pas un manque
+— mais elles alimentent un paramètre **opposable**. L'absence d'appariement
+individuel est donc correcte ; ce qui reste à vérifier est **si notre moteur
+calcule la somme des 20**, et sinon c'est un défaut de notre côté, pas un vide
+de la norme. Question C-c du document `cause_C_familles_2026-08-10.md`,
+**toujours ouverte** : elle demande la base.
+
+Piège de calcul relevé par l'agent : **la somme des maxima n'est pas une somme
+observée.** Le seul calcul juste est la somme des 20 **par prélèvement**.
+
+### 14.3 PFAS et perturbation endocrinienne — la réponse est « non » au registre réglementaire
+
+Trois registres tenus séparés (§2.15), et ils ne disent pas la même chose :
+
+- `pe_reglementaire` — **aucun PFAS sur la List I des ED Lists de l'UE**
+  (double contrôle : export tableur archivé + lecture en ligne). **Le
+  référentiel du projet reste exact : le seul PE avéré au sens réglementaire UE
+  dans l'EDCH est le bisphénol A.** Le PFBS est la seule substance du corpus en
+  List II, sous *intention* de classification harmonisée en 2026 — une
+  procédure ouverte, pas un statut ;
+- `pe_scientifique` — signal réel mais fragmenté. Fait primaire à retenir :
+  l'ECHA constate une baisse de T4 pour le PFHpA, puis écrit que *« This
+  concern is not taken into account in the ELoC assessment »* ;
+- `cancerogenicite_circ` — PFOA groupe 1, PFOS groupe 2B (vol. 135, 2023).
+  **Aucun classement pour aucun des 16** libellés du corpus.
+
+**À arbitrer par Yannick** : l'angle « PE » sur les 16 PFAS du corpus repose
+aujourd'hui sur le seul registre scientifique, fragmenté, et sur des substances
+qui ne sont pas celles que le corpus quantifie. La situation ressemble à celle
+de l'aluminium, écartée le 9 août 2026 pour un motif voisin. L'angle **« sommes
+et périmètres »** est en revanche solide, primaire, et porte une erreur réelle
+de notre référentiel (§14.1).
+
+### 14.4 Trois défauts d'outillage, corrigés ou à corriger
+
+1. **Le fonds documentaire est HORS du dépôt** et le brief ne le disait pas :
+   `…/Data - Analyse de la qualité de l'eau en France/Sources/`, ~30 PDF classés
+   par famille. Deux agents ont fait sept tentatives contre EUR-Lex — qui
+   **tronque la directive avant ses annexes** sur toutes les formes d'URL —
+   alors que `REG-01_UE_directive-2020-2184.pdf` était sur le disque. Corrigé en
+   cours de vol ; il a fait passer l'annexe I de `a_verifier` à `verifie`.
+   **Le brief-type doit porter ce chemin.**
+2. **Légifrance est accessible** par l'outil web du harnais — deux lectures
+   indépendantes et concordantes de l'arrêté du 11 janvier 2007 consolidé,
+   annexes I et II (identifiant `LEGIARTI000046890189`). Le §13.6 tient
+   `REG-06` pour inatteignable : **c'est le shell et le navigateur qui étaient
+   bloqués, pas cette voie-là.** Deux règles publiées (turbidité) et le
+   périmètre du « total pesticides » en dépendent. **À retester proprement et à
+   archiver.**
+3. `pfas_chaines.csv` existe dans `referentiel/` — non examiné, à confronter à
+   la liste nominative des 20.
+
+### 14.5 Les trois témoins — et une correction sur les acides haloacétiques
+
+| substance | verdict | remarque |
+|---|---|---|
+| Toluène | **C2** | repère OMS **0,7 mg/L** (santé), non opposable ; seuils odeur/goût distincts et plus bas |
+| Trichloroéthane-1,1,1 | **C2** | l'OMS a **explicitement renoncé** à une valeur guide (table A3.2), motif d'exposition. CIRC **2A**, vol. 130 (2022) |
+| Biphényle | en cours | |
+
+Le trichloroéthane-1,1,1 a été **écarté** de la somme « tétrachloroéthylène +
+trichloroéthylène » : périmètre de deux substances, des éthylènes ; c'est un
+éthane. **Le non-appariement actuel est donc correct.**
+
+**Correction à porter au document de familles** : le périmètre « acides
+haloacétiques, 5 substances » a été relevé dans l'annexe française. Si les cinq
+acides haloacétiques du corpus (157 quantifications cumulées) y entrent, ils
+sortent de C-e et basculent en C-c, et le noyau « quantifié et non jugé » tombe
+de 8 substances à 3 : perchlorate, anthraquinone, phosphate de tributyle.
+**Observation faite au passage par un agent travaillant sur autre chose — à
+sourcer avant d'en tirer quoi que ce soit.**
+
+### 14.7 ÉTAT ACTUEL au 10 août 2026, 21 h 30 — remplace le §13 sur ces points
+
+**La base est LIBRE** (aucun python en vie, collecte arrêtée). **Le référentiel a
+changé** : six lignes versées, donc `version_referentiel` va changer et le
+prochain `figer.py` refigera TOUT le corpus sous une version nouvelle. Les
+chiffres du §13.1 (260/218 Eure-et-Loir, 100/59 Tarn) vont bouger une cinquième
+fois — **aucun ne se reprend sans sa version**.
+
+#### Le 69 est à l'arrêt à 57/266, et on sait pourquoi
+
+**`--termine` : 57/266 communes traitées, 209 restantes.** Ce qui est acquis est
+en base et figé sous `435b9a089f1d`.
+
+**Le blocage est une commune, pas le réseau** — c'est la conclusion de la
+soirée, et elle a coûté trois hypothèses fausses avant d'être trouvée :
+
+1. *« les communes de la Métropole sont plus lourdes »* — faux, elles passent ;
+2. *« instabilité réseau intermittente »* — faux ;
+3. la bonne : **`69063` Collonges-au-Mont-d'Or fige le collecteur, de façon
+   reproductible.** Trois relances successives, trois fois `[1/209] 69063` puis
+   plus une ligne pendant 10 minutes, **sans même une `ConnectionError`**. Le
+   premier blocage de la soirée, lui, était sur `69044` Charbonnières-les-Bains,
+   franchi après relance.
+
+Ce que le code dit : `MAX_TENTATIVES = 4` et chaque reprise **imprime**. Un
+silence prolongé sans message signifie donc que le processus n'est PAS dans la
+boucle de reprise — il est figé dans un `SESSION.get(..., timeout=90)` qui ne
+déclenche pas son propre timeout, ou dans une pagination qui ne se termine pas
+(`_pages()` boucle tant que l'API annonce une page suivante, sans rien imprimer
+entre deux).
+
+**Prochain geste, avant toute relance du département :** instruire `69063`
+seule, avec une trace des appels et des pages. Deux issues à départager —
+pagination sans fin (le bogue est chez nous) ou requête qui ne revient jamais
+(le bogue est dans la couche HTTP). Ne PAS relancer `--tous` en aveugle : le
+superviseur l'a fait trois fois sans avancer d'une commune.
+
+**Le superviseur** (relance sur 10 min de silence, piloté par `--termine`) est
+écrit et fonctionne, mais il ne sert à rien contre un blocage déterministe : il
+tue et relance sur la même commune indéfiniment. À reprendre **une fois `69063`
+réglée**, où il redeviendra utile contre les aléas réels.
+
+#### Ce qui a été livré ce soir
+
+- **§2.14 de `CLAUDE.md` corrigé** (§14.1) — décision de Yannick ;
+- **six lignes versées au référentiel** : la somme `9064` des acides
+  haloacétiques à **60 µg/L applicable au 01/01/2023**, et ses cinq composants
+  en `dans somme (9064)`. Contrôle de forme passé (21 colonnes, 82 lignes
+  existantes revérifiées au passage) ;
+- **`GEST-05`** (avis Anses du 22/11/2023) et la **famille `SAND`** déclarées
+  dans `INDEX_SOURCES.md` ;
+- quatre dossiers de sourçage dans `data/etudes/sourcage_C/` : PFAS, toluène,
+  trichloroéthane-1,1,1, acides haloacétiques ;
+- le découpage de la cause C en six familles : `cause_C_familles_2026-08-10.md`.
+
+#### La file d'attente, dans l'ordre
+
+1. **`69063`** — instruire le blocage. Rien d'autre ne peut avancer sur le 69 ;
+2. **la requête PFAS du §14.6** — la base est libre, elle prend une minute et
+   elle décide si le moteur doit recalculer la somme des 20 ;
+3. `build_db.py` puis `figer.py` — la base doit intégrer les six lignes
+   nouvelles. **Attention : nouvelle version de référentiel, refigeage complet** ;
+4. corriger `src/hubeau.py` — le timeout qui ne couvre pas toutes les phases.
+   **Les tests peuvent tourner maintenant que la base est libre** ;
+5. le lot C-d (~40 substances), par paquets de 5, brief-type au §14.4 ;
+6. reprendre le noyau éditorial : perchlorate, anthraquinone, phosphate de
+   tributyle — **3 substances, plus 8** (§14.5).
+
+#### En vol au moment de la sauvegarde
+
+- **l'agent « biphényle » tourne encore** — son fichier
+  `data/etudes/sourcage_C/biphenyle_2026-08-10.md` apparaîtra peut-être seul.
+  Le lire avant de relancer quoi que ce soit sur cette substance.
+
+### 14.6 À exécuter DÈS QUE LA BASE EST LIBRE — la requête PFAS
+
+**C'est le point bloquant du dossier PFAS**, et il ne se tranche que sur la base.
+
+Ce qui est déjà acquis, sans la base : le référentiel **connaît** la somme des
+20 sous le code SANDRE **8847** (`referentiel_seuils.csv` ligne 2, `seuil_2026`
+0,10 µg/L, nature `limite`, `verifie`) ; et le moteur **sait recalculer une
+somme** — `_sommes()` dans `src/figer.py` produit déjà
+`somme_pesticides_declaree` ET `somme_pesticides_recalculee`, avec le garde-fou
+qui évite de compter une somme en même temps que ses composants.
+
+La seule inconnue est donc : **l'ARS publie-t-elle le paramètre 8847, ou
+seulement les substances individuelles ?**
+
+```sql
+-- 1. Le paramètre 8847 existe-t-il dans le corpus, et où ?
+SELECT p.dept, COUNT(*) AS mesures,
+       COUNT(DISTINCT m.code_prelevement) AS bulletins,
+       COUNT(*) FILTER (WHERE m.est_quantifie) AS quantifiees
+FROM mesures m JOIN v_prelevement_verdict p USING (code_prelevement)
+WHERE m.code_parametre = '8847'
+GROUP BY p.dept;
+
+-- 2. Combien de bulletins portent des PFAS individuels SANS porter 8847 ?
+--    Ce sont ceux où la limite opposable n'est vérifiée par personne.
+WITH indiv AS (
+  SELECT DISTINCT code_prelevement FROM mesures
+  WHERE libelle_norm LIKE '%perfluor%' AND code_parametre <> '8847'),
+somme AS (
+  SELECT DISTINCT code_prelevement FROM mesures WHERE code_parametre = '8847')
+SELECT COUNT(*) FROM indiv WHERE code_prelevement NOT IN (SELECT * FROM somme);
+```
+
+**Trois issues, trois conduites :**
+
+- **8847 présent et apparié partout** → tout fonctionne, rien à corriger, il
+  n'y a qu'à l'expliquer dans le dossier ;
+- **8847 absent ou partiel** → le moteur doit recalculer la somme, sur le
+  modèle exact de `somme_pesticides_recalculee`. La liste nominative des 20 est
+  à prendre dans l'**annexe III B.3 de la directive** (REG-01, sur le disque,
+  lue en primaire le 10 août 2026), **jamais reconstituée de mémoire** : le
+  périmètre d'une somme est une définition réglementaire (§2.13) ;
+- **8847 présent mais non apparié** → défaut d'appariement, cause A, corrigible
+  en une ligne.
+
+Vérifier au passage `referentiel/pfas_chaines.csv` (60 lignes, longueur de
+chaîne, sourcé) — **non examiné à ce jour**, à confronter à la liste des 20.

@@ -2,10 +2,12 @@
    Rendu d'une fiche de bulletin. Partagé par la fiche autonome et par la
    vitrine, pour que les deux disent exactement la même chose.
 
-   Attend trois variables globales, produites par le générateur Python :
+   Attend cinq variables globales, produites par le générateur Python :
      KPI_LABELS  les six libellés d'indicateurs, dans l'ordre
-     C           un bulletin par clé : identité, verdicts, traçabilité
-     PARAMS      le détail paramètre par paramètre
+     DICT        les scalaires de la page, déposés une fois et partagés
+     CFORM       les combinaisons de clés rencontrées dans C
+     CENC        un bulletin par clé : identité, verdicts, traçabilité
+     PCOLS       le détail paramètre par paramètre, en colonnes
      ORDER       l'ordre d'affichage des clés
 
    Ce fichier ne calcule aucun verdict. Il en affiche. Tout ce qu'il montre
@@ -13,6 +15,49 @@
    a produites (CLAUDE.md §8bis : « ne jamais recalculer un verdict à la volée
    dans l'interface »).
    =========================================================================== */
+
+/* Décodage. DICT/CFORM/CENC/PCOLS portent exactement la même information que
+   les anciens C et PARAMS, écrite sans répéter à chaque ligne et à chaque
+   instantané les noms de champs, les libellés et les explications longues
+   (motif et mesures : sortie/build_fiche.py).
+
+   Ces décodeurs rendent des objets STRICTEMENT identiques à ceux d'avant —
+   c'est ce qui permet que rien d'autre dans ce fichier n'ait eu à changer.
+   Toute modification du format se fait des deux côtés à la fois. */
+const scalaire = i => i === 0 ? null : DICT[i - 1];
+
+/* C : structure hétérogène. Un entier est un scalaire ; un tableau dont le
+   premier élément est un entier NÉGATIF est un objet, et ce nombre désigne sa
+   combinaison de clés ; tout autre tableau est une liste. */
+const C = (function decode(x){
+  if(!Array.isArray(x)) return scalaire(x);
+  if(typeof x[0] === "number" && x[0] < 0){
+    const noms = CFORM[-x[0] - 1], o = {};
+    for(let k = 0; k < noms.length; k++) o[noms[k]] = decode(x[k + 1]);
+    return o;
+  }
+  return x.map(decode);
+})(CENC);
+
+/* PARAMS : table régulière, donc rendue en colonnes. */
+const PARAMS = (function(){
+  const out = {};
+  for(const cle in PCOLS){
+    const c = PCOLS[cle], n = c.p.length, lignes = new Array(n);
+    for(let k = 0; k < n; k++)
+      lignes[k] = { p: scalaire(c.p[k]), v: scalaire(c.v[k]),
+                    s: scalaire(c.s[k]), g: scalaire(c.g[k]),
+                    d: false, x: false, i: false,
+                    a4: false, b: false, a: false, lqr: null, s16: null };
+    /* Les drapeaux ne portent que les rangs où ils sont vrais. */
+    ["d", "x", "i", "a4", "b", "a"].forEach(f =>
+      c[f].forEach(k => lignes[k][f] = true));
+    c.lqr.forEach(([k, v]) => lignes[k].lqr = scalaire(v));
+    c.s16.forEach(([k, v]) => lignes[k].s16 = scalaire(v));
+    out[cle] = { count: c.n, params: lignes };
+  }
+  return out;
+})();
 
 let CUR = ORDER[0], detOnly = false, sigOnly = false;
 

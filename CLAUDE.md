@@ -253,9 +253,25 @@ Détail et citations : `docs/GARDE-FOUS.md` §2.13 ; chiffres :
 `data/dossiers/SUBSTANCE-chlorothalonil-r471811.md`.
 
 **2.14 — « Le plus strict identifié », jamais « le plus strict au monde ».** Un
-balayage mondial n'a été fait que pour les PFAS. Sur la somme des 20 PFAS,
-personne n'est plus strict que l'UE (0,100 µg/L) ; la hiérarchie n'est réelle
-que sur la somme des 4 (Danemark 2 ng/L, Suède 4, Allemagne 20 en 2028).
+balayage mondial n'a été fait que pour les PFAS. Sur la somme des 4, la
+hiérarchie est réelle et porte sur la valeur : Danemark 2 ng/L (en vigueur au
+01/12/2025), Suède 4, Allemagne 20 au 12/01/2028.
+
+**Corrigé le 10 août 2026 — comparer deux sommes, c'est comparer deux
+périmètres autant que deux valeurs.** La rédaction précédente disait « sur la
+somme des 20, personne n'est plus strict que l'UE (0,100 µg/L) ». La valeur est
+exacte et n'a pas bougé, mais l'énoncé ne tient pas : le Danemark applique
+0,100 µg/L à **22** substances et la Suède à **21**, contre **20** dans l'UE.
+Une eau qui charge deux PFAS hors des 20 européens passe ici et échoue là-bas —
+**même valeur, assiette plus large, donc plus strict en pratique.** C'est le
+§2.13 cinquième cas appliqué à nous : *une somme ne se compare jamais sans sa
+date et son périmètre.* Formulation à tenir : **« à périmètre strictement
+identique, aucune valeur opposable inférieure n'a été identifiée »** — et dire
+l'assiette chaque fois qu'on cite le chiffre.
+
+Les périmètres étaient **déjà documentés et sourcés** dans la ligne 8847 du
+référentiel (`REG-03|PFAS-06`, `verifie`) ; c'est l'inférence qui en était tirée
+qui était fausse, pas la donnée. Détail et sources : `docs/REPRISE.md` §14.1.
 
 **2.15 — Trois registres, jamais fusionnés.** `pe_reglementaire` (UE),
 `pe_scientifique` (littérature), `cancerogenicite_circ` (CIRC). L'atrazine :

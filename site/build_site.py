@@ -37,6 +37,7 @@ l'appliquent (§2.1).
 """
 import argparse
 import csv
+import gzip
 import hashlib
 import json
 import math
@@ -1359,7 +1360,8 @@ def page_sources(con, version, calcule_le, exports):
         for r in sorted(ref, key=lambda x: ((x.get("famille") or ""), (x.get("libelle") or ""))))
 
     liste_exports = "".join(
-        f"<li><a href='donnees/{h(f)}'>{h(f)}</a> — {h(d)} ({t} Ko)</li>"
+        f"<li><a href='donnees/{h(f)}'>{h(f)}</a> — {h(d)} ({_poids(t)}"
+        f"{', comprimé' if f.endswith('.gz') else ''})</li>"
         for f, d, t in exports)
 
     return f"""
@@ -1424,28 +1426,95 @@ def _vue_existe(con, nom):
 # ---------------------------------------------------------------------------
 # Exports
 # ---------------------------------------------------------------------------
+def _cellule(v):
+    """Un booléen sort en 1/0.
+
+    `True`/`False` est le `repr` de Python, pas une convention CSV : R lit
+    `TRUE`, Excel ne sait pas trancher, et cela coûtait 4 à 5 octets par valeur
+    sur treize colonnes booléennes — 78 Mo du seul verdicts.csv, mesuré le
+    10 août 2026.
+    """
+    return (1 if v else 0) if isinstance(v, bool) else v
+
+
 def exporter(con, version, dossier):
     """Les données du site, réutilisables telles quelles. Un observatoire qui
-    ne rend pas ses données interrogeables se demande d'être cru sur parole."""
+    ne rend pas ses données interrogeables se demande d'être cru sur parole.
+
+    Deux règles de forme, arrêtées le 10 août 2026 après mesure :
+
+    - **le gros export est comprimé et découpé par département.** Le détail
+      paramètre par paramètre pesait 291 Mo pour 1 265 589 lignes, et croît
+      avec chaque département collecté. Comprimé il tombe d'un facteur ~12, et
+      découpé il évite de faire télécharger la France pour lire le Tarn — ce
+      qui est aussi la maille de comparaison du §2.11. La compression est faite
+      ICI, une fois : demander à un hébergement mutualisé de gziper des
+      centaines de Mo à chaque téléchargement serait le déplacer, pas le régler.
+    - **les petits exports restent en CSV nu**, directement ouvrables. Les
+      comprimer ajouterait une manipulation pour un gain négligeable.
+
+    Ce qui n'a PAS été retiré : `version_referentiel`, pourtant constante dans
+    un export donné et donc 14,5 Mo de répétition. L'obligation 9 du §8bis veut
+    que chaque sortie porte sa traçabilité, et la compression rend une colonne
+    constante à peu près gratuite : il n'y avait pas d'arbitrage à faire.
+    """
     os.makedirs(dossier, exist_ok=True)
+
+    # Le détail est découpé : les fichiers d'une construction précédente ne se
+    # recouvrent pas forcément (un département qui sort du corpus, l'ancien
+    # verdicts.csv monolithique). Sans ce ménage ils resteraient sur place, et
+    # seraient publiés — site/publier.py envoie ce qu'il trouve.
+    for reste in os.listdir(dossier):
+        if reste == "verdicts.csv" or (reste.startswith("verdicts_")
+                                       and reste.endswith(".csv.gz")):
+            os.remove(os.path.join(dossier, reste))
+
     produits = []
 
-    def dump(nom, requete, description):
-        rows = con.execute(requete, [version]).fetchall()
+    def dump(nom, requete, description, params=None):
+        rows = con.execute(requete, params if params is not None
+                           else [version]).fetchall()
         cols = [d[0] for d in con.description]
         chemin = os.path.join(dossier, nom)
-        with open(chemin, "w", encoding="utf-8-sig", newline="") as fh:
+        lignes = ([_cellule(v) for v in r] for r in rows)
+        if nom.endswith(".gz"):
+            ouvrir = lambda: gzip.open(chemin, "wt", encoding="utf-8-sig",  # noqa: E731
+                                       newline="", compresslevel=9)
+        else:
+            ouvrir = lambda: open(chemin, "w", encoding="utf-8-sig",  # noqa: E731
+                                  newline="")
+        with ouvrir() as fh:
             w = csv.writer(fh, delimiter=";")
             w.writerow(cols)
-            w.writerows(rows)
-        produits.append((nom, description, max(1, round(os.path.getsize(chemin) / 1024))))
+            w.writerows(lignes)
+        produits.append((nom, description, os.path.getsize(chemin)))
 
     dump("bulletins.csv",
          "SELECT * FROM analyses_figees WHERE version_referentiel = ? ORDER BY commune, date_prelevement",
          "un bulletin par ligne : verdicts, couverture, effort de recherche, sommes")
-    dump("verdicts.csv",
-         "SELECT * FROM verdicts_figes WHERE version_referentiel = ? ORDER BY code_prelevement, libelle_parametre",
-         "le détail paramètre par paramètre, avec le seuil applicable à la date")
+
+    # Le détail, découpé par département. Le rattachement passe par la commune
+    # du prélèvement lui-même, pas par celle qui l'emprunte.
+    DETAIL = """
+        SELECT v.* FROM verdicts_figes v
+        JOIN prelevements p ON p.code_prelevement = v.code_prelevement
+        JOIN communes c ON c.code_insee = p.code_insee
+        WHERE v.version_referentiel = ?{filtre}
+        ORDER BY v.code_prelevement, v.libelle_parametre"""
+    depts = [r[0] for r in con.execute("""
+        SELECT DISTINCT c.code_departement
+        FROM verdicts_figes v
+        JOIN prelevements p ON p.code_prelevement = v.code_prelevement
+        JOIN communes c ON c.code_insee = p.code_insee
+        WHERE v.version_referentiel = ?
+        ORDER BY 1""", [version]).fetchall()]
+    for d in depts:
+        dump(f"verdicts_{d}.csv.gz",
+             DETAIL.format(filtre=" AND c.code_departement = ?"),
+             "le détail paramètre par paramètre, avec le seuil applicable à la "
+             f"date — {_nom_dept(d)} ({d})",
+             params=[version, d])
+
     dump("couverture_communes.csv",
          "SELECT * FROM couverture_communes WHERE version_referentiel = ? ORDER BY commune",
          "le statut de chaque commune, dont les non documentées")
@@ -1459,8 +1528,14 @@ def exporter(con, version, dossier):
 
     shutil.copyfile(REF_CSV, os.path.join(dossier, "referentiel_seuils.csv"))
     produits.append(("referentiel_seuils.csv", "le référentiel daté de seuils, source de vérité du projet",
-                     max(1, round(os.path.getsize(REF_CSV) / 1024))))
+                     os.path.getsize(REF_CSV)))
     return produits
+
+
+def _poids(octets):
+    """Ko en dessous du mégaoctet, Mo au-delà — un « 23 000 Ko » ne se lit pas."""
+    return (f"{octets / 1048576:.1f} Mo" if octets >= 1048576
+            else f"{max(1, round(octets / 1024))} Ko")
 
 
 # ---------------------------------------------------------------------------
@@ -1622,7 +1697,7 @@ def construire(destination=None, db=DB_PATH):
     print(f"  référentiel version {version}, calculé le {calcule_le}")
     print(f"  {len(PAGES)} pages, {n_depts} page(s) de département, "
           f"{n_fiches} fiche(s) de commune, "
-          f"{len(exports)} export(s) — {round(total/1024)} Ko au total")
+          f"{len(exports)} export(s) — {_poids(total)} au total")
     n_nd = sum(1 for c in lignes if c["statut"] == "non_documentee")
     if n_nd:
         print(f"  i {n_nd} commune(s) non documentée(s) : visibles sur la carte et "
@@ -1797,7 +1872,7 @@ def fiches_communes(con, version, lignes, public):
                  (d0["name"], None)],
             scripts=("<script>\n"
                      f"const KPI_LABELS={j(BF.KPI_LABELS)};\n"
-                     f"const C={j(C)};\nconst PARAMS={j(PARAMS)};\n"
+                     f"{BF.js_donnees(C, PARAMS)}\n"
                      f"const ORDER={j(ORDER)};\n</script>\n"
                      f'<script src="../assets/{empreinte("fiche.js")}"></script>'))
 

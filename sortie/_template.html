@@ -7,9 +7,16 @@
 <!--
   GABARIT DE LA FICHE AUTONOME — ne contient aucune donnée.
 
-  Rempli par sortie/build_fiche.py, qui substitue sept marqueurs :
-    /*__CSS__*/  /*__FICHE_JS__*/  <!--__CORPS__-->
-    /*__KPI_LABELS__*/  /*__C__*/  /*__PARAMS__*/  /*__ORDER__*/
+  Rempli par sortie/build_fiche.py, qui substitue sept marqueurs. Ils sont
+  nommés ici SANS leurs délimiteurs — les écrire en entier les ferait
+  substituer dans ce commentaire même, et la fiche embarquerait deux fois
+  toutes ses données. C'est arrivé : 43,8 Mo dont la moitié en double.
+
+    __CSS__   __FICHE_JS__   __CORPS__
+    __KPI_LABELS__   __C__   __PARAMS__   __ORDER__
+
+  (délimiteurs réels : bloc de commentaire JS pour les six premiers,
+   commentaire HTML pour le corps.)
 
   Le style, le corps de la fiche et le rendu viennent de site/gabarits/ :
   la fiche autonome et la vitrine partagent la même source, et ne peuvent
