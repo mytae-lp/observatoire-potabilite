@@ -824,35 +824,16 @@ function render(k){
       + "pas fonder une conclusion sur la qualité de l'eau."));
     bx.appendChild(b);
   }
-  /* D'OÙ VIENT CE QUI EST ÉCRIT. Trois origines possibles, et le lecteur doit
-     pouvoir les distinguer : c'est la règle du sourçage (§2.7) appliquée à la
-     prose, et elle vaut d'autant plus que le texte est produit par une
-     machine. Une phrase dont on ignore l'auteur n'a rien à faire ici. */
-  const org = d.origines || {};
-  const natures = new Set(Object.values(org));
-  if(natures.size && !(natures.size === 1 && natures.has("auteur"))){
-    const b = el("div", "bandeau nonredige");
-    b.appendChild(txt("span", "ic", "✎"));
-    const parts = [];
-    if(natures.has("derive"))
-      parts.push("<b>dérivées de la base</b> — composées à partir des mesures et des "
-        + "seuils de cette fiche, sans aucune connaissance extérieure : chaque nombre "
-        + "y vient d'une requête, et le texte se recalcule si le référentiel bouge");
-    if(natures.has("propose"))
-      parts.push("<b>proposées par le modèle</b> — elles ajoutent un contexte qui n'est "
-        + "pas dans la base (territoire, historique d'une substance) et n'ont pas encore "
-        + "été relues");
-    b.appendChild(el("div", null,
-      (natures.has("auteur") ? "Cette fiche mêle des sections écrites à la main et des "
-        + "sections " : "Les lectures de cette fiche sont ")
-      + parts.join(", et des sections ")
-      + ". Chaque section porte son origine. Les chiffres, eux, sont dans tous les cas "
-      + "dérivés de la base et vérifiables."));
-    bx.appendChild(b);
-  }
+  /* Le bandeau « d'où vient ce qui est écrit » a été retiré le 10 août 2026,
+     en même temps que la prose. Il n'avait de sens que tant que la fiche
+     mêlait trois origines — main de l'auteur, proposition du modèle, dérivé.
+     Elle n'en porte plus qu'une : tout ce qu'elle affiche vient d'une requête,
+     et la page Méthode le dit une fois pour toutes. Un bandeau qui répète sur
+     678 fiches une phrase toujours identique cesse d'être une information. */
 
   setPill("adminPill", d.admin.level, d.admin.v);
-  byId("adminDetail").textContent = d.admin.d;
+  byId("adminDetail").textContent = d.admin.d || "";
+  byId("adminDetail").style.display = d.admin.d ? "" : "none";
   /* La bande de bascule entre les deux lectures est la phrase de Yannick qui
      dit ce qui SÉPARE le verdict administratif du verdict citoyen. Sans texte,
      il n'y a rien à séparer : on retire la bande plutôt que d'afficher une
@@ -870,10 +851,7 @@ function render(k){
   if(d.analyse.length){
     d.analyse.forEach(p => {
       const c = el("div", "apart");
-      const h = txt("h4", null, p.t);
-      const lib = (d.libelles_origine || {})[p.o];
-      if(lib) h.appendChild(txt("span", "origine " + p.o, lib));
-      c.appendChild(h);
+      c.appendChild(txt("h4", null, p.t));
       c.appendChild(txt("p", null, p.x));
       an.appendChild(c);
     });

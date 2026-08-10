@@ -1716,9 +1716,9 @@ def fiches_communes(con, version, lignes, public):
     que la fiche autonome — mêmes obligations d'affichage, mêmes trois états,
     même seuil applicable à la date.
     """
-    # Deux fichiers de prose écrite ; le troisième niveau, la prose dérivée,
-    # est calculé par bloc_commune() au moment de la construction.
-    redactions, proposees = BF.charger_prose()
+    # Plus de prose écrite depuis le 10 août 2026 : la fiche communale ne
+    # porte que le dérivé et les accroches vers les dossiers de substance.
+    # Le raisonnement se relit UNE fois par substance, pas 678 fois par commune.
 
     # Les fiches vivent dans commune/ : l'accroche vers le dossier de substance
     # se préfixe ICI, une fois, plutôt que d'être réparée côté navigateur.
@@ -1759,13 +1759,8 @@ def fiches_communes(con, version, lignes, public):
             cle = f"{insee}-{a['date_prelevement']}"
             d_iso = str(a["date_prelevement"])
             C[cle] = BF.bloc_commune(
-                con, ligne, cols,
-                BF.pour_bulletin(redactions, insee, d_iso,
-                                 a["code_prelevement"]), version,
-                rattachement=rattachement,
-                proposee=BF.pour_bulletin(proposees, insee, d_iso,
-                                          a["code_prelevement"]),
-                accroches=accroches)
+                con, ligne, cols, None, version,
+                rattachement=rattachement, accroches=accroches)
             PARAMS[cle] = BF.bloc_parametres(con, a["code_prelevement"], version)
             ORDER.append(cle)
         # Le plus récent d'abord : c'est ce que l'habitant vient chercher.

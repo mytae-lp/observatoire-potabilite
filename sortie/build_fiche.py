@@ -417,9 +417,23 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
                  proposee=None, accroches=None):
     """Une ligne de `analyses_figees` -> le dictionnaire attendu par le gabarit.
 
-    `redaction` est la prose de Yannick, `proposee` celle du modèle ; la part
-    dérivable est calculée ici même depuis la base. Les trois sont fusionnées
-    champ par champ, et l'origine de chacun est transmise au gabarit.
+    **Décision de Yannick du 10 août 2026 : la fiche communale ne porte plus
+    aucune prose écrite.** Elle ne montre que ce qui se dérive de la base, plus
+    les accroches vers les dossiers de substance. `redaction` et `proposee`
+    sont donc ignorés — les paramètres restent pour ne pas casser l'atelier et
+    les appelants, mais rien n'en sort.
+
+    Le motif est d'échelle, et il vaut d'être gardé : à deux départements,
+    88 propositions attendaient une relecture et un département de plus en
+    ajoutait environ 350. Une prose par commune ne se relit pas à cette
+    cadence — elle se valide en lot, c'est-à-dire qu'elle ne se relit plus.
+    Le raisonnement a changé d'étage : il est écrit UNE fois par substance,
+    relu une fois, et chaque fiche concernée y renvoie par une accroche
+    fabriquée à partir de ses propres chiffres (cf. `sortie/dossier_page.py`).
+
+    Conséquence directe sur ce qui suit : plus de fusion, plus de préséance,
+    plus d'origines à afficher — tout ce qui est écrit ici vient d'une requête,
+    et c'est vrai de la première ligne à la dernière.
     """
     a = dict(zip(cols, ligne))
 
@@ -434,7 +448,9 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
                  codes_postaux=rattachement["codes_postaux"],
                  lon=rattachement["lon"], lat=rattachement["lat"])
 
-    r, origines = fusionner(redaction, proposee, rediger.rediger(con, a, version))
+    # Uniquement le dérivé. `fusionner` reste dans ce module pour l'atelier,
+    # qui sert encore à relire d'anciennes propositions.
+    r, origines = rediger.rediger(con, a, version), {}
 
     niv = niveau(a["nb_depasse_applicable"], a["nb_bascules"], a["nb_indetermines"],
                  a["nb_depasse_limite"])
@@ -509,10 +525,15 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
         # Le niveau de la lecture administrative suit la conclusion RENDUE par
         # l'ARS, pas la nôtre : c'est le point de comparaison, il ne doit pas
         # être coloré par notre propre verdict.
+        # La lecture administrative n'a jamais été dérivable : elle disait, en
+        # prose, ce que la conclusion de l'ARS énonce déjà juste au-dessus.
+        # Sans prose écrite, ce champ reste vide et le gabarit le masque —
+        # plutôt qu'afficher « aucune lecture disponible » sur 678 fiches, ce
+        # qui laisserait croire à un contenu manquant alors qu'il n'y en a pas.
         "admin": {"level": _conformite(a["conf_limites_pc"])[1],
                   "v": _extrait(a["conclusion_conformite"]),
-                  "d": r.get("lecture_administrative") or manque,
-                  "o": origines.get("lecture_administrative")},
+                  "d": r.get("lecture_administrative") or "",
+                  "o": None},
         "delta": r.get("delta") or "",
         # Le résumé citoyen dit ce qui a été franchi, pas seulement combien de
         # fois. « 12 dépassements » quand aucun ne porte sur une limite de
@@ -520,7 +541,7 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
         "cit": {"level": niv,
                 "v": _resume_depassements(natures),
                 "d": r.get("lecture_citoyenne") or manque,
-                "o": origines.get("lecture_citoyenne")},
+                "o": None},
         # Les indicateurs, groupés : ce qu'on a trouvé / quelle eau c'est /
         # ce que vaut cette lecture. L'ordre et le contenu viennent du fichier
         # versionné referentiel/indicateurs.csv, pas de ce code.
@@ -579,8 +600,10 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
         "verdict": {"level": niv, "t": r.get("verdict") or manque,
                     "o": origines.get("verdict")},
         # Ce que le lecteur doit pouvoir savoir : d'où vient chaque phrase.
-        "origines": origines,
-        "libelles_origine": LIBELLE_ORIGINE,
+        # Plus d'origines à afficher : tout vient d'une requête. Les clés
+        # restent, vides, pour que le gabarit n'ait pas à tester leur existence.
+        "origines": {},
+        "libelles_origine": {},
         "redige": origines.get("analyse") == "auteur",
         "rattachee": bool(emprunt),
         "commune_prelevement": emprunt,
@@ -643,8 +666,6 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
               "puis python3 src/observer.py <code postal>")
         sys.exit(1)
 
-    redactions, proposees = charger_prose()
-
     con = duckdb.connect(db, read_only=True)
     try:
         version, _ = version_a_publier(con)
@@ -669,12 +690,7 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
                 continue
             cle = f"{a['code_insee']}-{a['date_prelevement']}"
             d_iso = str(a["date_prelevement"])
-            C[cle] = bloc_commune(
-                con, ligne, cols,
-                pour_bulletin(redactions, a["code_insee"], d_iso,
-                              a["code_prelevement"]), version,
-                proposee=pour_bulletin(proposees, a["code_insee"], d_iso,
-                                       a["code_prelevement"]))
+            C[cle] = bloc_commune(con, ligne, cols, None, version)
             PARAMS[cle] = bloc_parametres(con, a["code_prelevement"], version)
             ORDER.append(cle)
 
@@ -690,15 +706,8 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             if not ligne:
                 continue
             cle = f"{insee}-rattachee"
-            # Une commune rattachée hérite du texte du POINT D'EAU dont elle
-            # boit l'eau : c'est même le cas où la clé `PREL:` sert le plus.
-            d_iso = str(dict(zip(cols, ligne))["date_prelevement"])
-            C[cle] = bloc_commune(
-                con, ligne, cols,
-                pour_bulletin(redactions, insee, d_iso, rat["code_prelevement"]),
-                version, rattachement=rat,
-                proposee=pour_bulletin(proposees, insee, d_iso,
-                                       rat["code_prelevement"]))
+            C[cle] = bloc_commune(con, ligne, cols, None, version,
+                                  rattachement=rat)
             PARAMS[cle] = bloc_parametres(con, rat["code_prelevement"], version)
             ORDER.append(cle)
 
@@ -728,13 +737,9 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
     print(f"fiche générée : {destination} ({round(len(html)/1024)} Ko)")
     print(f"  {len(C)} bulletin(s), référentiel version {version}")
     for cle, c in C.items():
-        natures = sorted(set(c["origines"].values()))
         print(f"    {c['name']:<24} {PARAMS[cle]['count']:>4} paramètres"
-              f"   prose : {'+'.join(natures) or 'aucune'}"
               + (f"   (réseau, prélevé à {c['commune_prelevement']})"
                  if c["rattachee"] else ""))
-    a_relire = [c["name"] for c in C.values()
-                if "propose" in c["origines"].values()]
     if sans_bulletin:
         print(f"  i {len(sans_bulletin)} commune(s) NON DOCUMENTÉE(S), absentes de la fiche :")
         for nom, insee in sans_bulletin:
@@ -742,11 +747,6 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
                   "ni pour son réseau")
         print("    ce n'est ni conforme ni non conforme : c'est une absence de donnée,")
         print("    et elle reste visible dans couverture_communes (ce que colorie la carte).")
-    if a_relire:
-        print(f"  i {len(a_relire)} commune(s) portent une prose PROPOSÉE, à relire : "
-              f"{', '.join(a_relire)}")
-        print("    la fiche la signale comme telle. Valider revient à la recopier")
-        print("    dans sortie/redactions.json, où elle devient de ta main.")
     return destination
 
 
