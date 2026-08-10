@@ -30,6 +30,7 @@ un, ici ou dans une autre session.
 | **C7** | CAPTAGE | la dilution comme mode de gestion — hypothèse à instruire | **premier livrable posé** |
 | **C8** | ATELIER | comprendre et fiabiliser le back-office | **prêt à lancer** |
 | **C9** | VITRINE | le parcours, la carte, la liste, le référentiel, et « que faire » | **en cours** — ouvert le 9 août 2026 |
+| **C10** | ARRÊTÉS | les dérogations préfectorales au dépassement de seuil, par département | **prêt à lancer** — le plus proche de la thèse |
 
 ### Lancer un chantier dans une autre session
 
@@ -50,6 +51,7 @@ tableau dit qui écrit où — à relire avant d'en lancer deux ensemble.
 | C5 TERRITOIRES | `sortie/redactions.json`, `tests/test_sorties.py` (contrôle 8), `CLAUDE.md` §2.11 | C4, C8 |
 | C7 CAPTAGE | `src/build_db.py` (vues de mélange), `src/etude_melange.py`, `docs/METHODE_DILUTION.md` | C3 ; **C2 sur `build_db.py`** |
 | C8 ATELIER | `atelier/atelier.py`, `tests/` | tous, en lecture |
+| C10 ARRÊTÉS | `referentiel/derogations.csv`, `docs/INDEX_SOURCES.md`, `src/` | il touchera au **modèle de seuils** (date de fin) — voir sa section |
 | C6 ÉCHELLE | `src/collecte.py`, `src/brut.py`, `src/fetch_departement.py`, `src/hubeau.py`, `src/observer.py` | **tous, par le corpus** — une collecte change les chiffres de chaque chantier |
 | C9 VITRINE | `site/build_site.py`, `site/gabarits/`, `docs/VITRINE.md`, `referentiel/retention_procedes.csv` | **C6 par le corpus** ; C1, dont il porte le livrable |
 
@@ -1560,6 +1562,168 @@ deux règles à la fois.
 
 ---
 
+## C10 — ARRÊTÉS
+
+### Les dérogations préfectorales, département par département, sur dix ans
+
+### Ce que Yannick demande
+
+> « Pour le Tarn il a été trouvé des arrêtés préfectoraux qui autorisent le
+> dépassement de seuil ! Il y a ça dans chaque département, je propose une
+> recherche à date avec un historique sur 10 ans par exemple de l'évolution de
+> ces arrêtés, et cela par département. Donc chaque département aura sa liste
+> d'arrêtés spécifiques ! »
+
+### Pourquoi c'est le chantier le plus proche de la thèse
+
+Le projet a documenté jusqu'ici **deux** mécanismes par lesquels une eau devient
+conforme sans avoir changé :
+
+| | Mécanisme | Où il est écrit |
+|---|---|---|
+| 1 | **le réétalonnage** — la limite nationale se déplace | la thèse fondatrice |
+| 2 | **la dilution** — le mélange dilue un captage dégradé | §7bis, chantier C7 |
+| 3 | **la dérogation** — la limite est relevée pour cette eau-là | **ce chantier** |
+
+Le troisième est le plus direct, et c'est le seul qui soit **nominatif**. Un
+réétalonnage est anonyme : une valeur change dans un arrêté national et
+personne n'est désigné. Une dérogation, elle, porte un numéro, une date, une
+signature, un périmètre nommé et une durée. C'est la formule du projet — *ce
+n'est pas l'eau qui est devenue potable, c'est la limite qui a bougé* — écrite
+noir sur blanc par l'administration, pour une commune précise.
+
+C'est aussi le mécanisme le plus exposé au §2.1. Une dérogation est **légale**,
+motivée, et généralement accordée parce qu'il n'existe pas d'autre moyen
+raisonnable de maintenir la distribution. L'objet du chantier est de rendre
+visible qu'elle existe et combien de temps elle dure — **jamais** de mettre en
+cause le préfet, l'ARS ou l'exploitant qui l'ont demandée ou signée.
+
+### Ce que la base dit aujourd'hui — vérifié le 9 août 2026
+
+Base interrogée après la collecte du Tarn : **3 193 bulletins complets,
+1 372 988 mesures, 310 communes**.
+
+**Aucune trace visible de dérogation dans le corpus actuel.** Deux motifs
+auraient pu en être le signe ; ni l'un ni l'autre n'en est un :
+
+- les **13 écarts** entre notre seuil 2026 et la limite déclarée par la source
+  (`v_ecarts_referentiel_source`) sont, à une ligne près, la famille des
+  métabolites — 0,9 chez nous, 0,1 déclaré. C'est le réétalonnage d'avril 2024,
+  pas une dérogation locale ;
+- la **limite déclarée des nitrites varie** à l'intérieur d'un même département :
+  0,5 mg/L sur 1 132 mesures du Tarn, 0,1 sur 184 ; 0,5 sur 107 mesures d'Eure-
+  et-Loir, 0,1 sur 1 458. Ce n'est très probablement pas une dérogation mais la
+  distinction entre la limite en distribution et la référence en sortie de
+  production — **à confirmer sur source primaire avant d'en dire quoi que ce
+  soit**, et c'est le premier piège du chantier.
+
+Conclusion provisoire, et elle oriente tout le reste : **une dérogation ne se
+lit pas dans les données Hub'Eau.** Elle n'existe que dans l'arrêté. Le travail
+est documentaire, pas d'API.
+
+### Ce qu'il faut établir AVANT toute collecte
+
+Rien de ce qui suit n'est acquis ici, et aucune de ces valeurs ne doit être
+écrite de mémoire (§2.7). La première tâche du chantier est de les lire sur
+source primaire et de les inscrire dans `docs/INDEX_SOURCES.md` :
+
+1. **le fondement juridique exact** — le mécanisme de dérogation aux limites de
+   qualité de l'eau destinée à la consommation humaine relève du code de la
+   santé publique, en transposition des directives européennes. Les articles
+   précis, `a_verifier` ;
+2. **le périmètre** — sur quels paramètres une dérogation est possible, et sur
+   lesquels elle ne l'est pas. La bactériologie en est vraisemblablement exclue,
+   `a_verifier` ;
+3. **la durée maximale**, son renouvellement, et le plafond cumulé,
+   `a_verifier` ;
+4. **qui publie l'acte et où il fait foi** — recueil des actes administratifs de
+   la préfecture, site de l'ARS, autre. `a_verifier`. Légifrance ne porte pas
+   les actes préfectoraux ;
+5. **la distinction avec les objets voisins**, qui est la question de méthode
+   centrale de ce chantier :
+
+| Objet | Ce qu'il fait | À ne pas confondre |
+|---|---|---|
+| **dérogation** | autorise à distribuer au-dessus d'une limite, pour un temps | — |
+| **restriction de consommation** | interdit ou limite l'usage | c'est l'inverse d'une dérogation |
+| **valeur sanitaire transitoire** | seuil au-delà duquel on restreint | déjà rencontrée : les 3 µg/L UBA du R417888 (§2.7) |
+| **valeur indicative** | repère sans force de limite | les 0,9 µg/L du R471811 |
+
+Confondre les deux premiers inverserait le sens du fait. Confondre les deux
+derniers avec une limite de conformité est **l'erreur déjà commise une fois**
+dans ce projet, sur le chlorothalonil.
+
+### La forme — un fichier versionné, comme le référentiel
+
+Un arrêté est une décision datée et attribuée : exactement ce que git sait
+journaliser. Sur le modèle de `referentiel_seuils.csv`, séparateur `;`, barre
+verticale à l'intérieur des cellules :
+
+```
+referentiel/derogations.csv
+  departement ; reference_arrete ; date_signature ; date_debut ; date_fin ;
+  perimetre ; codes_insee ; code_udi ; parametre ; valeur_derogee ; unite ;
+  motif ; source ; fiabilite
+```
+
+Deux exigences non négociables : **une ligne sans `date_fin` n'est pas
+exploitable**, et **une ligne sans source primaire reste `a_verifier`** et ne
+peut produire aucun verdict.
+
+### La dépendance technique, et elle est bloquante
+
+Le modèle **ne sait pas exprimer une date de fin d'applicabilité**. Il connaît
+`date_applicabilite_2026` — à partir de quand — et c'est déjà signalé comme un
+manque au §2.13 pour les chlorites, dont la référence a expiré le 31 décembre
+2025 sans remplacement connu.
+
+Or une dérogation est bornée **des deux côtés** par nature : elle commence et
+elle finit. Ce chantier ne peut donc pas être livré sans ajouter la borne haute
+au modèle de seuils. **C'est la première tâche technique**, et elle profitera
+aussi aux chlorites.
+
+### Le croisement qui donnera la démonstration
+
+Une fois les deux en place, la requête qui porte le chantier :
+
+> les bulletins déclarés **conformes** alors qu'ils tombent dans la fenêtre
+> d'une dérogation portant sur un paramètre qu'ils dépassent.
+
+Chaque ligne retournée est un cas où la conformité est locale, datée, et
+signée. C'est le pendant nominatif de la requête de la thèse.
+
+### Le coût, et le découpage qui le rend tenable
+
+Dix ans de recueils d'actes administratifs pour cent départements est hors de
+portée d'un seul geste, et l'essentiel serait sans rapport avec l'eau.
+Découpage proposé :
+
+1. **le Tarn d'abord**, puisque des arrêtés y ont déjà été trouvés. Il sert de
+   patron : où chercher, à quoi ressemble un acte, quels mots le désignent ;
+2. **puis un département à la fois, adossé à C6** — un département dont on
+   collecte les bulletins voit ses arrêtés collectés dans la foulée. La liste
+   d'arrêtés et le corpus de mesures avancent ensemble, sinon l'une décrit une
+   zone que l'autre ne couvre pas ;
+3. **la lecture de chaque acte reste humaine ou assistée, jamais automatique.**
+   Un arrêté est un texte de droit ; en extraire un paramètre et une valeur
+   par motif est exactement le genre d'inférence qui a produit l'erreur du
+   R417888.
+
+### Les pièges, en clair
+
+- **absence de trace ≠ absence de dérogation.** Ne pas trouver d'arrêté dans un
+  recueil ne prouve rien : trois états, pas deux (§2.4). Un département sans
+  ligne est un département **non instruit**, pas un département sans dérogation ;
+- **une dérogation porte sur un périmètre nommé** — une UDI, une commune, un
+  réseau — jamais sur un département entier. La rattacher au mauvais périmètre
+  fabriquerait des faux positifs à la chaîne ;
+- **le faux positif coûte plus cher que le faux négatif** (§2.13). Dans le
+  doute sur la portée ou les dates d'un arrêté, on ne prononce rien ;
+- **étiquette** — les sites de préfecture ne sont pas Hub'Eau, mais la règle du
+  §3.2 vaut : débit modéré, journal de reprise, agent identifiant le projet.
+
+---
+
 ## Ce qui reste en attente d'une décision de Yannick
 
 Repris de `docs/REPRISE.md` §4, mis à jour :
@@ -1580,8 +1744,9 @@ Repris de `docs/REPRISE.md` §4, mis à jour :
   limite. En l'état, une fiche peut afficher « aucun dépassement » sous une
   conclusion d'ARS qui dit le contraire ;
 - **`depasse_applicable` mélange limites de qualité et valeurs de vigilance** —
-  même origine, même jour. **79 des 135 dépassements du Tarn portent sur une
-  valeur de vigilance** : 53 sur l'ESA métolachlore, 16 sur le chlorothalonil
+  même origine, même jour. Le Tarn porte **172 mesures en dépassement réparties
+  sur 135 bulletins** ; **79 d'entre elles — 46 % — portent sur une valeur de
+  vigilance** : 53 sur l'ESA métolachlore, 16 sur le chlorothalonil
   R471811. Le référentiel le sait — `statut_2026` vaut `vigilance (non
   pertinent depuis…)` — mais ni le moteur ni la fiche n'en tiennent compte, et
   la ligne s'affiche « dépassement du seuil applicable ». C'est la leçon du
@@ -1849,6 +2014,13 @@ en parallèle**, sans l'interrompre.
   d'Amarens : la page d'état annonçait 54 communes « sans prose » sur 60, il
   n'y en avait aucune. Corrigé dans `atelier/atelier.py` ; le reste du
   chantier — dont l'absence totale de tests sur l'atelier — est écrit.
+- **9 août 2026** — **C10 ouvert** : des arrêtés préfectoraux autorisant le
+  dépassement de seuils ont été trouvés dans le Tarn. C'est le **troisième
+  mécanisme** de conformité sans changement de l'eau, après le réétalonnage et
+  la dilution, et le seul qui soit nominatif et signé. Vérifié au passage :
+  le corpus actuel n'en porte aucune trace lisible — une dérogation n'existe
+  que dans l'arrêté. Dépendance identifiée : le modèle de seuils ne sait pas
+  exprimer une date de **fin**, et une dérogation est bornée des deux côtés.
 - **9 août 2026, C2 sur le Tarn** — la question de Yannick est répondue, et pas
   dans le sens attendu. Les 298 paramètres retirés en 2020 n'avaient été
   quantifiés que **6 fois sur 134 419 mesures** (0,004 %), avec une LQ médiane

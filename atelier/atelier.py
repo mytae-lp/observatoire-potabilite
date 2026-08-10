@@ -355,10 +355,16 @@ def page(titre, corps, courant, scripts=""):
   .sec-prop{{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}}
   .sec-prop b{{font-size:13.5px;color:var(--eau-deep)}}
   .sec-prop p{{margin:5px 0 0;font-size:13.5px;line-height:1.6}}
-  .prop-a{{margin-top:14px;display:flex;gap:12px;align-items:center}}
+  .prop-a{{margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}}
   .coche{{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
     text-transform:none;letter-spacing:0;color:var(--eau-deep);margin:0}}
   .coche input{{width:auto}}
+  .repli{{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    margin-bottom:14px}}
+  .repli>summary{{cursor:pointer;padding:16px 20px;font-size:14px;font-weight:700;
+    color:var(--eau-deep)}}
+  .repli>summary span{{font-weight:400;font-size:12.5px;color:var(--ink-soft)}}
+  .repli-c{{padding:0 20px 16px}}
 </style></head><body>
 <div class="atelier-avert">ATELIER LOCAL — 127.0.0.1 uniquement. Ce poste de pilotage
   ne fait pas partie du site public et ne doit jamais être déposé sur un hébergement.</div>
@@ -673,12 +679,20 @@ def page_valider(message=""):
                 sections = (f"<div class='sec-prop'><b>{libelle}</b>"
                             f"<p>{valeur}</p></div>") + sections
 
+        # Valider une seule proposition, là où on vient de la lire. C'est le
+        # geste normal : on relit un texte, on le valide, il quitte la liste —
+        # ce qui reste à l'écran est ce qui reste à faire. Les boutons du
+        # bandeau restent pour le travail en lot.
+        seul = ("" if deja else
+                f"<button class='btn' type='submit' name='valider_une' "
+                f"value='{h(cle)}'>Valider ce texte</button>")
+
         # Un commentaire vaut « pas encore » : la case n'est plus cochée
         # d'office, et « tout valider » passe son chemin.
         case = ("" if deja else
                 f"<label class='coche'><input type='checkbox' name='cle' "
                 f"value='{h(cle)}'{'' if commentaire else ' checked'}> "
-                f"valider ce texte</label>")
+                f"inclure dans la validation groupée</label>")
         if deja:
             etat, classe = "<span class='etat ok'>validée</span>", " est-validee"
         elif commentaire:
@@ -706,7 +720,7 @@ def page_valider(message=""):
           <div class="prop-f">{signaux}</div>
           {sections}
           {zone}
-          <div class="prop-a">{case}{bouton}</div>
+          <div class="prop-a">{seul}{case}{bouton}</div>
         </div>"""
 
     # À revoir d'abord : ce sont celles qui attendent quelque chose de
@@ -717,7 +731,18 @@ def page_valider(message=""):
                 contenu.get("_commune") or cle)
 
     entrees.sort(key=rang)
-    blocs = "".join(bloc(k, v, est_validee) for k, v, est_validee in entrees)
+    # Les validées quittent la liste et vont dans un repli : ce qui est déplié
+    # à l'écran est exactement ce qui reste à relire. Elles restent atteignables
+    # — sans quoi « remettre en proposition » deviendrait inaccessible et une
+    # validation serait irréversible depuis l'interface.
+    blocs = "".join(bloc(k, v, False) for k, v, val in entrees if not val)
+    blocs_deja = "".join(bloc(k, v, True) for k, v, val in entrees if val)
+    repli = (f"""
+      <details class="repli">
+        <summary>{len(deja)} rédaction(s) déjà validée(s)
+          <span>— déplier pour en remettre une en proposition</span></summary>
+        <div class="repli-c">{blocs_deja}</div>
+      </details>""" if deja else "")
     n_commentees = sum(1 for k, v in proposees.items()
                        if not k.startswith("_") and v.get("_commentaire"))
     n_attente = len(en_attente) - n_commentees
@@ -727,7 +752,10 @@ def page_valider(message=""):
       <div class="bloc"><h4>Trois gestes, pas un</h4>
         <p><b>Valider</b> — la proposition est recopiée dans
           <code>sortie/redactions.json</code> : elle devient un texte de ta main, cesse
-          d'être signalée « à relire » sur la fiche, et la machine n'y touche plus.</p>
+          d'être signalée « à relire » sur la fiche, et la machine n'y touche plus.
+          Le bouton <b>« Valider ce texte »</b>, au bas de chaque proposition, ne valide
+          que celle-là : elle quitte la liste, et ce qui reste affiché est ce qui reste
+          à relire. Les boutons du bandeau valident en lot.</p>
         <p><b>Commenter</b> — tu dis ce qui est faux, ce qui manque, ce qu'il faut dire
           autrement. Le commentaire n'est <b>jamais publié</b> : il sert à réécrire le
           texte. Une proposition commentée passe « à revoir », sa case se décoche, et
@@ -752,11 +780,12 @@ def page_valider(message=""):
             <button class="btn sec2" type="submit" name="action" value="toutes">Tout valider</button>
           </p>
           <p style="margin:8px 0 0;font-size:12px;color:var(--ink-soft)">
-            Les commentaires saisis sont enregistrés quel que soit le bouton employé :
-            rien de ce que tu écris ici ne se perd. « Tout valider » laisse de côté les
-            propositions commentées.</p>
+            Les commentaires saisis sont enregistrés quel que soit le bouton employé,
+            y compris « Valider ce texte » : rien de ce que tu écris ici ne se perd.
+            « Tout valider » laisse de côté les propositions commentées.</p>
         </div>
-        {blocs or "<div class='bloc'>Aucune proposition. Les fiches portent le texte dérivé de la base.</div>"}
+        {blocs or "<div class='bloc'>Rien à relire. Les fiches portent le texte dérivé de la base ou une rédaction validée.</div>"}
+        {repli}
       </form>
 
       <p style="margin:18px 0 0;font-size:13px;color:var(--ink-soft)">
@@ -808,6 +837,31 @@ def action_valider(champs, listes):
         n_com += 1
 
     action = champs.get("action")
+
+    # Validation à l'unité : le bouton d'une proposition ne porte QUE sur
+    # elle. Il est traité avant tout le reste parce qu'il n'envoie pas de
+    # champ `action` — sans cette branche, on retomberait sur les cases
+    # cochées et un clic sur « Valider ce texte » en validerait quarante-cinq.
+    une = champs.get("valider_une")
+    if une:
+        if une not in proposees:
+            raise ValueError(f"« {une} » n'est plus une proposition à valider "
+                             "— elle a peut-être déjà été validée dans un autre onglet.")
+        libelle = proposees[une].get("_commune") or une
+        avait_commentaire = bool(proposees[une].get("_commentaire"))
+        contenu = proposees.pop(une)
+        contenu.pop("_commentaire", None)
+        contenu.pop("_commente_le", None)
+        validees[une] = contenu
+        ecrire(REDACTIONS, validees)
+        ecrire(PROPOSEES, proposees)
+        return (f"« {libelle} » est validée — elle est désormais de ta main dans "
+                "redactions.json, et elle a quitté la liste."
+                + (" Son commentaire portait sur le texte que tu viens d'accepter : "
+                   "il est retiré." if avait_commentaire else "")
+                + (f" {n_com} commentaire(s) enregistré(s) au passage." if n_com else "")
+                + " Publie pour que la fiche en tienne compte.")
+
     if action == "commentaires":
         ecrire(PROPOSEES, proposees)
         return (f"{n_com} commentaire(s) enregistré(s). Les propositions commentées "
