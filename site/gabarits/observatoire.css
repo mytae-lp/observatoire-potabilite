@@ -560,7 +560,25 @@ i.pal.c3{background:#5FA3B3}i.pal.c4{background:#186E80}
   font-size:13px;font-weight:700;text-decoration:none;background:var(--card);
   border:1px solid var(--line);border-radius:7px}
 .index-alpha a:hover{background:var(--eau);color:#fff;border-color:var(--eau)}
+.index-alpha[hidden]{display:none}
 .tableau-communes tr:target td{background:var(--ambre-bg)}
+
+/* Recherche dans un département : nom, code postal ou code INSEE. */
+.recherche-dept input{width:100%;font-family:var(--sans);font-size:16px;
+  padding:12px 14px;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);color:var(--ink)}
+.recherche-dept input:focus{outline:3px solid #7FD4DA;outline-offset:1px;
+  border-color:var(--eau)}
+tr.hors-recherche{display:none}
+
+/* En-têtes triables. La flèche indique le sens EN COURS, pas celui qu'on
+   obtiendrait en cliquant — c'est l'état de la liste qu'on lit, pas une
+   promesse. */
+.tableau-communes th.triable{cursor:pointer;user-select:none;white-space:nowrap}
+.tableau-communes th.triable:hover{color:var(--eau);text-decoration:underline}
+.tableau-communes th.triable::after{content:"↕";margin-left:6px;opacity:.4;font-weight:400}
+.tableau-communes th.triable[aria-sort="ascending"]::after{content:"↑";opacity:1;color:var(--eau)}
+.tableau-communes th.triable[aria-sort="descending"]::after{content:"↓";opacity:1;color:var(--eau)}
 
 /* Ce que le filtre masque, dans la carte comme dans le tableau. Les deux
    portent le même attribut `data-niveau`, donc la même règle les atteint. */

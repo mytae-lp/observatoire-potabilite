@@ -636,23 +636,30 @@ def decomposition_danger(con, a, version, maxi=6):
             for r in rows]
 
 
-def bascules_en_tete(con, a, version, maxi=3):
+def bascules_en_tete(con, a, version, maxi=None):
     """
     Les mesures qui portent la thèse, pour le bandeau de tête : au-dessus de la
     limite de 2016, sous celle d'aujourd'hui. C'est le sujet du projet, il n'a
     pas à être cherché au milieu d'un tableau de 300 lignes.
+
+    **Toutes les bascules, depuis le 10 août 2026.** Le plafond valait 3, et il
+    était muet : le bandeau annonçait « 6 mesures ont changé de statut » et en
+    montrait trois, sans que rien ne signale les autres. Un compteur et une
+    liste qui se contredisent sur le même écran est précisément ce que le §2.8
+    interdit — un chiffre sans ce qui le compose. Sur le corpus au 10 août 2026,
+    4 bulletins étaient tronqués et le maximum tenait en 6 cartes.
     """
-    return con.execute("""
+    return con.execute(f"""
         SELECT libelle_parametre, resultat_num, unite, seuil_2016,
                seuil_applicable, bascule_datee
         FROM verdicts_figes
         WHERE code_prelevement = ? AND version_referentiel = ? AND bascule_2016_2026
         ORDER BY resultat_num / NULLIF(seuil_2016, 0) DESC
-        LIMIT ?
-    """, [a["code_prelevement"], version, maxi]).fetchall()
+        {"LIMIT " + str(int(maxi)) if maxi else ""}
+    """, [a["code_prelevement"], version]).fetchall()
 
 
-def depassements_en_tete(con, a, version, maxi=3):
+def depassements_en_tete(con, a, version, maxi=None):
     """
     `seuil_2016` est renvoyé aussi : une mesure qui dépasse aujourd'hui a
     souvent dépassé bien plus largement l'ancienne limite, et la jauge le
@@ -676,8 +683,20 @@ def depassements_en_tete(con, a, version, maxi=3):
 
     Le tri met les limites d'abord : à écart égal, une limite sanitaire compte
     plus qu'une valeur indicative.
+
+    **Tous les dépassements, depuis le 10 août 2026.** Le plafond valait 3, et
+    il était muet : un bulletin annonçant « 7 paramètres dépassaient la limite »
+    en affichait trois, sans un mot sur les quatre autres. Le lecteur ne pouvait
+    ni les voir ni savoir qu'ils existaient — et le tri par nature aggravait la
+    chose, puisque les cartes retenues étaient les plus graves : ce qui
+    disparaissait était systématiquement le bas de la liste.
+
+    Défaut signalé par Yannick le 10 août 2026 sur une fiche réelle. Mesuré au
+    même moment sur le corpus : **54 bulletins tronqués sur 592** en comportant
+    au moins un, pour un maximum de **10 dépassements** — donc aucun besoin de
+    pagination, seulement de cesser de couper.
     """
-    return con.execute("""
+    return con.execute(f"""
         SELECT libelle_parametre, resultat_num, unite, seuil_applicable,
                grille_applicable, seuil_2016, nature_seuil
         FROM verdicts_figes
@@ -685,8 +704,8 @@ def depassements_en_tete(con, a, version, maxi=3):
         ORDER BY CASE nature_seuil WHEN 'limite' THEN 0 WHEN 'reference' THEN 1
                                    WHEN 'vigilance' THEN 2 ELSE 3 END,
                  resultat_num / NULLIF(seuil_applicable, 0) DESC
-        LIMIT ?
-    """, [a["code_prelevement"], version, maxi]).fetchall()
+        {"LIMIT " + str(int(maxi)) if maxi else ""}
+    """, [a["code_prelevement"], version]).fetchall()
 
 
 def natures_du_bulletin(con, a, version):

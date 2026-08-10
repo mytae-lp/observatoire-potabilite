@@ -55,13 +55,14 @@ sys.path.insert(0, os.path.join(RACINE, "sortie"))
 
 from common import DB_PATH, SEUIL_COMPLET  # noqa: E402
 import build_fiche as BF  # noqa: E402
+import dossier_page as DP  # noqa: E402
 
 GEOJSON = os.path.join(RACINE, "referentiel", "geo", "departements-simplifie.geojson")
 REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 
 PAGES = [("index.html", "Accueil"), ("carte.html", "Carte"),
-         ("communes.html", "Communes"), ("methode.html", "Méthode"),
-         ("sources.html", "Sources & données")]
+         ("communes.html", "Communes"), ("substances.html", "Substances"),
+         ("methode.html", "Méthode"), ("sources.html", "Sources & données")]
 
 
 # ---------------------------------------------------------------------------
@@ -796,9 +797,26 @@ def _ligne_commune(c, prefixe="", avec_dept=True, ancre=None):
             f"<td class='num'><b style='color:var(--bascule)'>{c['nb_bascules'] if c['nb_bascules'] is not None else '—'}</b></td>")
     col_dept = (f"<td><a href='{prefixe}departement/{h(c['dept'])}.html'>{h(c['dept'])}</a></td>"
                 if avec_dept else "")
+
+    # Les clés de tri et de recherche, portées par la ligne elle-même. Une
+    # valeur absente vaut -1 et non 0 : « aucun dépassement » et « on ne sait
+    # pas » ne doivent pas se ranger ensemble, sinon un tri décroissant par
+    # dépassements présenterait les communes non documentées comme les plus
+    # sûres du département (§2.4, les trois états).
+    def cle(v):
+        return -1 if v is None else v
+
     return (f"<tr{f' id=\"l-{ancre}\"' if ancre else ''} "
             f"data-niveau='{h(c['niveau'])}' data-statut='{h(c['statut'])}' "
-            f"data-nom='{h((c['commune'] or '').lower())}'>"
+            f"data-nom='{h((c['commune'] or '').lower())}' "
+            f"data-insee='{h(c['code_insee'])}' "
+            f"data-cp='{h((c['codes_postaux'] or '').replace(' ', ''))}' "
+            f"data-effort='{cle(c['nb_parametres'])}' "
+            f"data-couverture='{cle(c['pct_couverture'])}' "
+            f"data-depassements='{cle(c['nb_depasse_applicable'])}' "
+            f"data-taux='{cle(c['depassements_pour_mille'])}' "
+            f"data-bascules='{cle(c['nb_bascules'])}' "
+            f"data-date='{h(c['date_prelevement'] or '')}'>"
             f"<td>{nom}<span class='grille'>INSEE {h(c['code_insee'])}</span></td>"
             f"{col_dept}"
             f"<td><span class='st {h(c['statut'])}'>{h(c['libelle_statut'])}</span></td>"
@@ -926,6 +944,74 @@ def page_communes(lignes, version, calcule_le):
 """
 
 
+def bloc_arretes(dept, nom_dept):
+    """
+    Les arrêtés préfectoraux — la section qui vient en premier, et qui est
+    vide.
+
+    Elle est écrite avant d'avoir les données, et elle le dit. Deux raisons de
+    ne pas attendre. La première tient à la méthode : le projet distingue
+    partout « il n'y a rien » de « nous ne savons pas » (§2.4), et une page qui
+    tairait l'existence de ces actes laisserait croire qu'un bulletin conforme
+    est toute l'histoire. La seconde est que **la partie réglementaire de cette
+    section, elle, est déjà établie et sourcée** : ce que le préfet peut
+    décider, pour combien de temps, et ce qu'il doit faire savoir. Seuls les
+    actes de CE département manquent.
+
+    Ce qu'il faut savoir avant de vouloir les collecter : **ils ne sont pas
+    dans Hub'Eau**. Le contrôle sanitaire publie des mesures, pas des décisions.
+    Les arrêtés vivent au recueil des actes administratifs de la préfecture, en
+    PDF, sans format commun d'un département à l'autre — c'est une collecte
+    d'une autre nature que celle de SISE-Eaux, et elle ne se fera pas par la
+    même mécanique.
+    """
+    return f"""
+  <section><h3 class="sec">Arrêtés préfectoraux — {h(nom_dept)}</h3>
+    <div class="bandeau nonredige">
+      <span class="ic">◻</span>
+      <div><b>L'Observatoire ne détient pas encore ces actes pour ce département.</b>
+        Cette section est vide, et elle le restera tant qu'ils n'auront pas été
+        collectés. Une section absente aurait laissé croire qu'il n'y a rien à
+        savoir ; il y a quelque chose à savoir, et nous ne l'avons pas encore.</div>
+    </div>
+    <div class="prose">
+      <h4>Ce qu'un arrêté préfectoral peut décider sur l'eau</h4>
+      <p>Un dépassement de limite de qualité n'aboutit pas seulement à une mention sur
+        un bulletin. Il ouvre une procédure, et cette procédure produit des actes
+        écrits qui ne figurent nulle part dans les données d'analyse.</p>
+      <table><thead><tr><th>Article</th><th>Ce que le texte prévoit</th></tr></thead><tbody>
+        <tr><td><code>R1321-26</code></td><td>Tout dépassement d'une limite de qualité est <b>signalé immédiatement au maire et à l'agence régionale de santé</b>, et une enquête est menée.</td></tr>
+        <tr><td><code>R1321-27</code></td><td>La personne responsable de la distribution prend <b>« le plus rapidement possible les mesures correctives nécessaires »</b>, quelle qu'en soit la cause.</td></tr>
+        <tr><td><code>R1321-29</code></td><td>Le préfet peut <b>« restreindre, voire interrompre la distribution »</b> lorsqu'un risque sanitaire est avéré.</td></tr>
+        <tr><td><code>R1321-30</code></td><td><b>« Les consommateurs en sont informés immédiatement »</b> — sur le danger potentiel, les mesures engagées, et les conseils relatifs aux conditions de consommation.</td></tr>
+        <tr><td><code>R1321-31</code></td><td>Si les mesures correctives n'ont pas suffi, une <b>dérogation</b> peut être demandée au préfet. Sa durée <b>ne peut excéder trois ans</b>.</td></tr>
+        <tr><td><code>R1321-33</code></td><td>Une <b>seconde</b> dérogation de trois ans au maximum, « dans des circonstances exceptionnelles ».</td></tr>
+        <tr><td><code>R1321-34</code></td><td><b>Abrogé</b> — la possibilité d'une troisième dérogation a été supprimée.</td></tr>
+        <tr><td><code>R1321-35</code></td><td>Un <b>bilan</b> est obligatoire à l'issue de chaque période dérogatoire.</td></tr>
+      </tbody></table>
+      <p>Autrement dit : <b>une eau peut légalement rester au-dessus d'une limite
+        pendant six ans au maximum</b>, sur décision écrite, motivée et bornée. C'est
+        le pendant exact de ce que cet observatoire documente par ailleurs — la limite
+        se déplace dans le temps, et l'eau peut aussi être autorisée à rester
+        au-dessus d'elle pour une durée fixée.</p>
+
+      <h4>Pourquoi ces actes ne sont pas dans nos données</h4>
+      <p>Le contrôle sanitaire publie des <b>mesures</b> ; il ne publie pas les
+        <b>décisions</b> prises à leur suite. Les arrêtés préfectoraux paraissent au
+        recueil des actes administratifs de chaque préfecture, en PDF, sans format
+        commun d'un département à l'autre. Les collecter est un travail d'une autre
+        nature que l'interrogation d'une base d'analyses, et il reste à faire.</p>
+      <p><b>Conséquence à garder en tête en lisant les pages qui suivent :</b> un
+        bulletin déclaré conforme peut l'être au regard de la limite ordinaire, ou au
+        regard d'une dérogation qui l'a temporairement déplacée pour cette commune-là.
+        <b>Nous ne pouvons pas distinguer les deux</b>, et aucun chiffre de ce site ne
+        prétend le faire. La question se pose à l'agence régionale de santé et à la
+        préfecture, dont c'est l'information.</p>
+    </div>
+  </section>
+"""
+
+
 def page_departement(dept, communes, version, calcule_le):
     """
     Le niveau qui manquait entre la carte de France et la fiche d'une commune.
@@ -942,6 +1028,13 @@ def page_departement(dept, communes, version, calcule_le):
     n_nd = sum(1 for c in communes if c["statut"] == "non_documentee")
     n_bas = sum(c["nb_bascules"] or 0 for c in communes)
     n_dep = sum(c["nb_depasse_applicable"] or 0 for c in communes)
+    nom_dept = _nom_dept(dept)
+
+    # Un code postal réel du département, pour que l'exemple du champ de
+    # recherche soit un code qu'on peut effectivement taper ici.
+    exemple_cp = next((cp for c in communes
+                       for cp in (c["codes_postaux"] or "").replace(" ", "").split(",")
+                       if cp), f"{dept}000")
 
     # La carte à points est passée en second et agrandie. Mesuré le 9 août 2026
     # sur ce même département : à 760 de large et 7 de rayon, 53 points sur 314
@@ -1009,36 +1102,122 @@ def page_departement(dept, communes, version, calcule_le):
     </div>
   </section>
 
-  <section><h3 class="sec">Les {len(communes)} communes, par ordre alphabétique</h3>
-    <nav class="index-alpha" aria-label="Aller à une lettre">{index}</nav>
-    <div class="tableau-communes">
-      <table>
-        <thead><tr><th>Commune</th><th>Statut</th><th>Prélèvement</th>
-          <th>Effort de recherche</th><th>Paramètres notés</th>
-          <th>Dépassements à la date</th><th>Bascules</th></tr></thead>
-        <tbody>{"".join(lig)}</tbody>
-      </table>
-    </div>
-    {RAPPEL_EFFORT}
-  </section>
+  {bloc_arretes(dept, nom_dept)}
 
-  {bloc_uge}
-
-  <section><h3 class="sec">La même chose sur le territoire</h3>
+  <section><h3 class="sec">Où se concentre ce que l'on sait</h3>
     <div class="carte-bloc">{svg}
       {legende_carte(n)}
     </div>
-    <div class="rappel"><b>Cette carte vient après la liste, et c'est volontaire.</b>
-      Les communes se pressent autour des chefs-lieux : à cette densité, des points
-      voisins se recouvrent et certains passent sous d'autres. Elle sert à voir où se
-      concentre ce que l'on sait, pas à retrouver une commune — pour cela, la liste
-      ci-dessus est exacte, et l'index alphabétique y mène directement.</div>
     <div class="rappel"><b>Ce que la carte colorie n'est pas la qualité de l'eau</b>, mais
       ce que l'on sait de l'eau de chaque commune, et contre quelle grille on l'a noté.
       Une commune grise n'est ni conforme ni non conforme : elle n'a pas encore été
       collectée, ou aucun bulletin complet n'existe pour elle ni pour son réseau.</div>
+    <div class="rappel">Les communes se pressent autour des chefs-lieux : à cette
+      densité, des points voisins se touchent. <b>Pour retrouver une commune précise,
+      la recherche ci-dessous est exacte</b> — la carte sert à voir où porte l'effort
+      de connaissance, pas à pointer un nom.</div>
   </section>
+
+  <section><h3 class="sec">Trouver votre commune</h3>
+    <div class="recherche-dept">
+      <input id="q-dept" type="search" inputmode="text" autocomplete="off"
+             placeholder="Nom de commune ou code postal — {h(exemple_cp)}"
+             aria-label="Chercher une commune par son nom ou son code postal"
+             aria-controls="tbl-communes">
+      <p class="lg-aide" id="q-etat" role="status" aria-live="polite"></p>
+    </div>
+    <div class="rappel">La recherche se fait <b>dans votre navigateur</b> : rien n'est
+      envoyé, et ce que vous cherchez ne nous est pas transmis. Sans JavaScript, le
+      champ reste inerte et la liste complète s'affiche — la page ne dépend pas de lui
+      pour être lisible.</div>
+  </section>
+
+  <section><h3 class="sec">Les {len(communes)} communes, par ordre alphabétique</h3>
+    <nav class="index-alpha" id="index-alpha" aria-label="Aller à une lettre">{index}</nav>
+    <div class="tableau-communes">
+      <table id="tbl-communes">
+        <thead><tr>
+          <th aria-sort="ascending" data-tri="nom" data-type="texte">Commune</th>
+          <th>Statut</th>
+          <th data-tri="date" data-type="texte">Prélèvement</th>
+          <th data-tri="effort" data-type="nombre">Effort de recherche</th>
+          <th data-tri="couverture" data-type="nombre">Paramètres notés</th>
+          <th data-tri="depassements" data-type="nombre">Dépassements à la date</th>
+          <th data-tri="bascules" data-type="nombre">Bascules</th>
+        </tr></thead>
+        <tbody>{"".join(lig)}</tbody>
+      </table>
+    </div>
+    <div class="rappel"><b>Les colonnes chiffrées se trient</b>, par un clic sur leur
+      titre, dans un sens puis dans l'autre. Un tri décroissant par dépassements met en
+      tête les communes où une mesure a franchi le seuil applicable le jour du
+      prélèvement — <b>et non les plus mal loties</b> : une commune qui a fait chercher
+      627 paramètres a mécaniquement plus d'occasions d'en voir un dépasser qu'une
+      commune qui en a cherché 234. C'est pourquoi la colonne de l'effort de recherche
+      reste à côté, et pourquoi le taux (‰) accompagne le compte.</div>
+    <div class="rappel"><b>Les communes non documentées se rangent à part, jamais en
+      tête d'un tri.</b> Elles n'ont pas « zéro dépassement » : elles n'ont pas de
+      valeur du tout, et les faire passer pour les plus sûres du département serait
+      l'erreur exacte que le troisième état sert à éviter.</div>
+    {RAPPEL_EFFORT}
+  </section>
+
+  {bloc_uge}
 """
+
+
+def page_substances(con, version, substances):
+    """
+    L'index des dossiers de substance.
+
+    Il ne recopie rien des pages : il donne, pour chacune, la date à laquelle
+    la règle a bougé et le nombre d'analyses que ce déplacement fait basculer.
+    Le reste se lit sur la page.
+    """
+    if not substances:
+        return """
+  <section style="margin-top:0"><div class="prose">
+    <p>Aucun dossier de substance n'est encore publié.</p>
+  </div></section>"""
+
+    lignes = []
+    for slug, libelle, origine in substances:
+        s = DP.seuil(con, libelle, version)
+        c = DP.chiffres(con, libelle, version)
+        deplacement = (f"{h(BF._nb(s[2]))} → {h(BF._nb(s[3]))} {h(s[1] or '')}"
+                       if s and s[2] is not None and s[3] is not None else "—")
+        date = h(BF._date_fr(s[4])) if s and s[4] else "sans date au référentiel"
+        marque = ('<span class="pill">à relire</span>' if origine == "propose" else "")
+        lignes.append(
+            f'<tr><td><a href="substance/{h(slug)}.html">{h(libelle)}</a> {marque}</td>'
+            f'<td>{deplacement}</td><td>{date}</td>'
+            f'<td class="num">{c["bascules"]}</td>'
+            f'<td class="num">{c["communes_bascule"]}</td>'
+            f'<td class="num">{c["mesures"]}</td></tr>')
+
+    return f"""
+  <section style="margin-top:0"><div class="prose">
+    <p>Une fiche communale répond à « qu'y a-t-il dans mon eau ? ». Ces pages-ci
+      répondent à une autre question : <b>qu'est-ce que cette substance démontre ?</b>
+      Une molécule, une date de reclassement, et deux verdicts opposés pour un même
+      résultat — c'est là que le déplacement des seuils se voit le mieux.</p>
+    <p class="bnote">Le nombre d'analyses porté par une substance ne se lit jamais seul :
+      une substance n'est présente que dans les bulletins qui la cherchent, et la
+      colonne « analyses » donne ce dénominateur. Une comparaison entre deux
+      substances n'aurait pas de sens ici — elles ne sont pas cherchées dans les
+      mêmes bulletins.</p>
+  </div></section>
+
+  <section><h3 class="sec">Les dossiers publiés</h3>
+    <table><thead><tr>
+      <th>Substance</th><th>Déplacement de la valeur</th><th>Applicable depuis</th>
+      <th class="num">Analyses basculées</th><th class="num">Communes</th>
+      <th class="num">Analyses</th>
+    </tr></thead><tbody>{''.join(lignes)}</tbody></table>
+    <p class="bnote">« Analyses basculées » : des mesures qui dépassaient la valeur
+      applicable avant le reclassement et ne dépassent pas celle d'après. La mesure
+      n'a pas changé — la règle, si.</p>
+  </section>"""
 
 
 def page_methode(con, version, calcule_le):
@@ -1331,7 +1510,8 @@ def construire(destination=None, db=DB_PATH):
         # --- pages --------------------------------------------------------
         assets = os.path.join(public, "assets")
         os.makedirs(assets, exist_ok=True)
-        for f in ("observatoire.css", "fiche.js", "recherche.js", "carte.js"):
+        for f in ("observatoire.css", "fiche.js", "recherche.js", "carte.js",
+                  "tableau.js"):
             shutil.copyfile(os.path.join(GABARITS, f), os.path.join(assets, f))
 
         ecrire(os.path.join(public, "index.html"), page(
@@ -1391,6 +1571,34 @@ def construire(destination=None, db=DB_PATH):
                        "reproductible. Les données sont téléchargeables.",
             formule=False,
             fil=[("Accueil", "index.html"), ("Sources, référentiel et données", None)]))
+
+        # --- une page par substance dotée d'un dossier --------------------
+        #
+        # L'étage au-dessus de la fiche : le raisonnement se publie UNE fois et
+        # se lie depuis chaque commune concernée, au lieu d'être recopié dans
+        # chacune (cf. sortie/dossier_page.py).
+        substances = DP.publiables()
+        for slug, libelle, _o in substances:
+            corps_s, titre_s, origine_s = DP.corps(con, slug, version, h, prefixe="../")
+            d_s = (DP.charger()[0].get(slug) or DP.charger()[1].get(slug))
+            ecrire(os.path.join(public, "substance", f"{slug}.html"), page(
+                titre_s, corps_s, "substances.html",
+                (d_s.get("chapeau") or titre_s)[:300],
+                version, calcule_le, prefixe="../",
+                sous_titre=h(d_s.get("titre") or ""),
+                fil=[("Accueil", "index.html"), ("Substances", "substances.html"),
+                     (titre_s, None)]))
+
+        ecrire(os.path.join(public, "substances.html"), page(
+            "Les substances, une par une",
+            page_substances(con, version, substances), "substances.html",
+            "Ce que chaque substance démontre du déplacement des seuils : une "
+            "page par molécule, avec sa date de reclassement.",
+            version, calcule_le,
+            sous_titre="Une fiche communale dit ce qu'il y a dans une eau. Ces "
+                       "pages-ci disent ce qu'une substance démontre — et la date "
+                       "à laquelle la règle qui la note a changé.", formule=False,
+            fil=[("Accueil", "index.html"), ("Les substances, une par une", None)]))
 
         # --- une page par commune documentée ------------------------------
         n_fiches = fiches_communes(con, version, lignes, public)
@@ -1496,7 +1704,8 @@ def pages_departements(lignes, version, calcule_le, public):
             fil=[("Accueil", "index.html"),
                  ("Les communes du corpus", "communes.html"),
                  (f"{nom} ({dept})", None)],
-            scripts=f'<script src="../assets/{empreinte("carte.js")}"></script>'))
+            scripts=(f'<script src="../assets/{empreinte("carte.js")}"></script>'
+                     f'<script src="../assets/{empreinte("tableau.js")}"></script>')))
         n += 1
     return n
 
@@ -1510,6 +1719,11 @@ def fiches_communes(con, version, lignes, public):
     # Deux fichiers de prose écrite ; le troisième niveau, la prose dérivée,
     # est calculé par bloc_commune() au moment de la construction.
     redactions, proposees = BF.charger_prose()
+
+    # Les fiches vivent dans commune/ : l'accroche vers le dossier de substance
+    # se préfixe ICI, une fois, plutôt que d'être réparée côté navigateur.
+    accroches = {p: dict(d, u="../" + d["u"])
+                 for p, d in DP.accroches(con, version).items()}
 
     corps = lire("corps_fiche.html")
     groupes = par_departement(lignes)
@@ -1550,7 +1764,8 @@ def fiches_communes(con, version, lignes, public):
                                  a["code_prelevement"]), version,
                 rattachement=rattachement,
                 proposee=BF.pour_bulletin(proposees, insee, d_iso,
-                                          a["code_prelevement"]))
+                                          a["code_prelevement"]),
+                accroches=accroches)
             PARAMS[cle] = BF.bloc_parametres(con, a["code_prelevement"], version)
             ORDER.append(cle)
         # Le plus récent d'abord : c'est ce que l'habitant vient chercher.
