@@ -1,0 +1,44 @@
+{
+  "panel": {
+    "libelle_parametre": "Le panel d'analyse",
+    "titre": "On ne trouve que ce qu'on cherche — et qui décide de ce qu'on cherche ?",
+    "chapeau": "Entre 2019 et 2020, le nombre de substances recherchées dans un bulletin d'eau potable a été divisé par deux. Cela ressemble à un recul. Les chiffres disent autre chose : ce qui est sorti du programme n'était presque jamais trouvé, et ce qui y est entré l'est constamment. La vraie question n'est pas combien de substances on cherche, c'est lesquelles — et ce qu'on ne cherche nulle part.",
+    "sections": [
+      {
+        "t": "La rupture, et ce qu'elle a l'air de dire",
+        "x": "Le fait est net et daté. En Eure-et-Loir, un bulletin complet portait 650 paramètres en 2016 et 659 en 2019 ; il en porte 345 en 2020, puis 252 en 2022. Dans le Tarn, 627 paramètres en 2019, 346 en 2020. Les deux départements basculent la même année, et le compte ne remonte pas ensuite : 314 en Eure-et-Loir en 2026, 409 dans le Tarn. Présenté ainsi, un lecteur en tire une conclusion simple — on regarde moins bien qu'avant. C'est ce que le compte de paramètres suggère, et c'est ce que les mesures démentent."
+      },
+      {
+        "t": "Ce qui est sorti, et ce que ça valait",
+        "x": "Un paramètre qui disparaît d'un programme n'emporte avec lui que ce qu'il rapportait. Dans le Tarn, 280 paramètres ne sont plus mesurés après 2019 : ils totalisaient 124 690 mesures et 2 quantifications, soit un taux de 0,02 pour mille. Autrement dit, sur ces substances, l'analyse ne trouvait rien — non pas rarement, presque jamais. En Eure-et-Loir, 8 paramètres sortent, pour 3 844 mesures et aucune quantification. Ce qui a été retiré du programme n'apportait pas d'information : le dire autrement serait un faux positif, et la donnée dit l'inverse."
+      },
+      {
+        "t": "Ce qui est entré, et ce que ça donne",
+        "x": "Le mouvement inverse est le plus parlant. 70 paramètres entrent au programme du Tarn depuis 2020 : 36 782 mesures, 1 075 quantifications, un taux de 29,23 pour mille. En Eure-et-Loir, 126 entrants, 29 587 mesures, 1 739 quantifications — 58,78 pour mille. Rapporté aux 0,02 pour mille de ce qui est sorti, l'échange n'est pas discutable. Et les entrants les plus trouvés portent des noms devenus familiers : le chlorothalonil R471811, quantifié dans 50,1 % de ses 1 020 mesures et dans 155 communes ; le CGA 369873, 54,7 % ; le chlorothalonil R417888, 43,4 % ; la somme des 20 PFAS, cherchée depuis mai 2024, quantifiée dans 27,5 % des cas ; les acides haloacétiques, entrés en janvier 2026, quantifiés dans 81,4 % de leurs 97 mesures."
+      },
+      {
+        "t": "Ce que le corpus ne voit pas bouger",
+        "x": "Reste à savoir si l'eau, elle, a changé. La seule série qui puisse répondre se restreint aux paramètres cherchés chaque année documentée — 173 en Eure-et-Loir, 260 dans le Tarn, sur onze ans. À ce panel constant, le taux de quantification de l'Eure-et-Loir va de 79,32 à 90,02 pour mille sans tendance, et celui du Tarn de 16,08 à 19,16. Onze années, deux départements, aucune dérive. Ce qui change n'est pas ce que l'eau contient : c'est la liste de ce qu'on y regarde."
+      },
+      {
+        "t": "Ce qu'un département cherche et que l'autre ignore",
+        "x": "L'autre face de la même phrase est moins confortable. Sur les deux départements collectés en entier, 648 paramètres sont cherchés des deux côtés, 83 dans le seul Eure-et-Loir et 31 dans le seul Tarn. Certains de ces écarts sont sans conséquence, d'autres non : 12 des paramètres cherchés uniquement en Eure-et-Loir y sont effectivement quantifiés, et 7 dans le cas du Tarn. Le perchlorate en est l'exemple le plus net — 216 quantifications en Eure-et-Loir, jusqu'à 10,9 µg/L, et pas une seule mesure dans les 1 575 bulletins complets du Tarn. Ce n'est pas un dépassement caché : c'est une question qui n'est pas posée. Un habitant du Tarn ne peut ni s'en inquiéter ni s'en rassurer, et le corpus non plus."
+      },
+      {
+        "t": "Qui décide, et selon quel critère",
+        "x": "Le texte qui encadre ces listes est l'instruction n° DGS/EA4/2020/177 du 18 décembre 2020. Elle substitue au balayage de toutes les molécules analysables une liste régionale arrêtée par l'agence régionale de santé, ciblée « en fonction de la probabilité de les retrouver » : usages locaux, ventes, détections antérieures, hiérarchisation par indice de risque. Deux réserves l'accompagnent, et aucune n'est facultative. La première : cette instruction est postérieure de onze mois à la rupture décrite plus haut. Elle décrit un mécanisme cohérent avec elle, elle n'en est pas la cause établie — attribuer un effet à un texte qui le suit serait une erreur de méthode. La seconde tient dans le critère lui-même : si une détection antérieure justifie de continuer à chercher, alors une substance jamais cherchée quelque part n'y produit aucune détection, donc aucun motif d'y entrer. Ne pas chercher se perpétue tout seul. Ce n'est pas un reproche adressé à quiconque : c'est la conséquence logique d'un critère écrit, et le perchlorate en donne la trace mesurable."
+      }
+    ],
+    "limites": [
+      "Le corpus ne dit pas pourquoi une substance entre ou sort d'un programme d'analyse. Il en donne la date et le dénombrement, rien d'autre. Qui arbitre, sur quel seuil de probabilité et avec quel budget d'analyse : ni ces données ni le texte cité ici ne le disent.",
+      "La liste des paramètres cherchés d'un seul côté mélange de vraies absences de programme et de simples variantes d'écriture d'un même libellé. Chaque ligne demande une vérification manuelle sur les codes SANDRE avant d'être citée : seuls les cas nommés dans cette page l'ont été.",
+      "Deux départements collectés en entier ne font pas une règle nationale. Ce qui est écrit ici vaut pour l'Eure-et-Loir et le Tarn, à onze années documentées chacun, et devra être repris quand d'autres départements complets entreront au corpus.",
+      "Une substance non cherchée est un indéterminé, jamais une absence — ni pour un habitant, ni pour un département. Cette page ne prononce sur aucune eau un constat de propreté : elle décrit ce qui est cherché.",
+      "Elle ne dit pas s'il faut faire quelque chose. Ce n'est pas son objet. Les informations sur l'eau distribuée relèvent de l'agence régionale de santé, de la mairie et du rapport annuel du service."
+    ],
+    "manques": [
+      "Le taux de quantification des entrants et des sortants n'est pas rapporté au nombre de communes concernées : un paramètre entré dans un seul réseau et un paramètre entré partout pèsent ici du même poids.",
+      "Le dossier ne distingue pas les substances sorties du programme de celles qui n'ont jamais été analysables : une méthode de laboratoire qui apparaît et une décision de programme produisent la même trace dans les données."
+    ]
+  }
+}

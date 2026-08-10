@@ -65,7 +65,11 @@ def fr(x, n=3):
         return "—"
     if isinstance(x, int):
         return str(x)
-    s = f"{x:.{n}f}".rstrip("0").rstrip(".")
+    # `rstrip("0")` sur « 650.000 » rend « 65 » : sans décimale, il mange
+    # le nombre. Trouvé le 10 août 2026 sur la médiane du panel.
+    s = f"{x:.{n}f}"
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
     return s.replace(".", ",") or "0"
 
 
@@ -331,6 +335,165 @@ def dossier(con, libelle, version):
                 a(f"| {r[0]} | {r[1]} | {date_fr(r[2])} | {signe} | {fr(r[4])} | "
                   f"{fr(r[5])} | {r[6]} | {'dépassement' if r[7] else 'conforme'} |")
 
+    # ------------------------------------ le second canal : le total agrégé
+    #
+    # Un reclassement ne déplace pas seulement la valeur du métabolite : il le
+    # fait aussi SORTIR du dénominateur du « total des pesticides », qui est,
+    # lui, une limite de qualité opposable. Deux verdicts tombent le même jour,
+    # et le second passe inaperçu si on ne le cherche pas.
+    if ref and ref[5] and (ref[8] or "").lower().startswith("vigilance"):
+        a("\n## 5bis. Le total des pesticides — le second canal, sur une limite opposable\n")
+        a("**Ce paragraphe ne vient pas de la base, il vient du texte.** "
+          "L'annexe I de l'arrêté du 11 janvier 2007 modifié définit le « total "
+          "pesticides » (limite de qualité, 0,50 µg/L) comme la somme des "
+          "pesticides individuels quantifiés, et ne fait entrer un métabolite "
+          "dans ce périmètre que s'il est **pertinent**. Les non pertinents "
+          "sont logés en partie III, « valeurs indicatives ». Un métabolite "
+          "reclassé quitte donc, le même jour, **sa propre limite ET le "
+          "dénominateur du total**. Sources : arrêté du 11/01/2007 consolidé et "
+          "instruction DGS/EA4/2020/177 — à citer via `docs/INDEX_SOURCES.md`.")
+        a("")
+        a("Ce que le corpus en dit, lui — sur les bulletins portant au moins un "
+          "métabolite déjà reclassé à la date du prélèvement :")
+        a("")
+
+        comp = con.execute("""
+        WITH ref AS (SELECT libelle, statut_2026, date_applicabilite_2026 FROM referentiel_seuils),
+        mes AS (
+          SELECT v.code_prelevement, a.date_prelevement, v.libelle_parametre, v.resultat_num,
+                 v.est_quantifie, v.famille, v.est_agregat,
+                 (r.statut_2026 ILIKE 'vigilance%' AND r.date_applicabilite_2026 IS NOT NULL
+                  AND r.date_applicabilite_2026 <= a.date_prelevement) AS reclasse
+          FROM verdicts_figes v
+          JOIN analyses_figees a USING (code_prelevement, version_referentiel)
+          LEFT JOIN ref r ON lower(r.libelle) = lower(v.libelle_parametre)
+          WHERE v.version_referentiel = ?),
+        agg AS (
+          SELECT code_prelevement,
+                 MAX(resultat_num) FILTER (WHERE libelle_parametre = 'Total des pesticides analysés'
+                                             AND est_quantifie) AS tot,
+                 COALESCE(SUM(resultat_num) FILTER (WHERE est_quantifie AND NOT est_agregat
+                                             AND famille IN ('pesticide','metabolite')
+                                             AND NOT reclasse), 0) AS s_pert,
+                 COALESCE(SUM(resultat_num) FILTER (WHERE est_quantifie AND NOT est_agregat
+                                             AND famille IN ('pesticide','metabolite')
+                                             AND reclasse), 0) AS s_rec
+          FROM mes GROUP BY 1)
+        SELECT COUNT(*),
+               COUNT(*) FILTER (WHERE abs(tot - s_pert) <= 0.006
+                                  AND abs(tot - (s_pert + s_rec)) > 0.006),
+               COUNT(*) FILTER (WHERE abs(tot - (s_pert + s_rec)) <= 0.006
+                                  AND abs(tot - s_pert) > 0.006),
+               COUNT(*) FILTER (WHERE abs(tot - s_pert) <= 0.006
+                                  AND abs(tot - (s_pert + s_rec)) <= 0.006),
+               COUNT(*) FILTER (WHERE abs(tot - s_pert) > 0.006
+                                  AND abs(tot - (s_pert + s_rec)) > 0.006)
+        FROM agg WHERE tot IS NOT NULL AND s_rec > 0
+        """, [version]).fetchone()
+        # Les quatre cas sont exclusifs et s'additionnent : un tableau qui ne
+        # tombe pas juste se fait relire de travers, et il a raison.
+        a(f"- bulletins concernés : **{comp[0]}**")
+        a(f"- le total déclaré vaut la somme **sans** les reclassés — conforme "
+          f"au texte : **{comp[1]}**")
+        a(f"- il vaut la somme **avec** eux — incohérence de la source, à "
+          f"signaler et non à expliquer : **{comp[2]}**")
+        a(f"- indiscernable : la part reclassée est trop petite pour trancher "
+          f"({comp[3]})")
+        a(f"- ni l'un ni l'autre : {comp[4]}")
+        a(f"- *contrôle : {comp[1]} + {comp[2]} + {comp[3]} + {comp[4]} = "
+          f"{comp[1] + comp[2] + comp[3] + comp[4]}*")
+
+        eff = con.execute("""
+        WITH ref AS (SELECT libelle, statut_2026, date_applicabilite_2026 FROM referentiel_seuils),
+        mes AS (
+          SELECT v.code_prelevement, a.date_prelevement, a.code_insee,
+                 v.libelle_parametre, v.resultat_num, v.est_quantifie, v.famille, v.est_agregat,
+                 (r.statut_2026 ILIKE 'vigilance%' AND r.date_applicabilite_2026 IS NOT NULL
+                  AND r.date_applicabilite_2026 <= a.date_prelevement) AS reclasse
+          FROM verdicts_figes v
+          JOIN analyses_figees a USING (code_prelevement, version_referentiel)
+          LEFT JOIN ref r ON lower(r.libelle) = lower(v.libelle_parametre)
+          WHERE v.version_referentiel = ?),
+        agg AS (
+          SELECT code_prelevement, ANY_VALUE(code_insee) insee,
+                 MAX(resultat_num) FILTER (WHERE libelle_parametre = 'Total des pesticides analysés'
+                                             AND est_quantifie) AS tot,
+                 COALESCE(SUM(resultat_num) FILTER (WHERE est_quantifie AND NOT est_agregat
+                                             AND famille IN ('pesticide','metabolite')
+                                             AND NOT reclasse), 0) AS s_pert,
+                 COALESCE(SUM(resultat_num) FILTER (WHERE est_quantifie AND NOT est_agregat
+                                             AND famille IN ('pesticide','metabolite')
+                                             AND reclasse), 0) AS s_rec
+          FROM mes GROUP BY 1)
+        SELECT COUNT(*) FILTER (WHERE tot <= 0.5),
+               COUNT(*) FILTER (WHERE tot <= 0.5 AND tot + s_rec > 0.5),
+               COUNT(DISTINCT insee) FILTER (WHERE tot <= 0.5 AND tot + s_rec > 0.5)
+        FROM agg WHERE tot IS NOT NULL AND s_rec > 0 AND abs(tot - s_pert) <= 0.006
+        """, [version]).fetchone()
+        a("")
+        a(f"Parmi ces bulletins où l'exclusion est **constatée** et non "
+          f"supposée, {eff[0]} ont un total déclaré sous la limite de "
+          f"0,5 µg/L. **{eff[1]} d'entre eux, dans {eff[2]} communes, "
+          f"repasseraient au-dessus si le métabolite reclassé y était encore "
+          f"compté.**")
+        a("")
+        a("| commune | date | total déclaré | part des reclassés | total reconstitué |")
+        a("|---|---|---|---|---|")
+        for r in con.execute("""
+        WITH ref AS (SELECT libelle, statut_2026, date_applicabilite_2026 FROM referentiel_seuils),
+        mes AS (
+          SELECT v.code_prelevement, a.date_prelevement, a.commune,
+                 v.libelle_parametre, v.resultat_num, v.est_quantifie, v.famille, v.est_agregat,
+                 (r.statut_2026 ILIKE 'vigilance%' AND r.date_applicabilite_2026 IS NOT NULL
+                  AND r.date_applicabilite_2026 <= a.date_prelevement) AS reclasse
+          FROM verdicts_figes v
+          JOIN analyses_figees a USING (code_prelevement, version_referentiel)
+          LEFT JOIN ref r ON lower(r.libelle) = lower(v.libelle_parametre)
+          WHERE v.version_referentiel = ?),
+        agg AS (
+          SELECT code_prelevement, ANY_VALUE(commune) commune, ANY_VALUE(date_prelevement) d,
+                 MAX(resultat_num) FILTER (WHERE libelle_parametre = 'Total des pesticides analysés'
+                                             AND est_quantifie) AS tot,
+                 COALESCE(SUM(resultat_num) FILTER (WHERE est_quantifie AND NOT est_agregat
+                                             AND famille IN ('pesticide','metabolite')
+                                             AND NOT reclasse), 0) AS s_pert,
+                 COALESCE(SUM(resultat_num) FILTER (WHERE est_quantifie AND NOT est_agregat
+                                             AND famille IN ('pesticide','metabolite')
+                                             AND reclasse), 0) AS s_rec
+          FROM mes GROUP BY 1)
+        SELECT commune, d, tot, s_rec, tot + s_rec FROM agg
+        WHERE tot IS NOT NULL AND s_rec > 0 AND abs(tot - s_pert) <= 0.006
+          AND tot <= 0.5 AND tot + s_rec > 0.5
+        ORDER BY tot DESC LIMIT 6
+        """, [version]).fetchall():
+            a(f"| {r[0]} | {date_fr(r[1])} | {fr(r[2])} | {fr(r[3])} | {fr(r[4])} |")
+
+        # La série d'une seule installation vaut mieux qu'un tableau de communes :
+        # elle montre que le pic est unique, et qu'il porte un nom.
+        cas = con.execute("""
+        SELECT a.code_insee, a.commune, a.code_installation_amont, a.nom_installation_amont
+        FROM verdicts_figes v JOIN analyses_figees a USING (code_prelevement, version_referentiel)
+        WHERE v.version_referentiel = ? AND v.libelle_parametre = ? AND v.est_quantifie
+          AND v.depasse_applicable AND a.date_prelevement < ?::DATE
+        ORDER BY a.date_prelevement DESC LIMIT 1
+        """, [version, libelle, ref[5]]).fetchone()
+        if cas and cas[2]:
+            a(f"\n### La série de l'installation « {cas[3] or cas[2]} » "
+              f"({cas[1]})\n")
+            a("| date | mesure | total des pesticides déclaré |")
+            a("|---|---|---|")
+            for r in con.execute("""
+            SELECT a.date_prelevement,
+                   MAX(v.resultat_num) FILTER (WHERE v.libelle_parametre = ? AND v.est_quantifie),
+                   MAX(v.resultat_num) FILTER (WHERE v.libelle_parametre = 'Total des pesticides analysés'
+                                                 AND v.est_quantifie)
+            FROM verdicts_figes v JOIN analyses_figees a USING (code_prelevement, version_referentiel)
+            WHERE v.version_referentiel = ? AND a.code_installation_amont = ?
+            GROUP BY 1 ORDER BY 1
+            """, [libelle, version, cas[2]]).fetchall():
+                a(f"| {date_fr(r[0])} | {fr(r[1]) if r[1] is not None else '— non quantifié'} "
+                  f"| {fr(r[2]) if r[2] is not None else '—'} |")
+
     # ------------------------------------------- ce qu'en dit l'administration
     a("\n## 6. Ce que la conclusion sanitaire en dit, quand elle la nomme\n")
     a("Extraits **littéraux** des conclusions de l'ARS où la substance est "
@@ -409,7 +572,7 @@ def _sans_separateur(texte):
     return re.sub(r"(?<=\d)[   ](?=\d)", "", texte)
 
 
-def verifier(chemins=None):
+def verifier(chemins=None, dossier_pour=None):
     """
     Contrôle mécanique des proses de substance, avant qu'elles ne s'affichent.
 
@@ -437,7 +600,12 @@ def verifier(chemins=None):
         for cle, v in entrees.items():
             n += 1
             libelle = v.get("libelle_parametre") or cle
-            dossier_md = os.path.join(DOSSIERS, f"SUBSTANCE-{slug(libelle)}.md")
+            # `dossier_pour` permet à un autre dossier — le panel, demain un
+            # territoire — de réutiliser CE contrôle plutôt que d'en écrire une
+            # seconde copie : deux copies d'une règle divergent à la première
+            # retouche (CLAUDE.md §6).
+            dossier_md = (dossier_pour(cle, v) if dossier_pour
+                          else os.path.join(DOSSIERS, f"SUBSTANCE-{slug(libelle)}.md"))
             if not os.path.exists(dossier_md):
                 bloquants.append(f"{cle} : dossier de faits absent — {dossier_md}")
                 continue
@@ -479,6 +647,65 @@ def verifier(chemins=None):
     return bloquants, signalements, n
 
 
+def relecture(chemin_sortie=None):
+    """
+    Les proses en attente, mises bout à bout pour une seule lecture.
+
+    La relecture humaine est le poste le plus cher du projet — et le plus
+    facile à saboter en la rendant répétitive. Ce document met les textes dans
+    l'ordre, sans le HTML, avec pour chacun ce qui demande vraiment un
+    jugement : les nombres sont déjà contrôlés par `--verifier`, ils n'ont pas
+    besoin d'être relus.
+    """
+    import json
+    valid = os.path.join(RACINE, "sortie", "redactions_substances.json")
+    prop = os.path.join(RACINE, "sortie", "redactions_substances_proposees.json")
+    dejà = set()
+    if os.path.exists(valid):
+        with open(valid, encoding="utf-8") as fh:
+            dejà = set(json.load(fh))
+    with open(prop, encoding="utf-8") as fh:
+        entrees = json.load(fh)
+
+    d = ["# Relecture — proses de substance en attente\n",
+         f"{len([c for c in entrees if c not in dejà])} texte(s) à valider. "
+         "Les chiffres ont déjà été contrôlés un par un contre le dossier de "
+         "faits : **aucun nombre écrit ici n'est absent des données**. Ce qui "
+         "reste à juger est éditorial.\n",
+         "Valider un texte, c'est le déplacer de "
+         "`redactions_substances_proposees.json` vers "
+         "`redactions_substances.json` — il devient alors de ta main, et la "
+         "mention « proposition, à relire » disparaît du site.\n"]
+
+    for cle, v in entrees.items():
+        if cle in dejà:
+            continue
+        d.append("\n---\n")
+        d.append(f"## {v.get('libelle_parametre', cle)}\n")
+        d.append(f"### {v.get('titre', '')}\n")
+        d.append(f"*{v.get('chapeau', '')}*\n")
+        for s in v.get("sections", []):
+            d.append(f"\n**{s.get('t', '')}**\n")
+            d.append(s.get("x", ""))
+        if v.get("limites"):
+            d.append("\n**Ce que cette page ne dit pas**\n")
+            for x in v["limites"]:
+                d.append(f"- {x}")
+        if v.get("manques"):
+            d.append("\n**Ce que le rédacteur n'a pas pu écrire, faute de données**\n")
+            for x in v["manques"]:
+                d.append(f"- {x}")
+        d.append(f"\n*Dossier de faits : "
+                 f"`data/dossiers/SUBSTANCE-{slug(v.get('libelle_parametre', cle))}.md`*")
+
+    texte = "\n".join(d) + "\n"
+    chemin = chemin_sortie or os.path.join(DOSSIERS, "RELECTURE-substances.md")
+    os.makedirs(DOSSIERS, exist_ok=True)
+    with open(chemin, "w", encoding="utf-8") as fh:
+        fh.write(texte)
+    return chemin, len([c for c in entrees if c not in dejà])
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     p.add_argument("--libelle", help="libellé exact tel qu'il figure dans la source")
@@ -487,8 +714,17 @@ def main():
                    help="les substances qui ont de quoi porter un dossier")
     p.add_argument("--verifier", action="store_true",
                    help="contrôle les proses écrites, sans rien produire")
+    p.add_argument("--relire", action="store_true",
+                   help="rassemble les proses en attente en un seul document")
     p.add_argument("--sortie", help="chemin du fichier produit")
     a = p.parse_args()
+
+    if a.relire:
+        chemin, n = relecture(a.sortie)
+        print(f"{n} prose(s) en attente rassemblée(s) : {chemin}")
+        print("  valider = déplacer l'entrée de redactions_substances_proposees.json")
+        print("  vers redactions_substances.json")
+        return
 
     if a.verifier:
         bloquants, signalements, n = verifier()

@@ -44,14 +44,27 @@ JOURNAL_DIR = os.path.join(RACINE, "data", "journal")
 # non-conformité pour le chlorothalonil R417888, en était exclu.
 SEUIL_COMPLET = 200
 
-# Profondeur de l'analyse. Ce n'est PAS un indicateur de qualité de l'eau :
-# c'est un indicateur de l'effort de recherche, et il se lit dans l'autre
-# sens (cf. CLAUDE.md §2.11). On ne trouve que ce qu'on cherche.
+# L'ÉTENDUE du panel, et rien d'autre. Ce n'est ni un indicateur de qualité de
+# l'eau, ni un classement des analyses entre elles (cf. CLAUDE.md §2.11).
+#
+# Les libellés ont été changés le 10 août 2026, et le motif tient en deux
+# chiffres. L'échelle disait « restreinte / standard / approfondie /
+# exhaustive » : un ordre, où l'ancien gagnait toujours. Or 100 % des bulletins
+# de l'Eure-et-Loir étaient « exhaustive » jusqu'en 2019 et « standard » à
+# partir de 2022 — le mot disait au lecteur que l'analyse récente vaut moins.
+# Le corpus dit l'inverse : dans le Tarn, les 280 paramètres sortis du
+# programme avant 2020 totalisent 2 quantifications sur 124 690 mesures
+# (0,02 ‰), quand les 69 entrés depuis en produisent 1 063 sur 36 770
+# (28,91 ‰). Un panel plus court n'est pas un panel plus faible, et une
+# étiquette ne doit pas trancher ce que la donnée dément.
+#
+# Les nouveaux libellés décrivent une largeur, pas une valeur. Détail et
+# chiffres : data/dossiers/PANEL.md, et sortie/dossier_panel.py qui le produit.
 CLASSES_EFFORT = (
-    (200, "restreinte"),
-    (300, "standard"),
-    (450, "approfondie"),
-    (10 ** 9, "exhaustive"),
+    (200, "panel de routine"),
+    (300, "panel ciblé"),
+    (450, "panel intermédiaire"),
+    (10 ** 9, "panel étendu"),
 )
 
 

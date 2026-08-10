@@ -193,7 +193,7 @@ def sections(con, a, version, lignes=None):
           AND date_prelevement < ? ORDER BY date_prelevement DESC LIMIT 1
     """, [version, a["code_insee"], a["date_prelevement"]]).fetchone()
     texte = (f"{a['nb_parametres']} paramètres ont été recherchés sur ce prélèvement "
-             f"(analyse dite {a['classe_effort']}), dont "
+             f"({a['classe_effort']}), dont "
              f"{a['nb_synthese_recherchees']} substances de synthèse. "
              f"{a['nb_mesures_notees']} ont pu être comparés à un seuil, soit "
              f"{nb(a['pct_couverture'])} % ; les "

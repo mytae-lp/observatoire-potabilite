@@ -167,7 +167,7 @@ def dossier(con, a, version):
                  "affiché sur toutes ces communes — ne l'écris pas pour une seule.")
 
     d.append("\n# Effort de recherche\n")
-    d.append(f"{a['nb_parametres']} paramètres recherchés (classe « {a['classe_effort']} »)")
+    d.append(f"{a['nb_parametres']} paramètres recherchés ({a['classe_effort']})")
     d.append(f"{a['nb_mesures_notees']} notés sur {a['nb_mesures_lues']} mesurés "
              f"= {_n(a['pct_couverture'], 1)} % de couverture")
     d.append(f"dont {a['nb_notees_referentiel']} par le référentiel daté du projet "

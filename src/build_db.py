@@ -517,10 +517,15 @@ SELECT
     -- bruts de dépassements est un contresens (CLAUDE.md §2.11).
     COUNT(*) FILTER (WHERE v.famille IN ('pesticide','metabolite','PFAS','organique'))
                                                                   AS nb_synthese_recherchees,
-    CASE WHEN p.nb_parametres < 200 THEN 'restreinte'
-         WHEN p.nb_parametres < 300 THEN 'standard'
-         WHEN p.nb_parametres < 450 THEN 'approfondie'
-         ELSE 'exhaustive' END                                    AS classe_effort,
+    -- Les seuils et les libellés vivent dans common.CLASSES_EFFORT, qui porte
+    -- le motif du changement du 10 août 2026 : l'ancienne échelle
+    -- (restreinte → exhaustive) classait les analyses entre elles, et donnait
+    -- l'avantage aux panels d'avant 2020 que la donnée dément. Ces deux
+    -- endroits doivent rester d'accord.
+    CASE WHEN p.nb_parametres < 200 THEN 'panel de routine'
+         WHEN p.nb_parametres < 300 THEN 'panel ciblé'
+         WHEN p.nb_parametres < 450 THEN 'panel intermédiaire'
+         ELSE 'panel étendu' END                                  AS classe_effort,
     -- Les TAUX sont comparables d'un bulletin à l'autre ; les comptes ne le
     -- sont pas. Toute comparaison entre communes passe par eux.
     ROUND(1000.0 * COUNT(*) FILTER (WHERE v.depasse_applicable)
@@ -553,7 +558,13 @@ SELECT
     COUNT(*) FILTER (WHERE est_quantifie) AS nb_quantifiees,
     MAX(resultat_num) FILTER (WHERE est_quantifie) AS max_quantifie
 FROM v_mesures_ref
+-- Le filtre teste aussi la RÉFÉRENCE déclarée depuis le 10 août 2026. Sans
+-- elle, la vue listait comme « sans aucun seuil » des paramètres qui portent
+-- une référence de qualité de la source et produisent bel et bien un
+-- `hors_reference` : 14 libellés et 23 189 mesures, soit un compte annoncé de
+-- 157 pour 143 réels. Un diagnostic qui surcompte se fait croire sur parole.
 WHERE ref_key IS NULL AND limite_declaree IS NULL
+  AND reference_max IS NULL AND reference_min IS NULL
 GROUP BY 1, 2
 ORDER BY nb_quantifiees DESC, nb_mesures DESC;
 """

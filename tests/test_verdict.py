@@ -519,16 +519,23 @@ def main():
                    nb_mesures_notees, depassements_pour_mille
             FROM v_prelevement_verdict WHERE code_prelevement = ?
         """, [PREL]).fetchone()
-        verifie(eff[0] == 'standard',
+        verifie(eff[0] == 'panel ciblé',
                 f"{eff[1]} paramètres cherchés -> classe '{eff[0]}'")
         verifie(eff[2] >= 3,
                 f"{eff[2]} substances de synthèse recherchées, quantifiées ou non")
         verifie(eff[4] is not None and eff[4] > 0,
                 f"taux comparable calculé : {eff[4]} dépassements pour mille notés")
         from common import classe_effort as ce
+        # Les libellés décrivent une LARGEUR de panel, pas une valeur : le
+        # 10 août 2026, l'échelle « restreinte → exhaustive » a été retirée
+        # parce qu'elle classait les analyses entre elles et donnait l'avantage
+        # aux panels d'avant 2020, que la donnée dément (cf. common.py et
+        # data/dossiers/PANEL.md). Ce test verrouille les nouveaux libellés :
+        # ils sont affichés sur chaque fiche.
         verifie((ce(150), ce(234), ce(359), ce(660))
-                == ('restreinte', 'standard', 'approfondie', 'exhaustive'),
-                "les quatre classes de profondeur d'analyse")
+                == ('panel de routine', 'panel ciblé', 'panel intermédiaire',
+                    'panel étendu'),
+                "les quatre largeurs de panel, sans ordre de valeur")
         verifie(con.execute(
             "SELECT COUNT(*) FROM v_effort_recherche").fetchone()[0] >= 1,
             "v_effort_recherche expose le bulletin, trié par effort décroissant")
