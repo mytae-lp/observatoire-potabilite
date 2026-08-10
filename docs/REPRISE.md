@@ -800,3 +800,115 @@ Le chiffre à la date, 219, était juste ; le contrefactuel ne l'était pas.
 3. **`organoleptique` est une famille nouvelle** (turbidité, coloration), sans
    effet sur le calcul mais nouvelle au vocabulaire.
 4. L'anthraquinone reste **le dossier bloquant** du §10.2, point 1.
+
+
+---
+
+## 13. Mise à jour du 10 août 2026, après-midi — ÉTAT ACTUEL
+
+**Version publiée : `435b9a089f1d`**, figée le 10 août 2026 sur 3 193 bulletins.
+Le corpus n'a pas bougé de la journée : **aucun prélèvement nouveau**. Tout ce
+qui suit est un déplacement de grille ou de méthode.
+
+### 13.1 Les chiffres à publier
+
+| | Eure-et-Loir | Tarn |
+|---|---|---|
+| bulletins complets | 1 611 | 1 575 |
+| **conformes 2026 avec bascule** | **260** | **100** |
+| **conformes à la date** (§2.10) | **218** | **59** |
+| dépassements applicables | 880 | 251 |
+| — dont sur une **limite** de qualité | 579 | 84 |
+| couverture moyenne | 90,1 % | 93,7 % |
+
+**Ne jamais reprendre un de ces chiffres sans sa version de référentiel.** Le
+chiffre de l'Eure-et-Loir est passé de 280 à 260 en quatre versions dans la
+même journée, sans qu'un seul prélèvement change :
+
+| version | ce qui a changé | 28 |
+|---|---|---|
+| `3a66a7b928d0` | état du matin | 280 / 230 |
+| `2cc3c1a9a6c9` | codes SANDRE renseignés | 274 / 225 |
+| `6c9caf8b87a6` | six lignes de l'arrêté du 11/01/2007 | 262 / 219 |
+| **`435b9a089f1d`** | anthraquinone, libellés de panel | **260 / 218** |
+
+### 13.2 Ce qui a changé dans la méthode
+
+- **La fiche communale ne porte plus aucune prose.** Décision de Yannick :
+  le dérivé et les accroches vers les dossiers de substance, rien d'autre. Le
+  bandeau « lectures dérivées » a disparu avec elle. `redactions.json` (74) et
+  `redactions_proposees.json` (88) sont **conservés et versionnés**, simplement
+  plus affichés ; l'atelier les lit toujours.
+- **Le raisonnement a changé d'étage** : il s'écrit une fois par substance
+  (`sortie/dossier_substance.py` + `dossier_page.py` + la consigne versionnée),
+  se relit une fois, et chaque fiche concernée y renvoie. Quatre dossiers de
+  substance publiés, plus un dossier de panel.
+- **`classe_effort` ne classe plus** : panel de routine / ciblé / intermédiaire
+  / étendu, au lieu de restreinte → exhaustive.
+- **`CLAUDE.md` §2.13 et §2.8** portent le reclassement de pertinence : il
+  déplace deux verdicts, dont un opposable — le « total pesticides ».
+- **L'anthraquinone est au référentiel** (code 2013, `a_verifier`).
+
+### 13.3 L'état matériel
+
+- base **313 Mo**, deux versions figées (`435b9a089f1d` et `6c9caf8b87a6`) —
+  purgée avec `src/purger_versions.py`. **DuckDB ne rend la place qu'en
+  RECOPIANT la base** (`COPY FROM DATABASE`), jamais par `VACUUM` ;
+- site 655 Mo, fiche autonome 134 Mo ;
+- **`data/` et `site/public/` sont exclus de Proton Drive** — plus de verrou
+  ni de fichier renommé depuis ;
+- **42 commits d'avance sur `master`**, aucun dépôt distant.
+
+### 13.4 Avant d'ajouter un département — à lire
+
+1. **La collecte prend le verrou d'écriture de DuckDB pendant deux heures.**
+   Aucun autre processus ne peut ouvrir la base, même en lecture : ni
+   `build_site.py`, ni les tests, ni un dossier de faits.
+2. **Refiger refige TOUT le corpus** et le temps croît avec lui : 20 minutes à
+   3 193 bulletins.
+3. **Les cinq proses seront bloquées par `--verifier`.** Leurs nombres — 794,
+   645, 255, 70 paramètres entrés, 648 communs… — dépendent du corpus entier.
+   C'est le contrôle qui fonctionne, pas une régression : il faut recaler les
+   textes sur les nouveaux dossiers de faits. **Une prose est couplée à une
+   version de référentiel ET à l'étendue du corpus.**
+4. **Le dossier de panel devra être refait** : sa prose dit elle-même que deux
+   départements ne font pas une règle nationale.
+5. **Le barème des LQ change de base** (§2.14) : les fiches publiées affichent
+   un repère périmé jusqu'à republication.
+6. `--termine` **est le seul juge** de la complétude d'une collecte. Le code de
+   sortie 0 et le compteur `[N/N]` ne le sont pas (§10.1).
+
+### 13.5 La séquence complète, dans l'ordre
+
+```bash
+py -X utf8 -u src/fetch_departement.py --dept NN --tous     # ~2 h
+py -X utf8 src/fetch_departement.py --dept NN --termine     # doit rendre 0
+py -X utf8 src/build_db.py
+py -X utf8 -u src/figer.py                                  # ~20 min
+py -X utf8 src/purger_versions.py --faire                   # garde 2 versions
+py -X utf8 sortie/dossier_panel.py                          # dossiers de faits
+py -X utf8 sortie/dossier_substance.py --libelle "..."      # une par substance
+py -X utf8 sortie/dossier_substance.py --verifier           # recaler les proses
+py -X utf8 sortie/dossier_panel.py --verifier
+py -X utf8 -u site/build_site.py                            # ~10 min
+py -X utf8 -u sortie/build_fiche.py                         # ~5 min
+py -X utf8 tests/test_verdict.py && py -X utf8 tests/test_figer.py
+py -X utf8 tests/test_sorties.py                            # les 8 blocs
+```
+
+### 13.6 Ce qui reste ouvert
+
+- **`REG-06` n'est pas archivé** — Légifrance oppose un contrôle anti-robot.
+  Deux règles publiées s'y appuient (turbidité, §2.13) et restent
+  `a_verifier`. **REG-03, lui, est extractible et porte la définition du total
+  pesticides** : la dépendance est réduite, pas levée ;
+- **`CLAUDE.md` fait 607 lignes** pour une cible de 400. Le tri est à refaire :
+  la règle et le pointeur restent, l'argumentaire descend dans `docs/` ;
+- **la fiche autonome pèse 134 Mo** — elle n'est plus « un fichier qu'on peut
+  transmettre », et elle grossira ;
+- **le choix du prochain département n'est pas une question technique** : un
+  voisin de la Beauce rend les nitrates et les métabolites comparables sur un
+  même bassin ; un département de profil très différent teste mieux la
+  robustesse du référentiel. Ce n'est pas la même enquête ;
+- les cinq proses (quatre substances, un panel) sont **PROPOSÉES, à relire** :
+  `py -X utf8 sortie/dossier_substance.py --relire`.
