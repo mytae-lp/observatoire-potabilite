@@ -474,13 +474,22 @@ plafond systématique sur une molécule.**
 `py -X utf8 src/fetch_departement.py --dept 28 --termine` rend **0**.
 Deuxième département complet, après le Tarn. Le corpus double.
 
-**Chiffres relevés contre le référentiel `2cc3c1a9a6c9`** — c'est la version en
-vigueur dans l'arbre de travail, et donc celle à publier. Les chiffres portés
-ici jusqu'au 9 août au soir étaient ceux de `3a66a7b928d0` : ils sont corrigés
-ci-dessous, avec l'ancienne valeur entre parenthèses. **La différence vient
-d'une modification non commitée du référentiel** — ajout de `code_parametre` sur
-37 lignes, qui apparie davantage de mesures. À commiter (cf. §10.2, point 5),
-sinon la version figée n'est pas une version reconstituable.
+**Chiffres relevés contre le référentiel `6c9caf8b87a6`** — figé le 10 août 2026,
+après adoption des six lignes de l'arrêté du 11/01/2007 (§12). C'est la version
+publiée. Trois versions l'ont précédée en deux jours, et **les chiffres de la
+thèse ont bougé à chacune** : c'est la démonstration en acte de ce que le projet
+énonce — un « conforme » dépend de la grille qu'on lui applique, y compris de la
+nôtre.
+
+| version | date | 28 : conformes avec bascule | à la date |
+|---|---|---|---|
+| `3a66a7b928d0` | 9 août | 280 | 230 |
+| `2cc3c1a9a6c9` | 9 août (codes SANDRE, §11) | 274 | 225 |
+| **`6c9caf8b87a6`** | **10 août (six lignes, §12)** | **262** | **219** |
+
+Le Tarn, contre la version publiée : **100 conformes avec bascule, 59 à la
+date** (le 63 du §2 ci-dessus est celui de `3a66a7b928d0`). Les mêmes chiffres
+sont propagés au §2.11 de `CLAUDE.md`.
 
 | | 28 | ensemble de la base |
 |---|---|---|
@@ -488,21 +497,24 @@ sinon la version figée n'est pas une version reconstituable.
 | analysée / rattachée au réseau / non documentée | 177 / 181 / 5 | — |
 | bulletins complets | 1 611 | **3 193** figés |
 | mesures | — | **1 372 988** |
-| couverture moyenne des mesures | **88,7 %** (était 87,9) | — |
-| conformes 2026 **avec bascule** | **274** (était 280) | — |
-| — dont conformes *à la date* avec bascule datée (§2.10) | **225** (était 230) | — |
+| couverture moyenne des mesures | **90,1 %** | — |
+| conformes 2026 **avec bascule** | **262** | — |
+| — dont conformes *à la date* avec bascule datée (§2.10) | **219** | — |
 | bascules cumulées | 502 | — |
-| bulletins non conformes **à la date** | **397** sur 1 611, soit 24,6 % | — |
+| bulletins non conformes **à la date** | **411** sur 1 611, soit 25,5 % | — |
+| — dont sur une **limite** de qualité | 575 dépassements sur 876 | — |
 | cache brut `data/brut/28/` | 1 611 bulletins, 35,2 Mo | — |
-| libellés sans aucun seuil | — | **157** (était 163 ; 118 avant le 28) |
+| libellés listés sans seuil | — | **150** (163 → 157 → 150) |
 
 Collecte en deux temps : 128,2 min pour 360 communes (21,4 s/commune — plus
 rapide que les 35,2 s du Tarn), puis 0,7 min pour les 4 dernières.
 
-**Le chiffre à publier est 274, et le chiffre prudent est 225** (§2.10) : c'est
+**Le chiffre à publier est 262, et le chiffre prudent est 219** (§2.10) : c'est
 le second qui se compare à la conclusion de l'ARS. Les deux se recalculent avec
 `select version_referentiel, count(*) ... from analyses_figees` — et se
 revérifient après toute retouche du référentiel, puisqu'ils en dépendent.
+**Ne jamais reprendre un de ces chiffres sans sa version de référentiel** : ils
+ont changé trois fois en deux jours.
 
 ### 10.1 Quatre communes perdues par le journal, pas par la collecte
 
@@ -526,20 +538,22 @@ systématiquement après toute collecte départementale.
 
 ### 10.2 Ce qui attend, avant toute publication du 28
 
-1. **157 libellés sans aucun seuil de comparaison** (118 avec le Tarn seul).
-   **Relecture faite le 9 août 2026 : `docs/AUDIT_NON_APPARIES.md`.** Elle
-   conclut que le compte n'est pas un compte d'angles morts — l'essentiel est
-   de la physico-chimie sans seuil sanitaire — mais qu'il reste **deux dossiers
-   bloquants** avant de publier le 28 : l'anthraquinone, même code SANDRE et
-   même CAS sous deux libellés dont un seul est noté, et six paramètres de
-   l'arrêté du 11/01/2007 absents du référentiel (turbidité, COT, fer,
-   manganèse, ammonium, coloration). Rien ne se publie sur ces paramètres-là
-   tant que ce n'est pas instruit.
-2. **Ne pas comparer les 274 cas du 28 aux 109 du Tarn** sans afficher
+1. **157 libellés listés par `v_parametres_non_apparies`** (163 avant les
+   corrections du §11 ; 118 avec le Tarn seul). Inventaire libellé par libellé :
+   `data/etudes/parametres_non_apparies_2026-08-09.md`, qui fait foi.
+   **Relecture du 9 août au soir : `docs/AUDIT_NON_APPARIES.md`** — elle porte
+   ce que l'inventaire ne dit pas : ce qui reste à décider, et dans quel ordre.
+   Trois conclusions : le compte **n'est pas** un compte d'angles morts ;
+   la vue **surcompte** les libellés qui portent une référence déclarée et sont
+   donc bel et bien comparés — le compte honnête est **143 libellés, 6,7 % du
+   corpus**, contre 150 affichés. Les **six lignes de l'arrêté du 11/01/2007
+   ont été adoptées le 10 août** (fer, manganèse, ammonium, COT, coloration,
+   turbidité) : voir §12. **Reste bloquante l'anthraquinone** — même code SANDRE
+   et même CAS sous deux libellés, dont un seul est noté, 39 mesures toutes
+   quantifiées au-dessus de 0,1 µg/L, dans 22 communes.
+2. **Ne pas comparer les 262 cas du 28 aux 100 du Tarn** sans afficher
    l'effort de recherche de chacun (§2.11). Les deux panels ne sont pas les
-   mêmes, et la couverture non plus — **88,7 % contre 92,6 %** (le couple
-   87,9 / 91,8 cité au §2.11 de `CLAUDE.md` est celui de l'ancien référentiel,
-   à corriger là-bas une fois la modification commitée).
+   mêmes, et la couverture non plus — **90,1 % contre 93,7 %**.
 3. **Publier reste un geste séparé.** `tests/test_sorties.py` échouera tant
    que les communes couvertes n'ont pas leur page — c'est le contrôle qui
    fonctionne, pas une régression (§8quater bis).
@@ -549,11 +563,8 @@ systématiquement après toute collecte départementale.
    l'intégration qui reste à vérifier. **Au 9 août au soir, `data/dossiers/` ne
    contient plus que `reponses/`, vide** : les dossiers ont été consommés, et
    aucun dossier n'existe pour le 28.
-5. **Commiter la modification du référentiel** (37 lignes, ajout de
-   `code_parametre`). Tant qu'elle ne l'est pas, `2cc3c1a9a6c9` n'est pas une
-   version reconstituable depuis l'historique, alors que 3 193 bulletins sont
-   figés contre elle — exactement ce que la fonction `version_referentiel()`
-   documente comme cas admis mais transitoire.
+5. ~~Commiter la modification du référentiel~~ — **fait**, commit `550713a`.
+   `2cc3c1a9a6c9` est reconstituable depuis l'historique.
 6. **Cinq bulletins où notre verdict à la date contredit la conclusion de
    l'ARS** — Alluyes (19/04/2024), Gilles (04/08/2025), Ymeray (20/02/2025),
    Saint-Bomer (12/01/2026), Cloyes-les-Trois-Rivières (12/09/2022). Quatre sur
@@ -721,3 +732,71 @@ Un seul signalement non bloquant, connu : le « charbon actif » de Vourles
    faisant échouer un figeage. Yannick a suspendu la synchronisation. La base
    n'est pas versionnée et se reconstruit (`--reingerer`) : elle n'a rien à faire
    dans un dossier synchronisé.
+
+
+---
+
+## 12. Mise à jour du 10 août 2026 — les six lignes de l'arrêté, et 262/219
+
+Décision de Yannick : **adopter les six paramètres de l'annexe I de l'arrêté du
+11 janvier 2007** qui manquaient au référentiel, refiger, republier.
+Instruction, extraits littéraux et choix de modélisation :
+`docs/AUDIT_NON_APPARIES.md` §4.
+
+**Version publiée : `6c9caf8b87a6`**, figée le 10 août 2026 sur 3 193 bulletins.
+
+| ligne ajoutée | valeur | nature | source |
+|---|---|---|---|
+| Fer (code 1393) | 200 µg/L | reference | REG-02\|REG-06 |
+| Manganese (1394) | 50 µg/L | reference | REG-02\|REG-06 |
+| Ammonium (1335) | 0,10 mg/L — conditionnel 0,50 si origine naturelle démontrée en eaux souterraines | reference | REG-02\|REG-06 |
+| Carbone organique total (1841) | 2,0 mg/L | reference | REG-02\|REG-06 |
+| Coloration (1309) | 15 mg/L (Pt) | reference | REG-02\|REG-06 |
+| Turbidite (1295) | 1,0 NFU — conditionnel 2,0 au robinet | reference, `a_verifier` | REG-02\|REG-06 |
+
+Les six valeurs sont **identiques dans les deux grilles** — vérifié sur la
+version consolidée et sur celle en vigueur au 19/12/2015 — donc `seuil_2016 =
+seuil_2026`, aucune date d'applicabilité, **aucune bascule nouvelle**.
+
+### 12.1 Ce que ça change, mesuré
+
+| | avant (`2cc3c1a9a6c9`) | après (`6c9caf8b87a6`) |
+|---|---|---|
+| 28 — conformes 2026 avec bascule | 274 | **262** |
+| 28 — conformes à la date (§2.10) | 225 | **219** |
+| 28 — couverture moyenne | 88,7 % | **90,1 %** |
+| 28 — bulletins non conformes à la date | 397 | **411** |
+| 81 — conformes avec bascule / à la date | 109 / 59 | **100 / 59** |
+| 81 — couverture moyenne | 92,6 % | **93,7 %** |
+| libellés listés sans seuil | 157 | **150** |
+
+Les 12 bulletins que le 28 perd sont **9 turbidités et 3 COT**. Aucun n'est un
+dépassement de limite de qualité : sur les 876 dépassements applicables du 28,
+**575 portent sur une limite**, le reste sur une référence ou une valeur de
+vigilance — c'est ce que `nature_seuil` sert à dire (§11.3).
+
+### 12.2 Une prévision fausse, et ce qu'elle apprend
+
+L'audit annonçait **268**. Le refigeage rend **262**. La prévision appliquait le
+seuil conditionnel de 2,0 NFU à la turbidité, or `depasse_2026` compare à
+`seuil_2026` — 1,0 NFU — et **seul `depasse_applicable` applique la condition**.
+Le chiffre à la date, 219, était juste ; le contrefactuel ne l'était pas.
+
+> **L'asymétrie du §2.13 protège le verdict daté, pas les deux contrefactuels.**
+> Une estimation d'effet faite à la main sur `nb_depasse_2026` doit reproduire
+> cette différence, ou se taire. Ne jamais annoncer un chiffre de sortie avant
+> de l'avoir refigé.
+
+### 12.3 Réserves ouvertes
+
+1. **`REG-06` n'a toujours pas de fichier sur le disque.** Les extraits ont été
+   lus sur Légifrance en ligne. La turbidité reste en `fiabilite = a_verifier`,
+   et doit être signalée comme telle dans toute sortie publique (§2.7).
+2. **Le code 1295 porte deux objets réglementaires** — une limite déclarée de
+   1,0 NFU sur 247 mesures, une référence de 0,5 ou 2 NFU sur 2 729. C'est le
+   motif qui avait fait retirer les codes du sélénium et des chlorates (§11.2).
+   L'appariement a été maintenu ; conséquence : deux mesures à 1,3 NFU passent
+   d'un dépassement de limite à un dépassement de référence.
+3. **`organoleptique` est une famille nouvelle** (turbidité, coloration), sans
+   effet sur le calcul mais nouvelle au vocabulaire.
+4. L'anthraquinone reste **le dossier bloquant** du §10.2, point 1.

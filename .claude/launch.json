@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vitrine",
+      "runtimeExecutable": "py",
+      "runtimeArgs": ["-X", "utf8", "-m", "http.server", "8000", "--directory", "site/public"],
+      "port": 8000
+    },
+    {
+      "name": "atelier",
+      "runtimeExecutable": "py",
+      "runtimeArgs": ["-X", "utf8", "atelier/atelier.py", "--port", "9000"],
+      "port": 9000
+    }
+  ]
+}
