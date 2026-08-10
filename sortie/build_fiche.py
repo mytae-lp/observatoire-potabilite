@@ -414,7 +414,7 @@ def non_documentees(con, version, insees=None):
 
 
 def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
-                 proposee=None):
+                 proposee=None, accroches=None):
     """Une ligne de `analyses_figees` -> le dictionnaire attendu par le gabarit.
 
     `redaction` est la prose de Yannick, `proposee` celle du modèle ; la part
@@ -545,7 +545,8 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
         "hero": {
             "niveau": niv,
             "bascules": [{"p": b[0], "v": _nb(b[1]), "u": b[2] or "",
-                          "s16": _nb(b[3]), "s": _nb(b[4]), "datee": bool(b[5])}
+                          "s16": _nb(b[3]), "s": _nb(b[4]), "datee": bool(b[5]),
+                          "ds": (accroches or {}).get(b[0])}
                          for b in IND.bascules_en_tete(con, a, version)],
             # Le dépassement porte lui aussi sa jauge : voir de combien une
             # mesure franchit son seuil, et où se situait celui de 2016, est
@@ -556,7 +557,13 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
                               # La nature de ce qui est franchi : une limite
                               # sanitaire et une valeur indicative ne se
                               # peignent pas de la même couleur.
-                              "nat": d[6]}
+                              "nat": d[6],
+                              # L'accroche vers le dossier de la substance,
+                              # quand il en existe un : deux phrases fabriquées
+                              # à partir des chiffres de CE bulletin, et un
+                              # lien. Le raisonnement, lui, n'est écrit qu'une
+                              # fois — il ne se recopie pas dans chaque fiche.
+                              "ds": (accroches or {}).get(d[0])}
                              for d in IND.depassements_en_tete(con, a, version)],
             "natures": IND.natures_du_bulletin(con, a, version),
             "nb_bascules": a["nb_bascules"],

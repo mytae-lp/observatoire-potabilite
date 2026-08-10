@@ -301,7 +301,12 @@ function renderHero(d){
             + "elle en vaut " + (Math.round(f16 * 10) / 10).toString().replace(".", ",")
             + " fois.";
         }
-        if(c.g === "2016") n += " C'est la grille de 2016 qui s'appliquait encore à cette date.";
+        /* « la grille de 2016 » est un nom de colonne, pas une phrase pour le
+           lecteur : pour un métabolite, la valeur de 0,1 µg/L vient de
+           l'instruction de décembre 2020, et l'appeler « la norme de 2016 »
+           fabriquerait un passé réglementaire (§2.12). */
+        if(c.g === "2016") n += " C'est la valeur applicable ce jour-là, "
+          + "antérieure au reclassement de ce paramètre.";
         /* `txt` pose du TEXTE — les chiffres et les unités viennent de la base
            et n'ont rien à faire dans du HTML. La phrase sur la nature du seuil
            est de la prose pure : elle passe par `el`, dans son propre bloc. */
@@ -313,6 +318,25 @@ function renderHero(d){
           carte.appendChild(el("div", "cas-n", "C'est une <b>référence de qualité</b> — "
             + "goût, aspect, bon fonctionnement — <b>pas une limite sanitaire</b>."));
         }
+      }
+
+      /* L'accroche vers le dossier de la substance. DEUX phrases, fabriquées
+         avec la valeur de CE bulletin et la date du référentiel — le
+         raisonnement, lui, est écrit une seule fois et vit sur sa page. Le
+         recopier ici, dans des dizaines de fiches, produirait des pages qui
+         disent toutes la même chose : le lecteur qui en ouvre deux cesse de
+         croire la troisième. */
+      if(c.ds){
+        const b = el("div", "cas-n");
+        b.innerHTML = "<b>Ce paramètre a changé de règle.</b> La valeur applicable "
+          + "est passée de " + c.ds.a + " à " + c.ds.b + " " + c.ds.un
+          + " le " + c.ds.d + ". La mesure, elle, n'a pas changé.";
+        const l = document.createElement("a");
+        l.href = c.ds.u;   /* déjà relative à la page, préfixée à la construction */
+        l.textContent = "Ce que cette substance démontre à l'échelle du corpus →";
+        b.appendChild(document.createElement("br"));
+        b.appendChild(l);
+        carte.appendChild(b);
       }
       liste.appendChild(carte);
     });

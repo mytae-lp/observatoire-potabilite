@@ -1,0 +1,136 @@
+{
+  "chlorothalonil-r471811": {
+    "libelle_parametre": "Chlorothalonil R471811",
+    "titre": "Ce que la même eau vaut de part et d'autre du 29 avril 2024",
+    "chapeau": "Une substance, une date, et deux verdicts opposés pour un même résultat. C'est le cas le plus net que ce corpus contienne. Ce qui a changé le 29 avril 2024 n'est ni la molécule, ni sa concentration dans l'eau : c'est la valeur à laquelle on la compare.",
+    "sections": [
+      {
+        "t": "Ce qui est mesuré",
+        "x": "Le chlorothalonil R471811 est cherché dans 1 020 analyses complètes sur les 3 193 que compte le corpus — il n'est donc pas cherché partout, et cette page ne dit rien des bulletins qui ne le portent pas. Là où il est cherché, il est quantifié une fois sur deux : 511 mesures, soit 50,1 %, dans 155 communes sur les 260 concernées. La valeur la plus haute relevée est de 4,2 µg/L, la médiane des quantifications de 0,44 µg/L. Il entre au programme d'analyse tardivement, et pas partout en même temps : juin 2022 dans le Tarn, septembre 2023 en Eure-et-Loir. Avant ces dates, le corpus n'en dit rien — ni présence, ni absence. Ce n'est pas une eau qui était propre : c'est une substance qu'on ne cherchait pas."
+      },
+      {
+        "t": "La convention, et le jour où elle s'est déplacée",
+        "x": "Jusqu'au 28 avril 2024, la valeur applicable à ce métabolite était de 0,1 µg/L. Depuis le 29 avril 2024, elle est de 0,9 µg/L — neuf fois plus haute — à la suite de l'avis 2023-SA-0142-a, qui l'a classé métabolite non pertinent. Deux précisions que rien ne permet de sauter. La première : 0,9 µg/L n'est pas une limite de qualité, c'est une valeur de vigilance, et elle n'a pas la même portée que le seuil qu'elle remplace. La seconde : la molécule mesurée n'a pas changé ce jour-là, ni sa concentration dans l'eau. Seule la façon de la noter a changé."
+      },
+      {
+        "t": "Ce que ce déplacement produit",
+        "x": "268 analyses, dans 96 communes, dépassaient la valeur applicable avant le reclassement et ne dépassent pas celle d'après. Rapporté à ce que chaque département compte de tels cas, toutes substances confondues : 221 sur 502 en Eure-et-Loir, soit 44 % ; 46 sur 135 dans le Tarn, soit 34,1 %. Presque une bascule sur deux, en Eure-et-Loir, tient à cette seule substance et à cette seule date. Le déplacement n'efface pas tout : 151 mesures dépassent aussi la valeur d'aujourd'hui, et 221 constituaient un dépassement à la date de leur prélèvement, dans 88 communes."
+      },
+      {
+        "t": "Dix jours",
+        "x": "Cinq analyses prélevées à moins de deux semaines de la date de bascule suffisent à montrer ce que le reste démontre par le nombre. Alluyes, le 19 avril 2024 : 0,94 µg/L, dix jours trop tôt. Le même prélèvement, effectué dix jours plus tard, aurait été conforme — la valeur mesurée passant sous les 0,9 µg/L entrés en vigueur entre-temps. Cloyes-les-Trois-Rivières est dans le même cas six jours avant, à 0,969 µg/L. Et la frontière n'absout pas tout : Châteaudun, quatre jours après le reclassement, dépasse encore avec 1,792 µg/L, comme Béthonvilliers l'aurait fait de toute façon à 2,572 µg/L. Le déplacement d'un seuil ne rend pas conforme n'importe quelle eau — il rend conformes celles qui se situaient entre l'ancienne valeur et la nouvelle."
+      }
+    ],
+    "limites": [
+      "Cette page ne compare pas les territoires entre eux. Le Tarn quantifie dans 19,1 % de ses analyses, l'Eure-et-Loir dans 88,3 % — mais les laboratoires y descendent à la même finesse, une limite de quantification médiane de 0,02 µg/L des deux côtés. L'écart n'est donc pas un artefact d'instrument. Ce qu'il est, ces données ne le disent pas.",
+      "Elle ne dit rien d'avant l'entrée au programme d'analyse : juin 2022 dans le Tarn, septembre 2023 en Eure-et-Loir. Avant, c'est un indéterminé, ni absence ni présence.",
+      "Aucune mesure n'était hors de portée du laboratoire sur cette substance : les limites de quantification rencontrées restent sous les valeurs de comparaison.",
+      "Quatre bulletins portent un écart de lecture : la conclusion sanitaire n'y prononce aucune non-conformité alors que le résultat dépasse la valeur applicable ce jour-là. Ces cas sont signalés, non tranchés.",
+      "Elle ne dit pas s'il faut faire quelque chose. Ce n'est pas son objet. Les informations sur l'eau distribuée relèvent de l'agence régionale de santé, de la mairie et du rapport annuel du service."
+    ],
+    "manques": [
+      "La part du total des pesticides analysés portée par ce seul métabolite n'est pas dans le dossier de faits : à Alluyes le total déclaré et la valeur du R471811 coïncident, ce qui mériterait une requête dédiée avant d'être écrit.",
+      "Le dossier ne dit pas si un métabolite déclaré non pertinent reste compté dans le total réglementaire des pesticides. C'est une question de texte, pas de base."
+    ]
+  },
+
+  "esa-metolachlore": {
+    "libelle_parametre": "ESA metolachlore",
+    "titre": "Paulinet, 0,789 puis 0,793 µg/L — quatre mois d'écart, deux verdicts",
+    "chapeau": "Le même point d'eau, deux prélèvements, deux concentrations presque identiques : 0,789 µg/L le 21 septembre 2022, 0,793 µg/L le 27 janvier 2023. Le premier est un dépassement, le second est conforme. Entre les deux, le 30 septembre 2022, la valeur applicable est passée de 0,1 à 0,9 µg/L.",
+    "sections": [
+      {
+        "t": "Ce qui est mesuré",
+        "x": "L'ESA métolachlore est le métabolite le plus largement cherché de ce corpus : 2 900 analyses complètes sur les 3 193 qu'il contient, dans 307 communes. Il est quantifié dans 631 d'entre elles, soit 21,8 %, et dans 139 communes. La valeur la plus haute relevée est de 2,194 µg/L, la médiane des quantifications de 0,05 µg/L — l'essentiel des mesures se situe donc très bas, et quelques-unes très haut. Il est suivi depuis le 8 janvier 2016 dans le Tarn et le 11 janvier 2018 en Eure-et-Loir."
+      },
+      {
+        "t": "La convention, et le jour où elle s'est déplacée",
+        "x": "Jusqu'au 29 septembre 2022, la valeur applicable était de 0,1 µg/L. Depuis le 30 septembre 2022, elle est de 0,9 µg/L, à la suite de l'avis 2021-SA-0205 qui a classé ce métabolite non pertinent. Cette valeur de 0,9 µg/L est une valeur de vigilance, sans portée opposable : la franchir n'est pas une non-conformité. Contrairement à d'autres métabolites reclassés, celui-ci était mesuré bien avant sa propre date : le corpus contient 1 584 mesures antérieures au 30 septembre 2022. Le déplacement s'applique donc à une substance déjà suivie depuis six ans, et c'est ce qui rend la comparaison possible."
+      },
+      {
+        "t": "Ce que ce déplacement produit",
+        "x": "127 analyses, dans 32 communes, dépassaient la valeur applicable avant le reclassement et ne dépassent pas celle d'après. Le poids est très inégal d'un département à l'autre : 77 sur les 135 bascules du Tarn, soit 57 % — plus de la moitié de tout ce que ce département compte de cas, toutes substances confondues — contre 49 sur 502 en Eure-et-Loir, soit 9,8 %. Le nombre de dépassements à la date, lui, s'arrête net : 15 en 2018, 16 en 2021, 11 en 2022, puis 1 en 2023 et 0 en 2025. Ce n'est pas une eau qui s'améliore en un an, c'est une règle qui change."
+      },
+      {
+        "t": "Paulinet, deux fois",
+        "x": "Le 21 septembre 2022, à Paulinet, dans le Tarn : 0,789 µg/L, neuf jours avant le reclassement, comparé à 0,1 µg/L — dépassement. Le 27 janvier 2023, au même endroit : 0,793 µg/L, quatre µg/L de plus à la troisième décimale, comparé à 0,9 — conforme. La même commune, la même eau à quelques millièmes près, et deux verdicts opposés. Cinq mois plus tôt, le 21 avril 2022, le même point d'eau était mesuré à 0,86 µg/L : dépassement également. Cloyes-les-Trois-Rivières, dix-huit jours avant la date, est dans le même cas à 0,117 µg/L. Et le déplacement n'absout pas tout : 8 mesures du corpus dépassent aussi la valeur d'aujourd'hui, la plus haute atteignant 2,194 µg/L."
+      }
+    ],
+    "limites": [
+      "Cette page ne compare pas les territoires entre eux. Le Tarn quantifie dans 19,3 % de ses analyses, l'Eure-et-Loir dans 24,7 %, avec une limite de quantification médiane de 0,02 µg/L des deux côtés. L'écart de fréquence est faible, celui du poids des bascules ne l'est pas — 57 % contre 9,8 % — et ces données ne disent pas pourquoi.",
+      "Elle ne dit rien d'avant l'entrée au programme d'analyse : janvier 2016 dans le Tarn, janvier 2018 en Eure-et-Loir. Avant, c'est un indéterminé, ni absence ni présence.",
+      "Aucune mesure n'était hors de portée du laboratoire sur cette substance.",
+      "Aucun écart de lecture n'a été relevé : sur cette substance, notre verdict à la date et les conclusions sanitaires ne se contredisent nulle part dans le corpus.",
+      "Elle ne dit pas s'il faut faire quelque chose. Ce n'est pas son objet. Les informations sur l'eau distribuée relèvent de l'agence régionale de santé, de la mairie et du rapport annuel du service."
+    ],
+    "manques": [
+      "Le dossier donne les valeurs de Paulinet mais pas le nom de l'installation qui les produit : impossible de vérifier depuis ce seul dossier qu'il s'agit bien du même point d'eau, et non de deux points d'une même commune."
+    ]
+  },
+
+  "esa-metazachlore": {
+    "libelle_parametre": "ESA metazachlore",
+    "titre": "Une substance qui dépasse quinze fois par an, sans qu'aucun dépassement ne soit prononcé",
+    "chapeau": "Depuis le 30 janvier 2019, l'ESA métazachlore est mesuré chaque année au-dessus de la valeur qui s'appliquait la veille — entre 11 et 21 fois selon l'année. Aucun de ces résultats n'est un dépassement : la règle a changé, pas les concentrations.",
+    "sections": [
+      {
+        "t": "Ce qui est mesuré",
+        "x": "L'ESA métazachlore est cherché dans 2 877 analyses complètes sur les 3 193 du corpus, dans 307 communes, et quantifié dans 642 d'entre elles — 22,3 % — réparties sur 137 communes. La valeur la plus haute relevée est de 1,501 µg/L, la médiane des quantifications de 0,055 µg/L. Il est suivi depuis le 8 janvier 2016 dans le Tarn et le 11 janvier 2018 en Eure-et-Loir."
+      },
+      {
+        "t": "La convention, et le jour où elle s'est déplacée",
+        "x": "Jusqu'au 29 janvier 2019, la valeur applicable était de 0,1 µg/L. Depuis le 30 janvier 2019, elle est de 0,9 µg/L, à la suite de l'avis 2015-SA-0252 qui a classé ce métabolite non pertinent. C'est le plus ancien reclassement de ce corpus, et le corpus contient 479 mesures antérieures à cette date."
+      },
+      {
+        "t": "Ce que ce déplacement produit",
+        "x": "140 analyses, dans 42 communes, dépassaient la valeur applicable avant le reclassement et ne dépassent pas celle d'après — 133 sur les 502 bascules de l'Eure-et-Loir, soit 26,5 %, et 7 sur 135 dans le Tarn, soit 5,2 %. Ce qui se lit le mieux ici, c'est la répartition dans le temps. Avant 2019 : 3 dépassements prononcés en 2016, 21 en 2018. Après : plus aucun, sauf un seul en 2026. Et pourtant les analyses au-dessus de l'ancienne valeur continuent, entre 11 et 21 par an, sans discontinuer. La ligne des dépassements s'éteint en janvier 2019 ; la ligne des concentrations, elle, ne bouge pas."
+      },
+      {
+        "t": "Ce que l'administration en dit, et ce qu'elle en disait",
+        "x": "Les conclusions sanitaires de ce corpus nomment cette substance de deux manières qui ne disent pas la même chose. En octobre 2020 : « Eau de qualité chimique non conforme aux références de qualité en raison du dépassement des limites réglementaires pour le paramétre ESA-metazachlore. » En février 2021 : « paramètre non soumis aux limites de qualité du code de la santé publique (mais intégré au contrôle sanitaire des eaux) ». Les deux formulations coexistent dans le même corpus, à quelques mois d'écart. Elles décrivent la position d'un métabolite reclassé : encore mesuré, plus opposable. Le corpus ne contient par ailleurs aucun bulletin où notre verdict à la date contredirait une conclusion sanitaire sur cette substance."
+      }
+    ],
+    "limites": [
+      "Cette page ne compare pas les territoires entre eux. Le Tarn quantifie dans 4,4 % de ses analyses, l'Eure-et-Loir dans 44,2 %, avec une limite de quantification médiane de 0,02 µg/L des deux côtés : l'écart n'est donc pas un artefact d'instrument. Ce qu'il est, ces données ne le disent pas.",
+      "Elle ne dit rien d'avant l'entrée au programme d'analyse : janvier 2016 dans le Tarn, janvier 2018 en Eure-et-Loir.",
+      "Une seule mesure du corpus dépasse aussi la valeur d'aujourd'hui, la plus haute atteignant 1,501 µg/L : le déplacement du seuil n'absout donc pas tout, mais presque.",
+      "Aucune mesure n'était hors de portée du laboratoire sur cette substance.",
+      "Elle ne dit pas s'il faut faire quelque chose. Ce n'est pas son objet. Les informations sur l'eau distribuée relèvent de l'agence régionale de santé, de la mairie et du rapport annuel du service."
+    ],
+    "manques": []
+  },
+
+  "cga-369873": {
+    "libelle_parametre": "CGA 369873",
+    "titre": "Une substance entrée au programme d'analyse après son propre reclassement",
+    "chapeau": "Le CGA 369873 a été reclassé le 15 mars 2019. La première fois que ce corpus le mesure, c'est le 4 janvier 2022 — près de trois ans plus tard. Aucun prélèvement n'a donc jamais été noté contre l'ancienne valeur : ici, le réétalonnage ne s'observe pas, il se déduit.",
+    "sections": [
+      {
+        "t": "Ce qui est mesuré",
+        "x": "Le CGA 369873 est cherché dans 739 analyses complètes sur les 3 193 du corpus, dans 158 communes — soit beaucoup moins largement que les autres métabolites de cette série. Là où il est cherché, il est quantifié plus d'une fois sur deux : 404 mesures, soit 54,7 %, dans 96 communes. La valeur la plus haute relevée est de 0,485 µg/L, la médiane des quantifications de 0,052 µg/L. À une exception près, le corpus ne le connaît qu'en Eure-et-Loir : 737 de ses 739 mesures y ont été faites."
+      },
+      {
+        "t": "La convention, et une date sans effet observable",
+        "x": "Jusqu'au 14 mars 2019, la valeur applicable était de 0,1 µg/L. Depuis le 15 mars 2019, elle est de 0,9 µg/L, à la suite de l'avis 2019-SA-0228. Mais la première mesure du corpus date du 4 janvier 2022. Personne, dans ce corpus, n'a vu son eau changer de verdict du jour au lendemain sur cette substance : quand on a commencé à la chercher, la règle nouvelle était déjà en place depuis près de trois ans."
+      },
+      {
+        "t": "Ce que ce déplacement produit — et ce qu'il ne produit pas",
+        "x": "63 analyses, dans 29 communes, dépassent l'ancienne valeur sans dépasser la nouvelle : 12,5 % des 502 bascules de l'Eure-et-Loir. Mais ces 63 bascules sont entièrement contrefactuelles. Elles répondent à une question hypothétique — qu'aurait valu ce résultat sous une règle qui n'était déjà plus en vigueur ? — et non à ce qu'a vécu un habitant. Le nombre de dépassements prononcés à la date du prélèvement est de zéro, sur les cinq années documentées. Aucune mesure du corpus n'atteint la valeur applicable aujourd'hui, la plus haute s'arrêtant à 0,485 µg/L."
+      },
+      {
+        "t": "Pourquoi cette page existe quand même",
+        "x": "Une substance sans un seul dépassement mérite une page pour deux raisons. D'abord parce qu'elle est quantifiée dans plus d'une analyse sur deux là où on la cherche, ce qui en fait l'une des plus régulièrement retrouvées du corpus. Ensuite parce qu'elle montre la limite de l'indicateur central du projet : une bascule ne raconte quelque chose de vécu que si la substance était mesurée des deux côtés de sa date. Ici elle ne l'était pas, et le dire fait partie du travail. Aucune conclusion sanitaire du corpus ne nomme cette substance."
+      }
+    ],
+    "limites": [
+      "Aucun cas de part et d'autre de la date de reclassement n'est montrable : le corpus ne contient aucune mesure antérieure au 15 mars 2019.",
+      "Elle ne dit rien d'avant le 4 janvier 2022, date de la première mesure. Avant, c'est un indéterminé, ni absence ni présence.",
+      "Elle ne compare aucun territoire : 737 des 739 mesures viennent d'un seul département, l'Eure-et-Loir, où le taux de quantification est de 54,8 % pour une limite de quantification médiane de 0,02 µg/L. Il n'y a pas de second terme à comparer.",
+      "Aucune mesure n'était hors de portée du laboratoire sur cette substance.",
+      "Elle ne dit pas s'il faut faire quelque chose. Ce n'est pas son objet. Les informations sur l'eau distribuée relèvent de l'agence régionale de santé, de la mairie et du rapport annuel du service."
+    ],
+    "manques": [
+      "Le dossier ne dit pas de quelle molécule mère ce métabolite dérive, alors que son code CGA le suggère : ce serait une information utile au lecteur, et elle ne peut venir que d'une source réglementaire, pas de la base."
+    ]
+  }
+}
