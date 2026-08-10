@@ -549,6 +549,78 @@ la référence de qualité des chlorites, 0,20 mg/L, a expiré le 31 décembre 2
 sans remplacement connu. Elle est documentée dans `statut_2026`, pas
 calculée.
 
+### Un reclassement déplace deux choses, pas une
+
+*(établi le 10 août 2026, sur les textes)*
+
+Cinquième cas, de même nature que les quatre du tableau : ce qui commande le
+verdict n'est pas la valeur mesurée. La condition n'est ici ni le procédé ni la
+ressource, c'est le **statut de la substance** — et elle joue sur deux verdicts
+à la fois, dont un seul est opposable.
+
+**1. Le « total pesticides » est une somme de limites de qualité.** L'arrêté du
+11 janvier 2007 modifié, dans sa rédaction issue de l'arrêté du 30 décembre
+2022 — annexe I, « Limites et références de qualité, valeurs indicatives et
+valeurs de vigilance des eaux destinées à la consommation humaine » — fixe le
+total à 0,50 µg/L et le définit comme « la somme de tous les pesticides
+individuels quantifiés » [REG-06]. L'instruction DGS/EA4/2020/177 porte la même
+définition : « Par "total pesticides", on entend dans la réglementation
+relative aux EDCH la somme de tous les pesticides individualisés détectés et
+quantifiés » [REG-05]. Ce que recouvre « pesticides » est borné dans la même
+note : les familles organiques énumérées « ainsi que leurs métabolites,
+produits de dégradation et de réaction **pertinents** ». Un métabolite n'entre
+donc dans le périmètre de la somme que s'il est pertinent — « jugé pertinent
+[…] s'il y a lieu de considérer qu'il possède des propriétés intrinsèques
+comparables à celles de la substance mère en ce qui concerne son activité cible
+pesticide ou qu'il fait peser […] un risque sanitaire pour les consommateurs »
+[REG-06].
+
+**2. Les non pertinents relèvent d'une autre partie du même texte.** Partie III
+de l'annexe I, « Valeurs indicatives » : « Métabolites de pesticides non
+pertinents, par substance individuelle | 0,9 | µg/L », après évaluation de
+l'ANSES [REG-06]. Une valeur indicative n'est pas une limite de qualité : elle
+ne fonde ni non-conformité ni dérogation. L'ARS Bourgogne-Franche-Comté le dit
+dans les mêmes termes : « Les métabolites non pertinents ne sont pas soumis à
+la limite de qualité de 0,1 µg/l, et ne sont pas inclus dans le paramètre somme
+des pesticides » [REG-08].
+
+**3. Donc un reclassement fait tomber deux verdicts.** Le jour où un métabolite
+passe de pertinent à non pertinent, il quitte **sa propre limite** — 0,1 µg/L,
+opposable — pour une valeur indicative de 0,9 µg/L qui ne l'est pas ; et il
+quitte **le dénominateur du total**. À composition d'eau strictement inchangée,
+deux lignes du bulletin changent de sens le même jour. Le §2.10 s'applique
+entier : le verdict se rend à la date du prélèvement, le reclassement n'est pas
+rétroactif.
+
+**Ce qu'il faut en faire en sortie.** Une somme « total pesticides » ne se
+compare à rien sans sa date et son périmètre : deux totaux calculés de part et
+d'autre d'un reclassement ne portent pas sur la même liste de substances. Le
+corpus contient des analyses où un métabolite reclassé figure encore dans le
+total : c'est un **écart constaté, de cause inconnue** — somme calculée avant le
+reclassement, chaîne de transmission, périmètre retenu par le laboratoire ; rien
+dans les données ne permet de trancher, et cela ne vaut reproche à personne
+(§2.1). Cela ne dit rien non plus de la qualité de l'eau : cette page décrit ce
+que la norme fait, pas ce que l'eau vaut. Les dénombrements sont dans
+`data/dossiers/SUBSTANCE-chlorothalonil-r471811.md`, qui fait foi — ne pas les
+recopier ici, deux copies d'un chiffre divergent à la première recollecte.
+
+**Fiabilité, au 10 août 2026.** Les citations de l'instruction sont vérifiées
+sur le fichier archivé [REG-05], celle de l'ARS sur la page archivée [REG-08].
+Celles de l'arrêté ont été **lues en ligne, sur un texte non archivé** : le PDF
+consolidé n'a pas pu être téléchargé (Légifrance répond 403), la ligne [REG-06]
+reste `a_verifier` et toute sortie publique qui s'y appuie doit le dire (§2.7).
+Non lus à ce jour, et donc non invoqués ci-dessus : l'annexe I partie B de la
+directive (UE) 2020/2184 [REG-01], le guide « Pesticides et métabolites dans
+les EDCH » de juillet 2024, l'avis du HCSP du 16 janvier 2025. La chaîne
+française suffit à établir les trois points ; elle ne dispense pas de les
+confirmer sur la source européenne avant de la citer.
+
+**Un cas reste ouvert** : celui du métabolite **dont la pertinence n'a pas
+encore été évaluée**. La valeur de 0,9 µg/L de la partie III est attachée à une
+évaluation de l'ANSES, et la règle par défaut de l'instruction (§2.12) range
+l'inconnu du côté pertinent — l'articulation exacte des deux n'a pas été
+vérifiée sur le texte du guide annexé. Ne pas trancher, marquer `a_verifier`.
+
 ---
 
 ## 2.14 « Le plus strict identifié », jamais « le plus strict au monde »
