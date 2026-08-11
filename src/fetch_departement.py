@@ -230,7 +230,47 @@ def figer_departement(dept, db=DB_PATH, verbeux=True):
 
 # ---------------------------------------------------------------------------
 # Rapport de couverture
+#
+# Il lit `analyses_figees`, JAMAIS `v_prelevement_verdict`
+# -------------------------------------------------------
+# Défaut réel, trouvé le 11 août 2026 en recomptant le Rhône. Ce rapport
+# interrogeait `v_prelevement_verdict`, une vue qui suit le référentiel **du
+# jour**. Les chiffres qu'il imprimait n'avaient donc pas de version, et ceux
+# recopiés au journal de reprise sont devenus irreproductibles : le « 295
+# bulletins complets, 155 cas, 52 % » du Rhône partiel n'existe dans AUCUNE
+# version figée — sous `435b9a089f1d` le département porte 17 bulletins
+# complets et 0 cas. Deux jours de raisonnement ont porté sur ce chiffre-là.
+#
+# C'est le §8bis pris en défaut chez nous — « ne jamais recalculer un verdict à
+# la volée : une vue suit le référentiel du jour, une ligne figée dit contre
+# quelle grille elle a été calculée » — et l'obligation 9, « chaque écran porte
+# sa traçabilité ». Un rapport de collecte est un écran comme un autre.
+#
+# Le rapport annonce donc **la version qu'il lit**, et signale quand le
+# référentiel a bougé depuis le dernier figeage : sans cet avertissement, on
+# relève de bonne foi des chiffres périmés.
 # ---------------------------------------------------------------------------
+def _figeage_courant(con, dept):
+    """
+    (version, calcule_le, n) du figeage le plus récent de ce département, ou None.
+
+    On prend le figeage le plus récent **du département**, pas la version
+    courante du référentiel : le rapport doit dire ce qui EST figé, pas ce qui
+    devrait l'être. L'écart entre les deux est précisément ce qu'il signale.
+    """
+    existe = con.execute(
+        "SELECT COUNT(*) FROM information_schema.tables "
+        "WHERE table_name = 'analyses_figees'").fetchone()[0]
+    if not existe:
+        return None
+    return con.execute("""
+        SELECT version_referentiel, MAX(calcule_le) AS le, COUNT(*) AS n
+        FROM analyses_figees WHERE dept = ?
+        GROUP BY version_referentiel
+        ORDER BY le DESC, n DESC LIMIT 1
+    """, [dept]).fetchone()
+
+
 def rapport(dept, db=DB_PATH):
     vu = lire_journal(dept)
     if vu:
@@ -253,19 +293,47 @@ def rapport(dept, db=DB_PATH):
         return
     con = duckdb.connect(db, read_only=True)
     try:
+        fige = _figeage_courant(con, dept)
+        if not fige:
+            print(f"\nen base — aucune analyse figée pour le département {dept}.")
+            print("          Rien n'est publiable et aucun chiffre n'est citable "
+                  "tant que le figeage n'a pas eu lieu :")
+            print(f"          py -X utf8 src/fetch_departement.py --dept {dept} --figer")
+            return
+        version, calcule_le, _n = fige
+
         r = con.execute("""
             SELECT COUNT(*) FILTER (WHERE est_complet),
                    COUNT(*) FILTER (WHERE est_complet AND nb_depasse_2026 = 0
                                     AND nb_bascules > 0),
                    SUM(nb_bascules) FILTER (WHERE est_complet),
                    ROUND(AVG(pct_couverture) FILTER (WHERE est_complet), 1)
-            FROM v_prelevement_verdict WHERE dept = ?
-        """, [dept]).fetchone()
-        print(f"\nen base — bulletins complets : {r[0] or 0}")
+            FROM analyses_figees
+            WHERE dept = ? AND version_referentiel = ?
+        """, [dept, version]).fetchone()
+
+        print(f"\nfigé    — version de référentiel {version}, "
+              f"calculé le {calcule_le}")
+        print(f"          bulletins complets : {r[0] or 0}")
         print(f"          couverture moyenne des mesures : {r[3] or 0} %")
         print(f"          conformes 2026 AVEC bascule : {r[1] or 0}   <-- les cas")
         print(f"          bascules cumulées : {r[2] or 0}")
+        print(f"          tout chiffre repris d'ici se cite AVEC {version}")
+
+        courante = figer.version_referentiel()
+        if courante != version:
+            print(f"\n  ! le référentiel a changé depuis ce figeage "
+                  f"({version} -> {courante})")
+            print("    les chiffres ci-dessus sont ceux de l'ANCIENNE grille. "
+                  "Pour les mettre à jour :")
+            print(f"    py -X utf8 src/build_db.py && "
+                  f"py -X utf8 src/fetch_departement.py --dept {dept} --figer")
+
+        # Diagnostic de couverture, et non verdict : celui-ci se lit bien sur une
+        # vue vivante, puisqu'il décrit l'état du référentiel du jour et non le
+        # sort d'un bulletin. Il est étiqueté pour qu'on ne s'y trompe pas.
         na = con.execute("SELECT COUNT(*) FROM v_parametres_non_apparies").fetchone()[0]
+        print(f"\nvue vivante (référentiel du jour, non figé) —")
         print(f"          libellés sans aucun seuil de comparaison : {na}")
         print("          (SELECT * FROM v_parametres_non_apparies LIMIT 40)")
     finally:

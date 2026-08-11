@@ -23,11 +23,29 @@ Deux faits vérifiés sur l'API pilotent toute la logique de ce fichier
    revient. C'est ce qui permet de rapatrier un bulletin en un seul appel
    au lieu de retélécharger l'historique complet de la commune.
 
+3. **`sort` est honoré, et l'ordre par défaut est déjà décroissant.**
+   Vérifié le 11 août 2026 sur le réseau `069000069` : sans tri et avec
+   `sort=desc` la première page commence au 2026-05-29, avec `sort=asc` au
+   2016-01-04. **On demande `desc` explicitement quand même** — un ordre par
+   défaut non documenté peut changer sans préavis, et toute la logique
+   d'arrêt anticipé en dépend.
+
+   C'est ce fait qui débloque le 69. Le réseau CENTRE (Métropole de Lyon)
+   porte **492 871 lignes, soit 99 pages**, et le coût d'une page croît avec
+   la profondeur (5,6 s en page 1, 11,0 s en page 25). L'inventaire complet
+   d'un tel réseau demande de l'ordre de la demi-heure — pendant laquelle le
+   code d'avant n'imprimait pas une ligne. Trois soirées d'hypothèses fausses
+   ont été dépensées à chercher un gel qui n'existait pas : le collecteur
+   travaillait, et le superviseur le tuait toutes les dix minutes.
+   Diagnostic complet : `docs/DIAGNOSTIC_69063_2026-08-11.md`.
+
 Étiquette (CLAUDE.md §3.2) : pagination maximale, pause entre appels,
-retentative exponentielle, User-Agent identifiant le projet.
+retentative exponentielle, User-Agent identifiant le projet. **Et ne pas
+parcourir 493 000 lignes pour en retenir 399** — c'est la même règle.
 """
 import collections
 import datetime
+import json
 import time
 
 import requests
@@ -44,6 +62,29 @@ PAUSE = 0.3          # entre deux pages
 PAUSE_COMMUNE = 0.5  # entre deux communes
 MAX_TENTATIVES = 4
 
+# Trois délais, et non un seul — parce qu'un `timeout=90` scalaire ne borne PAS
+# la durée d'un appel
+# ---------------------------------------------------------------------------
+# Le `timeout` de `requests` est un délai d'INACTIVITÉ : il se déclenche quand
+# rien n'arrive pendant N secondes, et il se réarme à chaque paquet reçu. Un
+# serveur qui envoie un octet toutes les 80 secondes ne le déclenche jamais, et
+# l'appel dure indéfiniment sans qu'aucune exception ne soit levée — donc sans
+# que la retentative de `_get` puisse jouer, puisqu'elle attend une exception.
+#
+# C'est le défaut relevé au §14.7 de `docs/REPRISE.md`. Il n'était PAS la cause
+# du blocage du 69 (celui-là était une pagination de 99 pages, cf. l'en-tête du
+# module), mais il reste réel : il n'a simplement jamais été atteint.
+#
+# `TOTAL` est la borne dure, mesurée du début de la requête à la dernière
+# donnée reçue. Elle est large — les pages les plus lourdes observées coûtent
+# 5 à 11 s, et ~28 s en pagination profonde — pour ne jamais couper un appel
+# sain ; elle sert à transformer un appel qui ne revient pas en une exception
+# qui, elle, se retente.
+TIMEOUT_CONNEXION = 10   # établir la connexion TCP/TLS
+TIMEOUT_INACTIVITE = 90  # entre deux paquets
+TIMEOUT_TOTAL = 300      # durée maximale d'un appel, toutes phases comprises
+MORCEAU = 65536          # taille de lecture du corps
+
 # Champs strictement nécessaires au repérage des bulletins complets.
 # Réduire la charge utile de 32 à 4 colonnes rend l'inventaire exhaustif
 # abordable : on peut parcourir tout l'historique d'une commune sans peser
@@ -57,25 +98,62 @@ SESSION.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
 # ---------------------------------------------------------------------------
 # Accès réseau
 # ---------------------------------------------------------------------------
+def _corps(r, debut):
+    """
+    Lit le corps de la réponse sans jamais dépasser `TIMEOUT_TOTAL`.
+
+    On lit en flux et on vérifie l'horloge entre deux morceaux : c'est le seul
+    moyen de borner la durée réelle d'un appel, l'horloge de `requests` étant
+    remise à zéro par chaque paquet reçu. `iter_content` décompresse au passage
+    (gzip/deflate), et `json.loads` reconnaît l'encodage d'un JSON en octets.
+    """
+    morceaux = []
+    for morceau in r.iter_content(chunk_size=MORCEAU):
+        morceaux.append(morceau)
+        ecoule = time.time() - debut
+        if ecoule > TIMEOUT_TOTAL:
+            r.close()
+            raise requests.Timeout(
+                f"durée totale dépassée : {ecoule:.0f}s > {TIMEOUT_TOTAL}s "
+                f"({sum(len(m) for m in morceaux)} octets reçus)")
+    return json.loads(b"".join(morceaux) or b"{}")
+
+
 def _get(url, params):
-    """GET avec retentative exponentielle. Respecte Retry-After sur 429."""
+    """
+    GET avec retentative exponentielle. Respecte Retry-After sur 429.
+
+    Trois délais, pas un : connexion, inactivité, et **durée totale** — voir le
+    bloc de constantes en tête de module pour la raison, qui n'est pas évidente.
+    """
     attente = 2.0
     for tentative in range(1, MAX_TENTATIVES + 1):
         try:
-            r = SESSION.get(url, params=params, timeout=90)
+            debut = time.time()
+            r = SESSION.get(url, params=params, stream=True,
+                            timeout=(TIMEOUT_CONNEXION, TIMEOUT_INACTIVITE))
+            # `stream=True` laisse la connexion ouverte tant que le corps n'est
+            # pas lu : sur les chemins où l'on repart sans le lire, il faut la
+            # rendre explicitement, sinon le pool de la session se vide.
             if r.status_code == 429:
                 delai = float(r.headers.get("Retry-After", attente))
+                r.close()
                 print(f"    429 — pause {delai:.0f}s")
                 time.sleep(delai)
                 attente *= 2
                 continue
             if r.status_code in (500, 502, 503, 504):
+                r.close()
                 print(f"    {r.status_code} — nouvelle tentative dans {attente:.0f}s")
                 time.sleep(attente)
                 attente *= 2
                 continue
-            r.raise_for_status()
-            return r.json()
+            try:
+                r.raise_for_status()
+            except Exception:
+                r.close()
+                raise
+            return _corps(r, debut)
         except (requests.Timeout, requests.ConnectionError) as e:
             if tentative == MAX_TENTATIVES:
                 raise
@@ -85,12 +163,37 @@ def _get(url, params):
     raise RuntimeError(f"échec après {MAX_TENTATIVES} tentatives : {url}")
 
 
-def _pages(url, params):
-    """Itère sur les pages d'un endpoint Hub'Eau."""
-    page = 1
+def _pages(url, params, tri=None):
+    """
+    Itère sur les pages d'un endpoint Hub'Eau.
+
+    **Cette fonction imprime.** Ce n'est pas du confort : sa version muette a
+    coûté une soirée entière de diagnostic le 10 août 2026 (cf. le fait n° 3 de
+    l'en-tête). Une pagination de 99 pages était indiscernable d'un processus
+    gelé, et les trois hypothèses successives portaient toutes sur une panne
+    qui n'existait pas. Un `print` par page rend la différence évidente au
+    premier coup d'œil ; l'annonce du volume dès la page 1 la rend évidente
+    *avant* d'attendre.
+
+    `tri` — `"desc"` ou `"asc"`. Passé tel quel à l'API, qui l'honore.
+    """
+    p = dict(params, size=PAGE)
+    if tri:
+        p["sort"] = tri
+    page, lus, t0 = 1, 0, time.time()
     while True:
-        j = _get(url, dict(params, size=PAGE, page=page))
+        j = _get(url, dict(p, page=page))
         data = j.get("data", []) or []
+        lus += len(data)
+        total = j.get("count")
+        if page == 1:
+            if isinstance(total, int) and total > PAGE:
+                print(f"    {total} lignes à parcourir, "
+                      f"{-(-total // PAGE)} pages de {PAGE}")
+        else:
+            print(f"    page {page} — {lus} lignes lues"
+                  + (f" sur {total}" if isinstance(total, int) else "")
+                  + f", {time.time() - t0:.0f}s")
         yield data
         if len(data) < PAGE or not j.get("next"):
             return
@@ -346,15 +449,66 @@ def reseaux_de_la_commune(insee, depuis=None):
     return vus
 
 
-def inventaire_prelevements_reseau(code_reseau, depuis=None):
-    """Comme inventaire_prelevements, mais à l'échelle d'un réseau de
-    distribution. `code_reseau` EST un filtre valide de l'API (vérifié)."""
+# Inventaires de réseau déjà faits pendant CE run — voir la docstring ci-dessous.
+_INVENTAIRES_RESEAU = {}
+
+
+def vider_cache_reseaux():
+    """Oublie les inventaires de réseau mémorisés. Pour les tests."""
+    _INVENTAIRES_RESEAU.clear()
+
+
+def inventaire_prelevements_reseau(code_reseau, depuis=None,
+                                   arret_au_premier_complet=True,
+                                   seuil=SEUIL_COMPLET, memo=True):
+    """
+    Comme inventaire_prelevements, mais à l'échelle d'un réseau de
+    distribution. `code_reseau` EST un filtre valide de l'API (vérifié).
+
+    **Le résultat est PARTIEL par défaut, et c'est voulu.**
+    ------------------------------------------------------
+    Avec `arret_au_premier_complet`, on parcourt du plus récent vers le plus
+    ancien et on s'arrête dès que le dernier bulletin complet est acquis. Sur
+    le réseau CENTRE de la Métropole de Lyon cela ramène 99 pages à une ou
+    deux : le bulletin retenu date du 2026-05-29, les 97 pages suivantes
+    remontaient jusqu'en 2016 pour être jetées.
+
+    **La règle du projet n'en est pas touchée.** Les deux seuls appelants —
+    `bulletin_du_reseau` ici et `collecte._bulletin_du_reseau` — prennent
+    `max(retenus, key=date)`, c'est-à-dire le plus récent et lui seul. On ne
+    rétrécit donc pas le corpus, on cherche dans le bon sens. Un appelant qui
+    aurait besoin de l'historique entier du réseau doit passer
+    `arret_au_premier_complet=False` **et le dire**, sans quoi il travaillerait
+    sur une fenêtre récente en croyant tenir tout.
+
+    La condition d'arrêt n'est pas « j'ai vu un bulletin complet » mais **« j'ai
+    vu un bulletin complet dont la date est strictement plus récente que la
+    dernière date de la page »**. C'est ce qui protège du piège n° 1 de
+    l'en-tête du module : un prélèvement chevauche les pages, et s'arrêter en
+    fin de page le compterait à moitié. Tant qu'on est encore sur sa date, il
+    peut avoir des lignes plus loin.
+
+    Mémoïsation (`memo`) : à l'échelle du département, un même réseau est
+    interrogé par toutes les communes qu'il dessert. `collecte._bulletin_du_reseau`
+    mettait déjà le *bulletin* au cache disque, mais pas l'*inventaire* qui le
+    précède — les quatre réseaux de la Métropole auraient donc été réinventoriés
+    une fois par commune. C'est autant une question d'étiquette (§3.2) que de
+    durée. La mémoire ne vit que le temps du processus : rien à invalider, une
+    collecte relancée repart d'un inventaire frais.
+    """
+    cle = (str(code_reseau), depuis, bool(arret_au_premier_complet), seuil)
+    if memo and cle in _INVENTAIRES_RESEAU:
+        inv = _INVENTAIRES_RESEAU[cle]
+        print(f"    inventaire du réseau {code_reseau} déjà fait "
+              f"({len(inv)} prélèvements) — aucun appel")
+        return inv
+
     params = {"code_reseau": code_reseau,
               "fields": CHAMPS_INVENTAIRE + ",code_commune,nom_commune"}
     if depuis:
         params["date_min_prelevement"] = f"{depuis}-01-01"
     inv = {}
-    for data in _pages(BASE, params):
+    for data in _pages(BASE, params, tri="desc"):
         for row in data:
             cp = row.get("code_prelevement")
             if not cp:
@@ -372,6 +526,28 @@ def inventaire_prelevements_reseau(code_reseau, depuis=None):
                 }
             else:
                 e["nb_lignes"] += 1
+
+        if not arret_au_premier_complet:
+            continue
+        # Les dates vides sont écartées du calcul : `min()` les prendrait pour
+        # les plus anciennes et rendrait la comparaison ci-dessous vraie pour
+        # n'importe quoi, donc l'arrêt prématuré sur un bulletin tronqué.
+        dates = [str(r.get("date_prelevement") or "")[:10] for r in data]
+        dates = [d for d in dates if d]
+        if not dates:
+            continue
+        derniere = min(dates)
+        acquis = [e for e in inv.values()
+                  if e["nb_lignes"] > seuil and e["date"] > derniere]
+        if acquis:
+            e = max(acquis, key=lambda x: x["date"])
+            print(f"    dernier bulletin complet du réseau acquis "
+                  f"({e['date']}, {e['nb_lignes']} lignes) — "
+                  f"pagination arrêtée, l'antérieur n'est pas demandé")
+            break
+
+    if memo:
+        _INVENTAIRES_RESEAU[cle] = inv
     return inv
 
 

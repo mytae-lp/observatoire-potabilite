@@ -55,6 +55,7 @@ import datetime
 import hashlib
 import os
 import sys
+import time
 
 import duckdb
 
@@ -459,8 +460,20 @@ def figer_lq_corpus(con, version, calcule_le=None):
                        [version]).fetchone()[0]
 
 
-def figer(con, version=None, calcule_le=None):
-    """(Re)calcule et fige tous les bulletins présents en base."""
+def figer(con, version=None, calcule_le=None, verbeux=True):
+    """
+    (Re)calcule et fige tous les bulletins présents en base.
+
+    **Cette fonction imprime sa progression**, et ce n'est pas du confort. Le
+    11 août 2026, le figeage du Rhône a tourné dix-sept minutes sans une ligne :
+    indiscernable d'un processus gelé, exactement le défaut qui venait d'être
+    corrigé dans `hubeau._pages` le matin même. Une boucle longue et muette n'est
+    pas diagnosticable — et elle finit par coûter une soirée à quelqu'un.
+
+    Le coût croît avec le corpus, pas avec le lot : figer une commune refige
+    TOUT (c'est voulu, une version de référentiel s'applique au corpus entier),
+    donc la durée n'a aucune raison de rester petite quand le projet grandit.
+    """
     assurer_schema(con)
     version = version or version_referentiel()
     jour = calcule_le or datetime.date.today().isoformat()
@@ -471,7 +484,20 @@ def figer(con, version=None, calcule_le=None):
     con.execute("DELETE FROM analyses_figees WHERE version_referentiel = ?", [version])
     con.execute("DELETE FROM verdicts_figes  WHERE version_referentiel = ?", [version])
 
-    for cp in prels:
+    total = len(prels)
+    # Un jalon tous les 5 %, borné : assez pour voir que ça avance, assez rare
+    # pour ne pas noyer le journal d'un gros lot.
+    pas = max(50, total // 20)
+    t0 = time.time()
+    if verbeux and total:
+        print(f"figeage   : {total} bulletin(s) à refiger sous {version}")
+
+    for i, cp in enumerate(prels, 1):
+        if verbeux and total and (i % pas == 0 or i == total):
+            ecoule = time.time() - t0
+            reste = ecoule / i * (total - i)
+            print(f"  {i}/{total} bulletins figés — {ecoule/60:.1f} min écoulées, "
+                  f"~{reste/60:.1f} min restantes")
         s = _sommes(con, cp)
         lq = _plafond_analytique(con, cp)
         con.execute("""
