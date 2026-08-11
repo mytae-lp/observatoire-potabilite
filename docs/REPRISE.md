@@ -4,12 +4,16 @@
 > communes, zéro erreur réseau.** `--termine` rend 0. Deuxième département
 > complet du corpus, après le Tarn. Chiffres et suites : §10 en bas de fichier.
 >
-> **Le verrou DuckDB est la contrainte d'ordonnancement du projet.**
-> `fetch_departement.run()` tient une connexion lecture-écriture ouverte de bout
-> en bout (`src/fetch_departement.py:317`). Pendant une collecte départementale
-> — deux heures et plus — **aucun autre processus ne peut ouvrir la base, même
-> en lecture seule** : ni `rediger_lot.py`, ni `build_fiche.py`, ni les tests.
-> Ce qui reste faisable en parallèle : **rédiger**, à condition d'avoir
+> **Le verrou DuckDB était la contrainte d'ordonnancement du projet — levé le
+> 11 août 2026.** `fetch_departement.run()` tenait une connexion
+> lecture-écriture ouverte de bout en bout : pendant une collecte
+> départementale — deux heures et plus — **aucun autre processus ne pouvait
+> ouvrir la base, même en lecture seule**. La collecte est désormais coupée en
+> deux gestes, `src/moisson.py` (réseau, parallèle, base jamais ouverte) et
+> `src/ingerer.py` (base prise quelques minutes, puis rendue). Voir §15 en bas
+> de fichier. `fetch_departement.py` reste tel quel pour un département isolé,
+> et l'avertissement ci-dessus vaut encore **si on l'emploie** : dans ce cas,
+> ce qui reste faisable en parallèle est **rédiger**, à condition d'avoir
 > fabriqué les dossiers de faits AVANT de lancer la collecte. Les agents ne
 > lisent alors que `data/dossiers/PREL-*.md` et écrivent dans
 > `data/dossiers/reponses/`. Seul `--integrer` attend la fin.
@@ -1162,6 +1166,124 @@ réglée**, où il redeviendra utile contre les aléas réels.
   `data/etudes/sourcage_C/biphenyle_2026-08-10.md` apparaîtra peut-être seul.
   Le lire avant de relancer quoi que ce soit sur cette substance.
 
+### 14.8 RÉPONDU le 11 août 2026 au matin — les sommes vont bien
+
+Requêtes en lecture seule, base libre, corpus à 69 partiel (57 communes).
+**La question du §14.6 est tranchée : c'est la première des trois issues.**
+
+| somme | bulletins | avec individuels | **individuels SANS la somme** | limite déclarée |
+|---|---:|---:|---:|---|
+| **8847** PFAS (20) | 323 | 323 | **0** | 0,1 µg/L |
+| **9064** acides haloacétiques (5) | 117 | 117 | **0** | 60,0 µg/L |
+
+**Zéro quantification orpheline dans les deux cas.** L'ARS publie systématiquement
+le paramètre de somme à côté des substances individuelles. **Le moteur n'a donc
+rien à recalculer** — ni pour les PFAS, ni pour les AHA. L'inquiétude du §14.2
+(« des PFAS quantifiés qui ne pèsent sur rien ») **était infondée**.
+
+Conséquence sur les six lignes versées le 10 août au soir : leur effet est plus
+étroit que je ne l'ai dit. La somme 9064 **recevait déjà un verdict** par sa
+limite déclarée (60,0). Ce que les lignes ajoutent réellement :
+1. l'adossement au **référentiel daté et sourcé** plutôt qu'à la seule déclaration
+   de la source — c'est la hiérarchie du §2.8 ;
+2. le garde-fou `dans somme (9064)` sur les cinq composants, qui rend **explicite**
+   une absence de verdict jusque-là seulement accidentelle.
+Ce n'est pas rien, mais ce n'est pas la correction d'un défaut de calcul.
+
+Autres relevés :
+- **169 libellés** sans aucun seuil de comparaison (163 le 9 août, 168 hier) ;
+- `2034` HAP (6 subst.) et `7431` PCB indicateurs **n'ont aucune limite
+  déclarée** — contrairement à `2033` HAP (4) et `2036` THM. À instruire ;
+- **requête à refaire** : ma question n° 4, censée dire si une somme obtient un
+  verdict, comptait les lignes de `v_mesures_verdict` et non celles portant un
+  seuil. **Elle ne conclut rien** — la refaire en testant `seuil_applicable`.
+
+#### Le 69 partiel donne un signal fort, à confirmer
+
+| dept | bulletins complets | couverture moy. | conformes 2026 AVEC bascule |
+|---|---:|---:|---:|
+| 28 | 1 611 | 90,1 % | 260 — soit **16 %** |
+| 81 | 1 575 | 93,7 % | 100 — soit **6 %** |
+| **69 (57/266 communes)** | **295** | **77,6 %** | **155 — soit 52 %** |
+
+**Plus d'un bulletin complet sur deux du Rhône est déclaré conforme aujourd'hui
+et ne l'aurait pas été en 2016.** Trois fois le taux de l'Eure-et-Loir, huit fois
+celui du Tarn. Trois réserves avant d'en faire quoi que ce soit :
+- corpus **partiel** (57 communes sur 266) et **44 des 57 sont `rattachee_reseau`**,
+  donc les 295 bulletins se concentrent sur peu de réseaux — biais d'échantillon
+  probable, à recompter sur le département entier ;
+- la couverture est basse (77,6 %), ce qui **déprime** les bascules plutôt que de
+  les gonfler : le taux est donc plutôt conservateur sur cet axe ;
+- **§2.11 quatrième règle : un département se compare à lui-même.** Ce tableau
+  est un instrument de travail, pas une comparaison publiable.
+
+### 14.9 Le biphényle ouvre une SEPTIÈME famille — couvert sans être nommé
+
+Dossier : `data/etudes/sourcage_C/biphenyle_2026-08-11.md`.
+
+**Le découpage C-a…C-f du 10 août est incomplet.** Le biphényle n'est ni C1 (une
+valeur nominative que nous aurions ratée) ni C2 (aucune valeur) :
+
+- **il n'est nommé dans AUCUN texte EDCH** — absence vérifiée en plein texte dans
+  la directive 2020/2184 **annexes comprises**, l'arrêté du 30/12/2022, l'arrêté
+  du 11/01/2007 d'origine, l'annexe I consolidée sur Légifrance, et les
+  *Guidelines* de l'OMS ;
+- **mais une valeur opposable lui est applicable par CATÉGORIE** : « Pesticides
+  (par substance individuelle) — 0,10 µg/L », l'annexe définissant les pesticides
+  comme incluant « les fongicides organiques ». Applicable au 01/01/2023, valeur
+  identique en 2016 — **aucune bascule possible** ;
+- **et notre moteur le capte déjà** : la règle `pesticide_individuel_0_1` de
+  `regles_famille.csv` s'applique. Mon brief affirmait « ne pèse sur aucun
+  verdict » : c'était faux.
+
+**Nouvelle famille à ajouter — C-g : couvert par une règle de catégorie, sans
+être nommé.** À vérifier sur le reste de C-d avant de conclure C2 sur quoi que
+ce soit : `v_regle_famille_appliquee` est la vue qui le dit, et le §4 de
+`CLAUDE.md` demande déjà qu'elle soit relue.
+
+#### Le fait daté, et ce qu'il est vraiment
+
+SISE-Eaux déclare `<=0,1 µg/L` sur les **40 mesures du 31/03/2026 au 29/05/2026**
+(Eure-et-Loir), et **rien** sur les 1 374 antérieures. Le basculement est net et
+daté à la journée.
+
+**Ce n'est PAS une bascule au sens du projet** — le seuil n'a pas bougé, il vaut
+0,10 en 2016 comme en 2026. Ce qui change, c'est **la déclaration** : la même
+substance passe de « non rattachée » à « rattachée aux pesticides » dans ce que
+la source publie. C'est le §2.11 transposé du panel à la qualification — ce qui
+bouge n'est ni l'eau ni la norme, c'est le classement de ce qu'on regarde.
+**Ne jamais l'écrire comme un durcissement réglementaire.**
+
+#### Pourquoi AUCUNE ligne nominative n'a été versée
+
+Recommandation de l'agent, suivie : verser une ligne nominative
+**sortirait le biphényle de la règle de famille** et appliquerait 0,10 µg/L aux
+**1 374 mesures sans limite déclarée** — transformant des **indéterminés en
+conformes**. C'est le §2.4 qui l'interdit, et un faux positif de conformité est
+exactement ce que le §2.13 nous fait redouter le plus. La ligne est écrite
+« prête à verser » au §5.3 du dossier si Yannick tranche autrement.
+
+Statut **`a_verifier`**, pour une contradiction non levée : l'INERIS écrit
+qu'« aucune valeur n'est mentionnée dans la Directive 98/83/CE ou l'OMS », et le
+SANDRE classe la substance en « **Liste B – Phytosanitaires** », qu'AQUAREF
+définit comme celle où « la décision sur le caractère pesticide ou pas doit être
+prise par le gestionnaire ». **Le rattachement aux pesticides est donc un choix
+de gestionnaire, pas une évidence de texte.** Aucune instruction DGS arbitrant
+ce point n'a été trouvée.
+
+L'OMS est absente **y compris de la table A3.2 des renoncements** : elle n'a pas
+écarté le biphényle, elle ne l'a jamais examiné. Ce n'est pas la même chose.
+
+#### Deux notes d'outillage
+
+- **`REG-01` s'extrait intégralement**, annexes I A/B/C et III comprises. Le
+  contournement d'EUR-Lex par le PDF local est confirmé — à mettre dans tous les
+  briefs.
+- **Écart de comptage à trancher** : la base donne 1 414 mesures / 13
+  quantifications (dont une en dept 71), le brief disait 1 373 / 12 d'après
+  l'inventaire du 9 août. Maximum identique (0,016 µg/L). L'inventaire est
+  antérieur au 69 partiel — à recompter en même temps que le reste.
+
 ### 14.6 À exécuter DÈS QUE LA BASE EST LIBRE — la requête PFAS
 
 **C'est le point bloquant du dossier PFAS**, et il ne se tranche que sur la base.
@@ -1209,3 +1331,264 @@ SELECT COUNT(*) FROM indiv WHERE code_prelevement NOT IN (SELECT * FROM somme);
 
 Vérifier au passage `referentiel/pfas_chaines.csv` (60 lignes, longueur de
 chaîne, sourcé) — **non examiné à ce jour**, à confronter à la liste des 20.
+
+---
+
+## 15. Mise à jour du 11 août 2026 — la collecte se coupe en deux, la base reste libre
+
+> **État du corpus au soir du 11 août 2026 — 7 279 bulletins figés sous
+> `f3e1d448101f`**, cinq départements entiers : Tarn (81), Eure-et-Loir (28),
+> Rhône (69), **Ariège (09)** et **Haute-Garonne (31)**, plus 14 communes de
+> Saône-et-Loire (71) et un bulletin isolé des Hautes-Pyrénées (65), repli d'un
+> réseau à cheval sur deux départements.
+>
+> | | couverture des mesures | cas (conformes 2026 avec bascule) | bascules |
+> |---|---|---|---|
+> | Ariège (09) | 93,2 % | **5** | 12 |
+> | Haute-Garonne (31) | 92,3 % | **45** | 73 |
+>
+> Ces deux départements ont été collectés **par la nouvelle voie**, et sont donc
+> aussi la vérification que le résultat produit est le même. Tout chiffre repris
+> ici se cite avec `f3e1d448101f` (§8bis).
+
+### 15.1 Le problème, et pourquoi il devenait bloquant
+
+Demande de Yannick : *« à chaque fois que je collecte un département cela fige
+la base et je ne peux plus rien faire […] il me reste +35K communes à charger,
+j'en ai pour une vie entière si je ne fais pas du parallèle. »*
+
+Deux défauts distincts, et le second est le vrai frein :
+
+1. **DuckDB n'a qu'un seul écrivain**, et `fetch_departement.run()` ouvrait la
+   connexion avant la première commune pour la fermer après la dernière. Deux à
+   trois heures de verrou pour quelques minutes d'écriture réelle : tout le
+   reste était de l'attente réseau, faite le verrou à la main.
+2. **La collecte était strictement séquentielle**, un département à la fois, un
+   appel à la fois. Aux cadences mesurées — 16,7 s/commune (Rhône partiel),
+   21,4 s (Eure-et-Loir), 35,2 s (Tarn) — les 35 000 communes restantes
+   représentent de l'ordre de **200 heures d'horloge**, soit huit jours et demi
+   sans interruption.
+
+### 15.2 Ce qui a été fait
+
+Le cache brut était déjà le tampon : `brut.py` existe depuis le 8 août 2026
+pour séparer *collecter* (une fois, en ligne) de *ingérer* (autant de fois
+qu'on veut, hors ligne). Il manquait un chemin qui n'ingère pas du tout.
+
+```
+py -X utf8 src/moisson.py --depts 69,71,01 --tous   # réseau, N fils, base LIBRE
+py -X utf8 src/ingerer.py --depts 69,71,01          # base prise, puis rendue
+```
+
+| fichier | rôle |
+|---|---|
+| `src/moisson.py` | moisson parallèle. **N'importe pas `duckdb`, et cela doit le rester.** |
+| `src/ingerer.py` | cache brut → base, sans réseau, puis figeage. Le seul à prendre le verrou. |
+| `src/journal.py` | journal de reprise et cache d'énumération, sortis de `fetch_departement.py` |
+| `src/console.py` | trace atomique et étiquetée par fil — `[71] page 4 — 20000 lignes lues` |
+
+La règle de couverture **n'a pas été recopiée** : `collecte.traiter_commune`
+accepte `con=None`, et c'est tout le mécanisme. Même fonction, même ordre
+d'essais, même repli réseau, même statut rendu, même journal — seule
+l'insertion en base est différée. `ingest.identifier()` a été extrait de
+`ingest_bulletin` pour que la trace de moisson annonce le nombre de paramètres
+calculé **par le même code** que l'ingestion réelle.
+
+Le journal et le cache sont identiques des deux côtés : un département commencé
+par `fetch_departement.py` se termine par `moisson.py`, et réciproquement.
+
+### 15.3 Trois protections que le parallélisme rendait nécessaires
+
+Elles ne se remplacent pas, et chacune couvre un défaut que les autres
+laisseraient passer.
+
+- **`hubeau.REGULATEUR`** — les pauses `PAUSE` / `PAUSE_COMMUNE` sont locales à
+  un fil : quatre fils qui les respectent chacun **quadruplent** la charge vue
+  par Hub'Eau, et rien ne le dirait. Le régulateur borne le débit du *processus
+  entier* — appels en vol, appels ouverts par seconde — et met **tous** les
+  fils en retenue dès qu'un seul reçoit un 429. Les plafonds (4 en vol,
+  3 ouvertures/s) sont **les nôtres** : Hub'Eau ne publie aucun quota, et le
+  §2.7 interdit d'écrire un seuil qu'on n'a pas lu, y compris un seuil de
+  politesse. Les relever engage le projet et ne se fait pas sans mesure.
+- **`hubeau._verrou_du_reseau`** — un verrou **par clé de réseau**, pas
+  seulement autour du dictionnaire. Signalé par Yannick pendant le chantier :
+  la mémoïsation `_INVENTAIRES_RESEAU` posée le matin même est parfaite en
+  mono-fil, mais à N fils deux communes du même réseau lyonnais arrivent
+  ensemble, constatent toutes deux l'absence de l'entrée et lancent toutes deux
+  l'inventaire — la mémoïsation cesse de protéger au moment précis où elle sert
+  le plus. Le second fil doit **attendre** le premier, pas recalculer. Le
+  régulateur ne couvre pas ce gaspillage-là : il borne la charge instantanée,
+  pas le travail dupliqué.
+- **`journal.ecrire_journal`** — un verrou par département. Deux `write()`
+  simultanés peuvent s'entrelacer et produire une ligne JSON illisible, donc
+  une commune silencieusement perdue de la reprise.
+
+Et `collecte.compter()` : `Counter[k] += 1` est une lecture puis une écriture,
+et deux incréments simultanés en perdent un. Un compteur faux ferait
+sous-estimer ce qu'on demande à Hub'Eau — précisément le chiffre à ne pas
+fausser.
+
+### 15.4 Mesure réelle — deux départements entiers, 4 fils, `--tous`
+
+Les premiers essais portaient sur 6 puis 8 communes de Saône-et-Loire et
+donnaient 7,1 puis 14,2 s/commune — deux chiffres qui ne concordaient pas,
+parce qu'un échantillon de cette taille ne donne pas la distribution. Deux
+départements ont été moissonnés en entier le 11 août 2026.
+
+| | Ariège (09) | Haute-Garonne (31) |
+|---|---|---|
+| profil | rural | rural **et** métropole |
+| communes | 325 / 325 | 586 / 586 |
+| moisson | **13,1 min** | **21,9 min** |
+| coût | **2,4 s/commune** | **2,2 s/commune** |
+| erreurs | **0** (4 incidents réseau rattrapés) | **0** (4 rattrapés) |
+| 429 reçus | **aucun** | **aucun** |
+| analysées / rattachées / non documentées | 172 / 153 / 0 | 144 / 431 / **11** |
+| bulletins rapatriés | 1 192 | 1 235 |
+| bulletins relus au cache | 150 | **432** |
+| inventaires de réseau épargnés | — | **387** |
+
+Contre **16,7 à 35,2 s/commune** sur les trois collectes séquentielles
+précédentes, et sur le mode `--tous`, le plus lourd. La base est restée
+ouverte au travail pendant les deux moissons — la Haute-Garonne a même été
+moissonnée **pendant que l'Ariège s'ingérait**, ce qui était impossible avant.
+
+**Les 387 inventaires de réseau épargnés valident le verrou par clé.** Ce sont
+387 fois où un fil est arrivé sur un réseau qu'un autre inventoriait déjà, a
+attendu, et n'a fait aucun appel — sur la Métropole toulousaine, dont les
+communes partagent leurs réseaux. Sans lui, c'étaient 387 inventaires
+redemandés à Hub'Eau, et le régulateur de débit n'en aurait attrapé aucun :
+il borne la charge instantanée, pas le travail dupliqué.
+
+Trois faits à conserver :
+
+- **La métropole toulousaine n'a pas coûté ce que coûte la lyonnaise.** 93
+  paginations profondes sur le 31, aucune du calibre du réseau CENTRE de Lyon
+  (492 871 lignes, 99 pages, une demi-heure). Le pire cas connu du projet
+  **n'est pas représenté** dans ces deux mesures.
+- **Les 11 communes non documentées du 31 sont les premières du corpus.** Ni
+  vertes ni rouges : la catégorie visible du §8bis, correctement remplie.
+- **Un réseau franchit les frontières départementales.** Le bulletin
+  `03100180348`, repli d'une commune de Haute-Garonne, a été prélevé dans les
+  **Hautes-Pyrénées** et s'est donc écrit dans `data/brut/65/`. Il est ingéré
+  sous la commune où il a réellement eu lieu (§2.3), et `ingerer.py --etat` l'a
+  signalé comme un département en attente — ce qu'il faut lire comme un
+  fonctionnement correct, pas comme une anomalie. **Après une moisson, vérifier
+  `ingerer.py --etat` : un département voisin peut y être apparu.**
+
+### 15.5 Le second verrou, trouvé en vérifiant — et levé
+
+La première ingestion réelle a mesuré ceci :
+
+```
+ingéré : 65 bulletin(s)
+verrou de la base tenu 33.7 min
+```
+
+**Trente-trois minutes pour verser soixante-cinq bulletins.** L'ingestion elle-même
+en coûtait 1,3 ; le figeage qui suit en coûtait **32,4**, parce que
+`figer.figer()` refigeait les 4 745 bulletins du corpus à chaque appel — 0,41 s
+l'unité. Le découpage moisson/ingestion avait levé un verrou de trois heures
+pour en installer un autre, qui **croît avec le corpus et non avec le lot** : à
+35 000 communes, chaque ingestion aurait immobilisé la base des heures durant.
+C'était la moitié du problème, non résolue.
+
+`figer.figer()` est donc incrémental depuis le 11 août 2026. Il ne refige que
+les bulletins absents d'`analyses_figees` **sous la version courante**.
+
+Mesures après, sur la vraie base :
+
+| | avant | après |
+|---|---|---|
+| ingestion de 65 bulletins (corpus 4 745) | **33,7 min** de verrou | — |
+| ingestion de 108 bulletins (corpus 4 853) | — | **2,5 min** de verrou |
+| relance sur corpus inchangé | 33,7 min | **1 seconde** |
+
+Le figeage suit désormais la taille du **lot**, plus celle du corpus.
+
+Ce qui rend l'incrémentalité sûre, et non seulement rapide — quatre façons de
+périmer une ligne figée, quatre réponses :
+
+| ce qui change | ce qui l'attrape |
+|---|---|
+| un bulletin nouvellement ingéré | il n'est pas dans `analyses_figees` |
+| le **référentiel** | `version_referentiel` change → personne n'est figé sous la nouvelle → tout est refigé |
+| un bulletin **réingéré** | `ingest.ingest_bulletin` efface ses lignes figées, **toutes versions confondues** |
+| le **code de calcul** | `figer.version_moteur()` — empreinte de `figer.py` + `build_db.py` + `common.py` |
+
+La quatrième est celle qui n'existait pas et qu'il fallait inventer. Tant que
+tout était refigé à chaque appel, corriger un défaut de calcul se propageait
+tout seul. En incrémental, le référentiel n'ayant pas bougé, les 4 700 lignes
+déjà figées **garderaient silencieusement l'ancien calcul** pendant que les
+nouvelles porteraient le bon : deux calculs sous une seule version, et rien
+pour le dire. L'empreinte est volontairement grossière — elle porte sur les
+octets des fichiers, commentaires compris — parce qu'un refigeage inutile coûte
+du temps quand un refigeage manquant produit un chiffre faux. C'est le §2.13
+appliqué à notre propre outillage.
+
+**Un défaut réel a été attrapé en chemin, par le test et non par moi.**
+`assurer_schema` reconstruit une table figée dont le schéma a dérivé. Elle
+reconstruisait `verdicts_figes` seule, en laissant `analyses_figees` pleine :
+avec l'incrémental, le bulletin restait « déjà figé », son détail n'était
+jamais réécrit, et le compteur annonçait des dépassements dont le détail était
+vide. Les deux tables sont **un seul figeage**, et l'une ne se reconstruit plus
+sans que l'autre soit vidée. Le contrôle « et refigée sans perte » de
+`tests/test_figer.py` est passé au rouge au premier essai — c'est exactement ce
+pour quoi il existe.
+
+Sept nouveaux contrôles couvrent l'incrémental (section 3quater de
+`tests/test_figer.py`). Les deux suites passent.
+
+**Une réserve, à lever quand ce sera commode.** Les 4 745 lignes présentes ont
+été figées **avant** que l'empreinte de moteur existe ; le mécanisme les a
+enregistrées comme calculées par le code actuel sans l'avoir vérifié. Contrôle
+fait le 11 août 2026 : 40 bulletins refigés sous une version jetable et
+comparés colonne par colonne aux lignes stockées — **46 colonnes, 0 écart**. Le
+refactor n'a donc déplacé aucune valeur. C'est un échantillon, pas une preuve
+sur les 4 745 : un `src/ingerer.py --depts <NN> --refiger` (~33 min, une fois)
+rendrait la garantie mécanique.
+
+### 15.6 Le poste dominant a changé — c'est maintenant l'ingestion
+
+Mesuré sur les deux départements, verrou de la base tenu :
+
+| | bulletins | insertion | figeage | **verrou total** |
+|---|---|---|---|---|
+| Ariège (09) | 1 189 | 15,1 min | 8,0 min | **23,1 min** |
+| Haute-Garonne (31) | 1 236 | 20,9 min | 10,4 min | **31,3 min** |
+| Hautes-Pyrénées (65), 1 bulletin | 1 | — | — | **0,0 min** |
+
+Soit environ **0,8 à 1,0 s par bulletin inséré** et **0,4 à 0,5 s par bulletin
+figé**. Le figeage, qui était tout le problème, n'est plus que le tiers du
+coût : sur le 31 il a figé 1 236 bulletins sur un corpus de 7 278, là où
+l'ancien code les aurait tous refigés — 7 278 × 0,5 s, soit **une heure au lieu
+de dix minutes**.
+
+**Ce qui reste est linéaire en nombre de bulletins, et c'est la bonne
+propriété** : le verrou suit désormais la taille du lot, jamais celle du
+corpus. Un lot d'un seul bulletin coûte 0,0 min, ce qui était impensable avant.
+
+Extrapolation, et elle est fragile : à ~2 400 bulletins pour 911 communes, les
+35 000 communes restantes représenteraient de l'ordre de **90 000 bulletins**,
+donc ~22 h de moisson et ~35 h de verrou cumulé, fractionnées en autant de lots
+qu'on veut. **Deux départements du Sud-Ouest ne sont pas la France**, et le pire
+cas connu — une métropole du calibre de Lyon — n'y figure pas. Le chiffre sert
+à décider d'un ordre de grandeur, pas à annoncer une date.
+
+Piste si l'insertion devient gênante : elle se fait bulletin par bulletin, en
+`executemany` par bulletin. Un chargement en masse (table temporaire puis un
+seul INSERT … SELECT) irait vraisemblablement plus vite, **mais il faudrait
+d'abord mesurer où passe réellement la seconde** — rien ne dit aujourd'hui que
+c'est l'INSERT plutôt que la lecture des `.jsonl.gz` ou le parsing.
+
+### 15.7 Ce qui reste ouvert
+
+- **Trois états à ne jamais confondre** : moissonné (journal), ingéré (base),
+  figé (`analyses_figees` avec sa `version_referentiel`). Seul le troisième est
+  citable — c'est le §8bis, et c'est l'erreur qui a fait citer deux jours durant
+  un chiffre du Rhône qui n'existait dans aucune version figée. `moisson.py
+  --etat` et `ingerer.py --etat` disent les deux premiers, et le disent
+  explicitement.
+- **`outils/reprendre_collecte.cmd` appelle encore `fetch_departement.py`**,
+  donc encore la voie à verrou tenu. À reprendre si la reprise automatique au
+  démarrage doit servir au passage à l'échelle.

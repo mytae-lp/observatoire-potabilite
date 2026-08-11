@@ -39,25 +39,74 @@ Deux faits vérifiés sur l'API pilotent toute la logique de ce fichier
    travaillait, et le superviseur le tuait toutes les dix minutes.
    Diagnostic complet : `docs/DIAGNOSTIC_69063_2026-08-11.md`.
 
+4. **Plusieurs fils peuvent moissonner en même temps, à une condition : que
+   l'étiquette soit tenue GLOBALEMENT et non par appelant.** Les pauses
+   `PAUSE` / `PAUSE_COMMUNE` sont locales à un fil : quatre fils qui les
+   respectent chacun quadruplent le débit vu par Hub'Eau, et le §3.2 est
+   violé sans que rien ne le dise. D'où le `REGULATEUR` ci-dessous, qui borne
+   le débit **du processus entier** — nombre d'appels en vol et appels par
+   seconde — et qui met **tous** les fils en retenue quand l'un d'eux reçoit
+   un 429. En mono-fil il ne change rien à ce qui existait.
+
 Étiquette (CLAUDE.md §3.2) : pagination maximale, pause entre appels,
 retentative exponentielle, User-Agent identifiant le projet. **Et ne pas
 parcourir 493 000 lignes pour en retenir 399** — c'est la même règle.
 """
 import collections
+import contextlib
 import datetime
 import json
+import threading
 import time
 
 import requests
 
 from common import SEUIL_COMPLET, USER_AGENT
+from console import dire
 
 BASE = "https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/resultats_dis"
 BASE_UDI = "https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/communes_udi"
 GEO = "https://geo.api.gouv.fr/departements/{dept}/communes"
 GEO_COMMUNES = "https://geo.api.gouv.fr/communes"
 
+# Taille de page. **`5000` n'est PAS le maximum**, contrairement à ce que ce
+# fichier et le §3.2 de CLAUDE.md ont affirmé jusqu'au 11 août 2026.
+#
+# La documentation de l'API Qualité de l'eau potable dit, pour `resultats_dis` :
+# « taille de page par défaut : 5000, taille max de la page : 20000 ». Vérifié
+# en appelant l'API le 11 août 2026 : `size=20000` renvoie bien 20 000 lignes.
+# Le dépôt écrivait « size=5000 (maximum accepté) » — une valeur supposée, prise
+# pour vérifiée, et qui nous faisait demander **quatre fois plus de requêtes que
+# nécessaire** pour la même donnée. C'est le §2.7 pris en défaut chez nous, et
+# sur un sujet où il coûte : notre propre règle de politesse dit « pagination
+# maximale », et nous ne la respections pas.
+#
+# PAGE_MAX n'est pas encore le défaut : le passer à 20 000 change le
+# comportement de collecte et doit être mesuré, pas décrété. Ce qu'on sait au
+# 11 août 2026 : une page de 20 000 coûte 20 à 31 s contre 5 à 11 s pour 5 000,
+# soit un débit de lignes comparable — le gain n'est donc pas la vitesse, c'est
+# de diviser par quatre le NOMBRE d'appels demandés au service, et de rendre
+# les inventaires profonds (99 pages sur le réseau CENTRE de Lyon) quatre fois
+# moins coûteux en requêtes.
 PAGE = 5000
+PAGE_MAX = 20000     # documenté ET vérifié le 11 août 2026
+
+# Profondeur de pagination — la contrainte documentée qui n'est PAS appliquée
+# -------------------------------------------------------------------------
+# La documentation annonce : « la profondeur d'accès aux résultats (numéro de
+# la page * nombre maximum de résultats dans une page) est limitée à 20 000
+# enregistrements ». Si elle était appliquée, toute pagination au-delà de la
+# page 4 (à size=5000) reviendrait vide — et `_pages` s'arrêterait là **sans
+# erreur**, donc un inventaire tronqué en silence, donc des bulletins qui
+# disparaissent de l'analyse (§2.3, le pire cas de ce module).
+#
+# Vérifié le 11 août 2026 : elle ne l'est pas. Pages pleines obtenues jusqu'à
+# une profondeur de 450 000 (page 90 à size=5000), ce qui est cohérent avec les
+# 99 pages réellement parcourues sur le Rhône. **Mais c'est une observation, pas
+# une garantie** : le jour où elle serait appliquée, rien dans le code ne le
+# signalerait. D'où le contrôle de fin de pagination dans `_pages`.
+PROFONDEUR_DOCUMENTEE = 20000
+
 PAUSE = 0.3          # entre deux pages
 PAUSE_COMMUNE = 0.5  # entre deux communes
 MAX_TENTATIVES = 4
@@ -95,6 +144,148 @@ SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
 
 
+class PaginationTronquee(RuntimeError):
+    """
+    L'API a cessé de servir avant d'avoir rendu le nombre de lignes annoncé.
+
+    Une classe propre et non un `RuntimeError` nu, pour que l'appelant puisse
+    la distinguer d'une panne réseau : celle-ci ne se retente pas à l'identique,
+    elle demande de réduire la fenêtre de requête.
+    """
+
+
+# ---------------------------------------------------------------------------
+# Régulateur de débit — l'étiquette du §3.2 tenue à l'échelle du processus
+#
+# Ce plafond est **le nôtre**, et la documentation a été lue avant de l'écrire.
+#
+# Vérifié le 11 août 2026 sur hubeau.eaufrance.fr — pages « APIs », « API
+# Qualité de l'eau potable », « FAQ » et « À propos » : **aucune limite de
+# débit, aucun quota d'appels, aucune règle de fréquence n'est publiée.** Les
+# seules contraintes documentées sont structurelles : taille de page, longueur
+# d'URL, profondeur de pagination (cf. PAGE ci-dessous).
+#
+# Ce que la page « À propos » annonce est un ENGAGEMENT DE SERVICE et non une
+# autorisation : « les APIs Hub'Eau garantissent les meilleures performances de
+# rapidité et de disponibilité (réponse à plus de 20 requêtes par seconde) ».
+# C'est ce que le service se dit capable de servir, pas ce qu'un réutilisateur
+# a le droit de demander. Confondre les deux serait lire un dimensionnement
+# comme une permission — la même erreur que lire une limite déclarée comme un
+# seuil réglementaire (§2.8).
+#
+# En l'absence de règle publiée, le plafond reste une décision du projet. Il
+# est réglé pour que N fils ensemble ne pèsent pas plus que ce qu'un seul fil
+# pesait avant — les mesures de collecte donnent 16 à 35 s par commune,
+# dominées par l'attente des réponses, pas par nos pauses. Mesure du 11 août
+# 2026 : ~2 500 communes moissonnées, **zéro 429 reçu**. C'est la preuve que ce
+# rythme est accepté, pas la preuve de ce qui serait toléré au-delà.
+#
+# Deux bornes, parce qu'une seule ne suffit pas :
+#   · `simultanes` — combien d'appels sont en vol au même instant. C'est ce
+#     qui borne la charge instantanée sur le service ;
+#   · `par_seconde` — la cadence moyenne d'ouverture d'un appel. C'est ce qui
+#     borne la charge quand les réponses deviennent rapides.
+#
+# Et une retenue commune : un 429 reçu par un fil arrête TOUS les fils. Sans
+# cela, les trois autres continueraient de frapper une porte qui vient de se
+# fermer, ce qui est exactement le comportement que le §3.2 interdit.
+# ---------------------------------------------------------------------------
+class Regulateur:
+    """Débit réseau global, partagé par tous les fils du processus."""
+
+    def __init__(self, par_seconde=3.0, simultanes=1):
+        self._verrou = threading.Lock()
+        self._places = threading.BoundedSemaphore(simultanes)
+        self._simultanes = simultanes
+        self._intervalle = 1.0 / float(par_seconde)
+        self._prochain = 0.0
+        self._retenue = 0.0   # instant avant lequel personne ne repart
+        # Ce qu'on a réellement demandé au service, et ce que ça nous a coûté
+        # d'attente. Le §3.2 dit de ne jamais se comporter comme une charge
+        # abusive ; encore faut-il savoir quelle charge on est. Sans ce
+        # compteur, on discute d'un plafond sans connaître le débit — et on
+        # décide d'augmenter le parallélisme sans savoir s'il sert à quelque
+        # chose. `attente_cumulee` répond à la seule question qui compte pour
+        # cela : est-ce le plafond qui nous freine, ou le service ?
+        self._appels = 0
+        self._attente = 0.0
+        self._depart = None
+
+    def regler(self, par_seconde=None, simultanes=None):
+        """
+        Change les bornes. À n'appeler qu'AVANT de lancer les fils : le
+        sémaphore est remplacé, et le remplacer sous des fils en vol ferait
+        perdre le compte des places.
+        """
+        with self._verrou:
+            if par_seconde:
+                self._intervalle = 1.0 / float(par_seconde)
+            if simultanes:
+                self._simultanes = int(simultanes)
+                self._places = threading.BoundedSemaphore(int(simultanes))
+
+    def etat(self):
+        return {"simultanes": self._simultanes,
+                "par_seconde": round(1.0 / self._intervalle, 2)}
+
+    def bilan(self):
+        """
+        Ce qu'on a demandé au service, et si le plafond nous a freinés.
+
+        `debit_reel` est le nombre d'appels ouverts par seconde, mesuré du
+        premier au dernier. `part_freinee` est la fraction du temps des fils
+        passée à attendre le régulateur plutôt que le réseau : proche de 0,
+        c'est Hub'Eau qui donne le rythme et augmenter le parallélisme sert ;
+        proche de 1, c'est NOTRE plafond qui donne le rythme et ajouter des
+        ouvriers ne fera qu'allonger la file d'attente.
+        """
+        with self._verrou:
+            appels, attente, depart = self._appels, self._attente, self._depart
+        if not appels or depart is None:
+            return {"appels": appels, "debit_reel": 0.0, "part_freinee": 0.0,
+                    "plafond": round(1.0 / self._intervalle, 2)}
+        duree = max(1e-6, time.monotonic() - depart)
+        return {
+            "appels": appels,
+            "duree_s": round(duree, 1),
+            "debit_reel": round(appels / duree, 2),
+            "plafond": round(1.0 / self._intervalle, 2),
+            "attente_cumulee_s": round(attente, 1),
+            "part_freinee": round(attente / (duree * self._simultanes), 3),
+        }
+
+    def retenir(self, secondes):
+        """Met tous les fils en attente — appelé sur 429 ou sur 5xx répétés."""
+        with self._verrou:
+            self._retenue = max(self._retenue, time.monotonic() + float(secondes))
+
+    @contextlib.contextmanager
+    def jeton(self):
+        """Occupe une place et respecte la cadence, le temps d'un appel."""
+        with self._places:
+            t0 = time.monotonic()
+            while True:
+                with self._verrou:
+                    maintenant = time.monotonic()
+                    cible = max(self._prochain, self._retenue, maintenant)
+                    delai = cible - maintenant
+                    if delai <= 0:
+                        self._prochain = maintenant + self._intervalle
+                        self._appels += 1
+                        self._attente += maintenant - t0
+                        if self._depart is None:
+                            self._depart = t0
+                        break
+                    # On ne réserve pas encore le créneau : une retenue
+                    # commune peut arriver pendant qu'on dort, et il faudra
+                    # la relire.
+                time.sleep(min(delai, 5.0))
+            yield
+
+
+REGULATEUR = Regulateur()
+
+
 # ---------------------------------------------------------------------------
 # Accès réseau
 # ---------------------------------------------------------------------------
@@ -125,41 +316,56 @@ def _get(url, params):
 
     Trois délais, pas un : connexion, inactivité, et **durée totale** — voir le
     bloc de constantes en tête de module pour la raison, qui n'est pas évidente.
+
+    L'appel se fait sous un jeton du `REGULATEUR`, et **les attentes se font
+    hors du jeton** : un fil qui patiente après un 503 rend sa place aux
+    autres au lieu de la garder immobilisée. Un 429 met en revanche tout le
+    monde en retenue — c'est le service qui demande le silence, pas un
+    incident propre à un fil.
     """
     attente = 2.0
     for tentative in range(1, MAX_TENTATIVES + 1):
+        differe = None
         try:
-            debut = time.time()
-            r = SESSION.get(url, params=params, stream=True,
-                            timeout=(TIMEOUT_CONNEXION, TIMEOUT_INACTIVITE))
-            # `stream=True` laisse la connexion ouverte tant que le corps n'est
-            # pas lu : sur les chemins où l'on repart sans le lire, il faut la
-            # rendre explicitement, sinon le pool de la session se vide.
-            if r.status_code == 429:
-                delai = float(r.headers.get("Retry-After", attente))
-                r.close()
-                print(f"    429 — pause {delai:.0f}s")
-                time.sleep(delai)
-                attente *= 2
-                continue
-            if r.status_code in (500, 502, 503, 504):
-                r.close()
-                print(f"    {r.status_code} — nouvelle tentative dans {attente:.0f}s")
-                time.sleep(attente)
-                attente *= 2
-                continue
-            try:
-                r.raise_for_status()
-            except Exception:
-                r.close()
-                raise
-            return _corps(r, debut)
+            with REGULATEUR.jeton():
+                debut = time.time()
+                r = SESSION.get(url, params=params, stream=True,
+                                timeout=(TIMEOUT_CONNEXION, TIMEOUT_INACTIVITE))
+                # `stream=True` laisse la connexion ouverte tant que le corps
+                # n'est pas lu : sur les chemins où l'on repart sans le lire,
+                # il faut la rendre explicitement, sinon le pool de la session
+                # se vide.
+                if r.status_code == 429:
+                    delai = float(r.headers.get("Retry-After", attente))
+                    r.close()
+                    REGULATEUR.retenir(delai)
+                    differe = ("429", delai)
+                elif r.status_code in (500, 502, 503, 504):
+                    code = r.status_code
+                    r.close()
+                    differe = (str(code), attente)
+                else:
+                    try:
+                        r.raise_for_status()
+                    except Exception:
+                        r.close()
+                        raise
+                    return _corps(r, debut)
         except (requests.Timeout, requests.ConnectionError) as e:
             if tentative == MAX_TENTATIVES:
                 raise
-            print(f"    {type(e).__name__} — nouvelle tentative dans {attente:.0f}s")
+            dire(f"    {type(e).__name__} — nouvelle tentative dans {attente:.0f}s")
             time.sleep(attente)
             attente *= 2
+            continue
+
+        libelle, delai = differe
+        if libelle == "429":
+            dire(f"    429 — pause {delai:.0f}s, tous les fils en retenue")
+        else:
+            dire(f"    {libelle} — nouvelle tentative dans {delai:.0f}s")
+        time.sleep(delai)
+        attente *= 2
     raise RuntimeError(f"échec après {MAX_TENTATIVES} tentatives : {url}")
 
 
@@ -176,6 +382,28 @@ def _pages(url, params, tri=None):
     *avant* d'attendre.
 
     `tri` — `"desc"` ou `"asc"`. Passé tel quel à l'API, qui l'honore.
+
+    **Une pagination qui s'arrête avant son compte lève une exception.**
+    -------------------------------------------------------------------
+    L'API documente une profondeur d'accès limitée à 20 000 enregistrements.
+    Vérifié le 11 août 2026, elle ne l'applique pas — des pages pleines
+    reviennent jusqu'à une profondeur de 450 000. Mais si elle venait à
+    l'appliquer, une page profonde reviendrait vide, cette boucle s'arrêterait
+    sur `len(data) < PAGE` **sans aucune erreur**, et l'inventaire serait
+    tronqué en silence : des bulletins complets invisibles, donc des communes
+    déclarées « non documentées » à tort. C'est le pire cas de ce module,
+    exactement le §2.4 transposé à la collecte — une absence de donnée qui
+    n'est pas une absence de fait.
+
+    Le contrôle est une comparaison : l'API annonce `count`, on compte ce qu'on
+    a lu. Un écart signifie qu'on n'a pas eu ce qui existe, et il vaut mieux
+    échouer bruyamment. L'échec est rattrapable : la commune part au journal en
+    « erreur », et la reprise la retente au lieu de la tenir pour faite.
+
+    L'arrêt VOLONTAIRE d'un appelant (`inventaire_prelevements_reseau` casse la
+    boucle dès le dernier bulletin complet acquis) ne déclenche rien : le
+    contrôle est dans le `return` de la boucle, pas dans le `yield`. Un appelant
+    qui referme le générateur n'y passe jamais.
     """
     p = dict(params, size=PAGE)
     if tri:
@@ -188,14 +416,22 @@ def _pages(url, params, tri=None):
         total = j.get("count")
         if page == 1:
             if isinstance(total, int) and total > PAGE:
-                print(f"    {total} lignes à parcourir, "
+                dire(f"    {total} lignes à parcourir, "
                       f"{-(-total // PAGE)} pages de {PAGE}")
         else:
-            print(f"    page {page} — {lus} lignes lues"
+            dire(f"    page {page} — {lus} lignes lues"
                   + (f" sur {total}" if isinstance(total, int) else "")
                   + f", {time.time() - t0:.0f}s")
         yield data
         if len(data) < PAGE or not j.get("next"):
+            if isinstance(total, int) and lus < total:
+                raise PaginationTronquee(
+                    f"pagination interrompue à {lus} lignes sur {total} annoncées "
+                    f"(page {page}, size={PAGE}, profondeur {page * PAGE}) — "
+                    f"l'API a cessé de servir avant la fin. Si la profondeur "
+                    f"documentée ({PROFONDEUR_DOCUMENTEE}) est désormais "
+                    f"appliquée, il faut réduire la fenêtre de requête, pas "
+                    f"ingérer un inventaire amputé.")
             return
         page += 1
         time.sleep(PAUSE)
@@ -313,12 +549,12 @@ def lister_communes(dept, via_udi=False):
     if via_udi:
         c = communes_hubeau(dept)
         if c:
-            print(f"communes  : {len(c)} rattachées à une UDI "
+            dire(f"communes  : {len(c)} rattachées à une UDI "
                   f"(Hub'Eau communes_udi, filtré côté client)")
             return c
-        print("communes  : communes_udi n'a rien renvoyé — repli geo.api.gouv.fr")
+        dire("communes  : communes_udi n'a rien renvoyé — repli geo.api.gouv.fr")
     c = communes_geo(dept)
-    print(f"communes  : {len(c)} communes du département (geo.api.gouv.fr)")
+    dire(f"communes  : {len(c)} communes du département (geo.api.gouv.fr)")
     return c
 
 
@@ -451,6 +687,29 @@ def reseaux_de_la_commune(insee, depuis=None):
 
 # Inventaires de réseau déjà faits pendant CE run — voir la docstring ci-dessous.
 _INVENTAIRES_RESEAU = {}
+_VERROUS_RESEAU = {}
+_VERROU_REGISTRE = threading.Lock()
+
+
+def _verrou_du_reseau(cle):
+    """
+    Un verrou par réseau, créé à la demande.
+
+    Sans lui, la mémoïsation ne protège rien en moissonnage parallèle : quatre
+    fils qui prennent quatre communes du même réseau arrivent ensemble, ne
+    trouvent rien en mémoire, et lancent **quatre fois** le même inventaire.
+    Sur le réseau CENTRE de la Métropole de Lyon, c'est quatre paginations
+    profondes au lieu d'une — le contraire exact de ce que la mémoïsation
+    cherchait à éviter, et une charge inutile sur un service public gratuit.
+
+    Le verrou est pris autour de l'inventaire entier : le deuxième fil attend
+    le premier, puis trouve le résultat en mémoire et ne fait aucun appel.
+    """
+    with _VERROU_REGISTRE:
+        v = _VERROUS_RESEAU.get(cle)
+        if v is None:
+            v = _VERROUS_RESEAU[cle] = threading.Lock()
+        return v
 
 
 def vider_cache_reseaux():
@@ -495,14 +754,30 @@ def inventaire_prelevements_reseau(code_reseau, depuis=None,
     une fois par commune. C'est autant une question d'étiquette (§3.2) que de
     durée. La mémoire ne vit que le temps du processus : rien à invalider, une
     collecte relancée repart d'un inventaire frais.
+
+    En moissonnage parallèle, la mémoïsation est prise sous un **verrou par
+    réseau** (`_verrou_du_reseau`) : sans lui, quatre fils arrivés ensemble sur
+    le même réseau ne trouveraient rien en mémoire et lanceraient quatre fois
+    le même inventaire.
     """
     cle = (str(code_reseau), depuis, bool(arret_au_premier_complet), seuil)
-    if memo and cle in _INVENTAIRES_RESEAU:
-        inv = _INVENTAIRES_RESEAU[cle]
-        print(f"    inventaire du réseau {code_reseau} déjà fait "
-              f"({len(inv)} prélèvements) — aucun appel")
+    if not memo:
+        return _inventorier_reseau(code_reseau, depuis,
+                                   arret_au_premier_complet, seuil)
+    with _verrou_du_reseau(cle):
+        if cle in _INVENTAIRES_RESEAU:
+            inv = _INVENTAIRES_RESEAU[cle]
+            dire(f"    inventaire du réseau {code_reseau} déjà fait "
+                 f"({len(inv)} prélèvements) — aucun appel")
+            return inv
+        inv = _inventorier_reseau(code_reseau, depuis,
+                                  arret_au_premier_complet, seuil)
+        _INVENTAIRES_RESEAU[cle] = inv
         return inv
 
+
+def _inventorier_reseau(code_reseau, depuis, arret_au_premier_complet, seuil):
+    """L'inventaire lui-même, sans mémoire — appelé sous verrou."""
     params = {"code_reseau": code_reseau,
               "fields": CHAMPS_INVENTAIRE + ",code_commune,nom_commune"}
     if depuis:
@@ -541,13 +816,11 @@ def inventaire_prelevements_reseau(code_reseau, depuis=None,
                   if e["nb_lignes"] > seuil and e["date"] > derniere]
         if acquis:
             e = max(acquis, key=lambda x: x["date"])
-            print(f"    dernier bulletin complet du réseau acquis "
+            dire(f"    dernier bulletin complet du réseau acquis "
                   f"({e['date']}, {e['nb_lignes']} lignes) — "
                   f"pagination arrêtée, l'antérieur n'est pas demandé")
             break
 
-    if memo:
-        _INVENTAIRES_RESEAU[cle] = inv
     return inv
 
 

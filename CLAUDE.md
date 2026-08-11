@@ -303,11 +303,30 @@ ci-dessus redevient active.
 L'API Hub'Eau est un service public gratuit et sans clé. Le projet ne doit
 jamais se comporter comme une charge abusive :
 
-- pagination à `size=5000` (maximum accepté) ;
-- `time.sleep(0.3)` minimum entre deux appels ;
+- pagination à `size=5000`. **Ce n'est PAS le maximum** — corrigé le 11 août
+  2026 : la documentation dit « taille max de la page : 20000 » pour
+  `resultats_dis`, et l'appel le confirme. Le dépôt écrivait « maximum
+  accepté », valeur supposée prise pour vérifiée, qui nous faisait demander
+  **quatre fois plus de requêtes que nécessaire** — notre propre règle de
+  pagination maximale, non respectée faute d'avoir lu la source (§2.7) ;
+- `time.sleep(0.3)` minimum entre deux appels, et un **plafond global**
+  (`hubeau.REGULATEUR`) dès qu'on moissonne en parallèle ;
 - reprise sur incident via un journal, pour ne jamais retélécharger ce qui a
   déjà été obtenu ;
 - un `User-Agent` identifiant le projet.
+
+**Ce que Hub'Eau publie, vérifié le 11 août 2026 : aucune limite de débit,
+aucun quota, aucune règle de fréquence.** Les seules contraintes documentées
+sont structurelles — taille de page, longueur d'URL (2 083 caractères),
+profondeur de pagination annoncée à 20 000 enregistrements **mais non
+appliquée** (pages pleines obtenues jusqu'à 450 000). Notre plafond de débit
+est donc une décision du projet, pas la reprise d'une règle.
+
+Et la phrase à ne pas mal lire : « les APIs Hub'Eau garantissent […] réponse à
+plus de 20 requêtes par seconde » est un **engagement de service**, ce que
+Hub'Eau se dit capable de servir — jamais une autorisation d'en demander
+autant. Lire un dimensionnement comme une permission est la même erreur que
+lire une limite déclarée comme un seuil réglementaire (§2.8).
 
 Un département = quelques centaines de communes = plusieurs milliers d'appels.
 Le respect du débit n'est pas optionnel.
@@ -398,6 +417,46 @@ données décalées.
 5. analyse    src/queries.sql                            → requêtes de thèse
 6. fiche      sortie/build_fiche.py                      → fiche citoyenne
 ```
+
+### À l'échelle, l'étape 2 se coupe en deux — et c'est ce qui libère la base
+
+**DuckDB n'a qu'un seul écrivain.** `fetch_departement.py` tient la base
+ouverte pendant toute la collecte — deux à trois heures — et rien d'autre ne
+peut alors l'ouvrir, **pas même en lecture seule**. Le cache brut sert donc de
+**tampon**, ce qui était déjà sa raison d'être :
+
+```
+py -X utf8 src/moisson.py --depts 69,71,01 --tous   # réseau, parallèle, base LIBRE
+py -X utf8 src/ingerer.py --depts 69,71,01          # base prise quelques min, puis rendue
+py -X utf8 src/moisson.py --etat                    # ce qui est moissonné
+py -X utf8 src/ingerer.py --etat                    # ce qui attend au tampon
+```
+
+Quatre règles, et elles ne se déduisent pas du code :
+
+1. **`moisson.py` n'importe jamais `duckdb`.** C'est la garantie mécanique que
+   la base reste libre ; la perdre annulerait tout le découpage.
+2. **Moissonné ≠ ingéré ≠ figé.** Les trois `--etat` ne disent pas la même
+   chose, et seul le figé est citable (§8bis).
+3. **Le figeage est incrémental, et ne l'est sans danger qu'à quatre
+   conditions.** Il ne refige que les bulletins absents d'`analyses_figees`
+   sous la version courante. Ce qui périme une ligne figée est attrapé :
+   référentiel modifié (la version change), bulletin réingéré (`ingest`
+   efface ses lignes figées), **code de calcul modifié**
+   (`figer.version_moteur()` force le refigeage complet). Et
+   `analyses_figees` / `verdicts_figes` sont **un seul figeage** : ne jamais
+   en reconstruire une sans vider l'autre. `--refiger` force le tout.
+4. **Le parallélisme n'autorise pas à peser plus lourd** (§3.2). Les pauses de
+   `hubeau` sont locales à un fil : à quatre fils elles quadruplent la charge
+   sans que rien ne le dise. `hubeau.REGULATEUR` borne le débit du **processus
+   entier** et met **tous** les fils en retenue sur 429 ; un verrou par réseau
+   empêche N fils d'inventorier le même réseau en même temps. Ces plafonds sont
+   les nôtres — Hub'Eau n'en publie aucun — et les relever ne se fait pas sans
+   mesure.
+
+`fetch_departement.py` reste le chemin court pour un département isolé ;
+journal et cache sont les mêmes des deux côtés. Détail, mesures et ce qui reste
+ouvert : `docs/REPRISE.md` §15.
 
 Le raccourci qui fait tout l'enchaînement pour une commune :
 

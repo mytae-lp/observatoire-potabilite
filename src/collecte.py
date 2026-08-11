@@ -33,22 +33,49 @@ La règle de couverture (arrêtée le 7 août 2026)
 
 « Non documentée » n'est ni conforme ni non conforme : c'est une absence de
 donnée, et elle doit rester visible comme telle (§2.4, §8bis obligation 4).
+
+Collecter et ingérer sont deux gestes, et `con=None` les sépare
+----------------------------------------------------------------
+`traiter_commune(con=None, ...)` fait tout le travail réseau — inventaire,
+règle de couverture, repli, écriture au cache brut — et **n'ouvre pas la
+base**. C'est ce que `src/moisson.py` appelle pour moissonner plusieurs
+départements en parallèle pendant que la base reste libre ; l'ingestion vient
+ensuite, hors ligne, par `src/ingerer.py`.
+
+Le mode sans base ne duplique pas la règle : c'est la même fonction, le même
+ordre d'essais, le même statut rendu. Une deuxième version « allégée » de la
+règle de couverture divergerait à la première retouche — c'est exactement la
+duplication que ce module a été écrit pour supprimer.
 """
 import collections
+import threading
 
 import brut
 import hubeau
 import ingest
 from common import SEUIL_COMPLET
+from console import dire
 
 # Ce que la collecte a coûté, pour le rapport de fin de lot. Le cache n'est pas
 # une optimisation discrète : savoir combien de bulletins n'ont PAS été demandés
 # à Hub'Eau est la mesure de ce qu'on lui épargne (§3.2).
+#
+# Le verrou n'est pas du zèle : `Counter[k] += 1` est une lecture puis une
+# écriture, et sous quatre fils de moisson deux incréments simultanés en
+# perdent un. Un compteur faux ferait sous-estimer ce qu'on demande à un
+# service public gratuit, ce qui est précisément le chiffre à ne pas fausser.
 STATS = collections.Counter()
+_VERROU_STATS = threading.Lock()
+
+
+def compter(cle, n=1):
+    with _VERROU_STATS:
+        STATS[cle] += n
 
 
 def reinitialiser_stats():
-    STATS.clear()
+    with _VERROU_STATS:
+        STATS.clear()
 
 
 def rows_du_bulletin(code_prelevement, dept, cache=True):
@@ -63,20 +90,32 @@ def rows_du_bulletin(code_prelevement, dept, cache=True):
     if cache:
         rows = brut.lire(dept, code_prelevement)
         if rows:
-            STATS["bulletins_du_cache"] += 1
+            compter("bulletins_du_cache")
             return rows, "cache"
 
     rows = hubeau.fetch_bulletin(code_prelevement)
-    STATS["bulletins_du_reseau"] += 1
+    compter("bulletins_du_reseau")
     if rows and cache:
         brut.ecrire(dept, code_prelevement, rows)
     return rows, "reseau"
 
 
 def _ingerer(con, insee, commune, rows, dept):
+    """
+    Métadonnées du bulletin, et son entrée en base **si une base est ouverte**.
+
+    `con=None` est le mode moisson : la matière première est déjà au cache
+    brut (`rows_du_bulletin` l'y a écrite), et l'ingestion se fera plus tard,
+    hors ligne. On rend alors la même identité — code, nombre de paramètres,
+    complétude — calculée par `ingest.identifier`, c'est-à-dire par le même
+    code que l'ingestion réelle : la trace de moisson ne peut donc pas
+    annoncer un nombre de paramètres différent de celui qui entrera en base.
+    """
     meta = hubeau.bulletin_meta(insee, commune.get("nom"), dept, rows)
     meta.update({"codes_postaux": commune.get("codes_postaux"),
                  "lon": commune.get("lon"), "lat": commune.get("lat")})
+    if con is None:
+        return meta, ingest.identifier(meta, rows)
     return meta, ingest.ingest_bulletin(con, meta, rows)
 
 
@@ -87,6 +126,11 @@ def traiter_commune(con, commune, depuis=None, tous=False, repli=True,
 
     `commune` est un dictionnaire {code_insee, nom, lon, lat, codes_postaux} :
     les coordonnées viennent de l'énumération, elles ne sont pas redemandées ici.
+
+    `con=None` — **moisson seule** : tout le réseau est fait, les bulletins
+    sont écrits au cache brut, rien n'est écrit en base. Le triplet rendu est
+    identique, donc le journal de reprise l'est aussi, et l'ingestion
+    ultérieure n'a besoin d'aucun appel réseau.
     """
     insee = commune["code_insee"]
     dept = commune.get("dept") or insee[:2]
@@ -102,16 +146,16 @@ def traiter_commune(con, commune, depuis=None, tous=False, repli=True,
         codes.append(code_prel)
         if verbeux:
             marque = "" if provenance == "reseau" else "  [cache]"
-            print(f"  {meta['date_prelevement']}  "
+            dire(f"  {meta['date_prelevement']}  "
                   f"{meta.get('nom_installation_amont') or 'installation non renseignée'}"
                   f"  — {nb} paramètres{marque}")
 
     if codes:
-        STATS["analysee"] += 1
+        compter("analysee")
         return "analysee", codes, None
 
     if not repli:
-        STATS["non_documentee"] += 1
+        compter("non_documentee")
         return "non_documentee", [], None
 
     # Repli : la même eau, prélevée ailleurs sur le même réseau.
@@ -131,15 +175,15 @@ def traiter_commune(con, commune, depuis=None, tous=False, repli=True,
             con, insee_prel, commune_prel, rows, insee_prel[:2])
         libelle = commune_prel.get("nom") or insee_prel
         if verbeux:
-            print(f"  {meta['date_prelevement']}  réseau {nom_reseau or code_reseau}"
+            dire(f"  {meta['date_prelevement']}  réseau {nom_reseau or code_reseau}"
                   f"  — {nb} paramètres, prélevé à {libelle}")
-        STATS["rattachee_reseau"] += 1
+        compter("rattachee_reseau")
         return "rattachee_reseau", [code_prel], libelle
 
     if verbeux:
-        print(f"  aucun bulletin complet (> {SEUIL_COMPLET} paramètres), "
+        dire(f"  aucun bulletin complet (> {SEUIL_COMPLET} paramètres), "
               f"ni pour la commune ni pour son réseau")
-    STATS["non_documentee"] += 1
+    compter("non_documentee")
     return "non_documentee", [], None
 
 

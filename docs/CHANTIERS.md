@@ -1,5 +1,42 @@
 # Chantiers d'améliorations
 
+## ERGONOMIE — deux constats du 11 août 2026, pour le dossier ergonomie à venir
+
+*Reportés à la demande de Yannick : un dossier ergonomie de site est prévu, ces
+deux points en feront partie. Rien n'a été modifié.*
+
+**1. « Rien trouvé » se lit comme « rien su ».** Toulouse (31555) : bulletin
+propre du 4 mai 2026, **383 paramètres mesurés, 337 notés (88 % de couverture),
+0 dépassement, 1 seule substance de synthèse quantifiée**. C'est le résultat le
+plus rassurant que le corpus puisse produire — et la fiche l'affiche en tirets et
+en « sous la limite de quantification », ce qui ressemble à un formulaire vide.
+
+C'est le §2.11 retourné contre nous : *une eau correcte sur 200 paramètres est
+une information plus faible qu'une eau moyenne sur 700.* Ici c'est une eau très
+propre sur 383, et rien ne le dit. Pistes : remplacer le tiret par **« cherché,
+non détecté »**, et porter en tête du bloc *« N paramètres recherchés, M
+substances trouvées »* au lieu de laisser le lecteur additionner des absences.
+
+**2. Le blanc de la carte se lit comme « on ne sait pas ».** Or une commune
+blanche est **rattachée à un réseau** : elle boit une eau réellement analysée,
+ailleurs. La proportion est structurelle, pas un défaut de collecte — elle suit
+les métropoles.
+
+| dept | analysées | rattachées | non documentées |
+|---|---|---|---|
+| 31 | 144 | **431** | 11 |
+| 69 | 67 | **198** | 1 |
+| 81 | 127 | 187 | 0 |
+| 28 | 177 | 181 | 5 |
+| 09 | 172 | 153 | 0 |
+
+Les deux départements les plus « blancs » portent Toulouse Métropole et la
+Métropole de Lyon : un grand réseau alimente des dizaines de communes depuis
+quelques points de production. Le §8bis, point 5, impose déjà de dire **où**
+l'analyse a été prélevée — à vérifier sur la carte autant que sur la fiche.
+
+---
+
 Ce fichier est le **carnet de commande** du projet. Yannick y dépose les
 chantiers ; ils sont ensuite lancés, éventuellement en parallèle. Il ne
 remplace ni `CLAUDE.md`, qui porte la méthode et les garde-fous, ni

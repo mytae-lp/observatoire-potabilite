@@ -253,8 +253,67 @@ def main():
             "SELECT COUNT(*) FROM verdicts_figes WHERE version_referentiel = ?",
             [v1]).fetchone()[0] == nfig, "et refigée sans perte")
 
+        print("\n3quater. le figeage incrémental ne refige que ce qui manque —")
+        print("         et ce qu'il saute doit être exactement ce qui n'a pas bougé")
+        # Le figeage refigeait TOUT le corpus à chaque appel : 32,4 min pour
+        # 4 745 bulletins, mesuré le 11 août 2026, verrou de la base tenu tout
+        # du long. Rendu incrémental, il devient sûr à une condition — que les
+        # trois façons de périmer une ligne figée soient toutes attrapées.
+        avant = con.execute(
+            "SELECT COUNT(*) FROM analyses_figees WHERE version_referentiel = ?",
+            [v1]).fetchone()[0]
+        _v, refiges = figer.figer(con, version=v1, verbeux=False)
+        verifie(refiges == 0,
+                "un corpus inchangé ne refige rien (0 bulletin recalculé)")
+        verifie(con.execute(
+            "SELECT COUNT(*) FROM analyses_figees WHERE version_referentiel = ?",
+            [v1]).fetchone()[0] == avant,
+            f"et ne perd rien : les {avant} bulletin(s) figés sont toujours là")
+
+        # 1er cas — le bulletin est RÉINGÉRÉ. Ses mesures sont remplacées, donc
+        # son verdict figé ne les décrit plus. Sans l'invalidation faite par
+        # `ingest.ingest_bulletin`, il resterait « déjà figé » et garderait
+        # indéfiniment un verdict calculé sur des données disparues : le pire
+        # cas possible ici, un chiffre faux que rien ne signale.
+        ingest.ingest_bulletin(con, META, bulletin_fictif())
+        verifie(con.execute(
+            "SELECT COUNT(*) FROM analyses_figees WHERE code_prelevement = ?",
+            [code_prel]).fetchone()[0] == 0,
+            "réingérer un bulletin efface son figeage, toutes versions confondues")
+        _v, refiges = figer.figer(con, version=v1, verbeux=False)
+        verifie(refiges == 1, "et le figeage suivant le recalcule (1 bulletin)")
+        verifie(con.execute(
+            "SELECT COUNT(*) FROM verdicts_figes WHERE version_referentiel = ?",
+            [v1]).fetchone()[0] == nfig,
+            "avec son détail complet, pas seulement sa ligne de bulletin")
+
+        # 2e cas — le CODE de calcul change sans que le référentiel bouge.
+        # `version_referentiel` est identique, donc rien ne distinguerait les
+        # lignes d'avant de celles d'après : deux calculs sous une seule
+        # version, et aucune trace. C'est `version_moteur` qui l'attrape.
+        con.execute("UPDATE figeage_moteur SET empreinte_moteur = 'autre-moteur' "
+                    "WHERE version_referentiel = ?", [v1])
+        _v, refiges = figer.figer(con, version=v1, verbeux=False)
+        verifie(refiges == avant,
+                f"un changement du code de calcul refige TOUT le corpus "
+                f"({refiges} bulletin(s)), sans qu'on l'ait demandé")
+        verifie(con.execute(
+            "SELECT empreinte_moteur FROM figeage_moteur WHERE version_referentiel = ?",
+            [v1]).fetchone()[0] == figer.version_moteur(),
+            "et l'empreinte du moteur est réenregistrée")
+
+        # 3e cas — le REFERENTIEL change. La version change avec lui, donc plus
+        # personne n'est figé sous la nouvelle : tout est recalculé. La règle du
+        # projet est intacte, une version s'applique au corpus entier. C'est la
+        # section 4 qui le vérifie, en figeant sous une seconde grille.
+
         print("\n4. deux versions coexistent")
-        figer.figer(con, version="ancienne-grille", calcule_le="2016-01-01")
+        _v, refiges = figer.figer(con, version="ancienne-grille",
+                                  calcule_le="2016-01-01")
+        verifie(refiges == avant,
+                f"une version de référentiel neuve fige TOUT le corpus "
+                f"({refiges} bulletin(s)) — l'incrémental ne mélange jamais "
+                f"deux grilles")
         versions = [r[0] for r in con.execute(
             "SELECT DISTINCT version_referentiel FROM analyses_figees ORDER BY 1").fetchall()]
         verifie(len(versions) == 2,

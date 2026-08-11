@@ -67,6 +67,15 @@ REGLES_CSV = os.path.join(RACINE, "referentiel", "regles_famille.csv")
 FAMILLES_SYNTHESE = ("pesticide", "metabolite", "PFAS", "organique")
 
 SCHEMA_FIGE = """
+-- Sous quelle empreinte de CODE chaque version de référentiel a été figée.
+-- C'est ce qui rend le figeage incrémental sûr : voir `version_moteur()`.
+-- Une seule ligne par version — la dernière empreinte utilisée.
+CREATE TABLE IF NOT EXISTS figeage_moteur (
+    version_referentiel VARCHAR PRIMARY KEY,
+    empreinte_moteur    VARCHAR,
+    calcule_le          DATE
+);
+
 CREATE TABLE IF NOT EXISTS analyses_figees (
     code_prelevement        VARCHAR,
     version_referentiel     VARCHAR,
@@ -271,8 +280,22 @@ def assurer_schema(con, verbeux=True):
     Une table figée détruite ici n'est pas une perte de fait : les mesures sont
     intactes en base, et `figer()` recalcule tout. Ce qui se perd est le verdict
     calculé contre une version ANTÉRIEURE du référentiel, et cela se dit.
+
+    **`analyses_figees` et `verdicts_figes` sont UN SEUL figeage en deux
+    tables** — le bulletin et son détail paramètre par paramètre. Reconstruire
+    l'une sans vider l'autre laisse un figeage à moitié présent, et depuis que
+    `figer()` est incrémental ce demi-figeage est **invisible** : le bulletin
+    figure toujours dans `analyses_figees`, donc il est réputé figé, donc son
+    détail n'est jamais réécrit. Le compteur du bulletin annoncerait des
+    dépassements dont le détail serait vide.
+
+    Défaut réel, attrapé par `tests/test_figer.py` en écrivant le figeage
+    incrémental le 11 août 2026 : le contrôle « et refigée sans perte » est
+    passé au rouge dès le premier essai. Sans lui, la régression serait entrée
+    sans bruit — c'est exactement ce que ce test existe pour empêcher.
     """
     con.execute(SCHEMA_FIGE)
+    reconstruites = []
     for table, attendues in COLONNES_ATTENDUES.items():
         presentes = [r[0] for r in con.execute(
             "SELECT column_name FROM information_schema.columns "
@@ -286,7 +309,20 @@ def assurer_schema(con, verbeux=True):
             print("    les verdicts figés contre une version antérieure du référentiel")
             print("    sont perdus ; les mesures, elles, sont intactes. Refige.")
         con.execute(f"DROP TABLE IF EXISTS {table}")
+        reconstruites.append(table)
     con.execute(SCHEMA_FIGE)
+
+    if set(reconstruites) & {"analyses_figees", "verdicts_figes"}:
+        # L'une des deux moitiés est repartie de zéro : l'autre ne décrit plus
+        # rien de complet. On les remet toutes les deux à vide, et on efface
+        # l'empreinte de moteur pour que le prochain `figer()` reparte du
+        # corpus entier au lieu de croire qu'il n'a rien à faire.
+        if verbeux and len(reconstruites) == 1:
+            print("    l'autre moitié du figeage est vidée avec elle : un bulletin "
+                  "et son détail ne se séparent pas")
+        con.execute("DELETE FROM analyses_figees")
+        con.execute("DELETE FROM verdicts_figes")
+        con.execute("DELETE FROM figeage_moteur")
 
 
 def version_referentiel():
@@ -304,6 +340,63 @@ def version_referentiel():
             with open(chemin, "rb") as fh:
                 h.update(fh.read())
     return h.hexdigest()[:12]
+
+
+# Les fichiers dont le contenu décide de ce que vaut une ligne figée :
+# le calcul lui-même, les vues qu'il interroge, et les fonctions de lecture
+# d'une mesure. Une modification de l'un des trois change potentiellement
+# TOUS les verdicts déjà figés.
+FICHIERS_MOTEUR = ("figer.py", "build_db.py", "common.py")
+
+
+def version_moteur():
+    """
+    Empreinte du **code** qui calcule un figeage : 12 caractères hexadécimaux.
+
+    Pourquoi elle existe — le piège du figeage incrémental
+    ------------------------------------------------------
+    `version_referentiel` répond à « contre quelle grille ce verdict a-t-il été
+    rendu ». Elle ne répond pas à « par quel calcul ». Tant que `figer()`
+    refigeait tout le corpus à chaque appel, la question ne se posait pas : une
+    correction du moteur se propageait d'elle-même au figeage suivant.
+
+    Dès que le figeage devient incrémental, elle se pose et elle est
+    dangereuse : on corrige un défaut de calcul, le référentiel n'a pas bougé
+    donc `version_referentiel` non plus, et les 4 700 lignes déjà figées
+    **gardent silencieusement l'ancien verdict** pendant que les nouvelles
+    portent le bon. Deux calculs sous une même version, et rien ne le dit —
+    c'est exactement le défaut qui a fait citer deux jours durant un chiffre du
+    Rhône introuvable en base.
+
+    D'où cette seconde empreinte, comparée à chaque figeage : si elle a changé,
+    le figeage redevient complet d'office et l'annonce. Elle est délibérément
+    grossière — elle porte sur les octets des fichiers, commentaires compris —
+    parce que l'erreur à ne pas commettre est de sauter un refigeage
+    nécessaire. Un refigeage inutile coûte du temps ; un refigeage manquant
+    produit un chiffre faux, et le §2.13 tranche cette asymétrie-là depuis
+    toujours.
+    """
+    h = hashlib.sha256()
+    for nom in FICHIERS_MOTEUR:
+        chemin = os.path.join(RACINE, "src", nom)
+        h.update(nom.encode())
+        if os.path.exists(chemin):
+            with open(chemin, "rb") as fh:
+                h.update(fh.read())
+    return h.hexdigest()[:12]
+
+
+def _moteur_enregistre(con, version):
+    """L'empreinte de moteur sous laquelle cette version a été figée, ou None."""
+    r = con.execute("SELECT empreinte_moteur FROM figeage_moteur "
+                    "WHERE version_referentiel = ?", [version]).fetchone()
+    return r[0] if r else None
+
+
+def _enregistrer_moteur(con, version, moteur, jour):
+    con.execute("DELETE FROM figeage_moteur WHERE version_referentiel = ?", [version])
+    con.execute("INSERT INTO figeage_moteur VALUES (?,?,?::DATE)",
+                [version, moteur, jour])
 
 
 def _sommes(con, code_prel):
@@ -460,9 +553,9 @@ def figer_lq_corpus(con, version, calcule_le=None):
                        [version]).fetchone()[0]
 
 
-def figer(con, version=None, calcule_le=None, verbeux=True):
+def figer(con, version=None, calcule_le=None, verbeux=True, complet=False):
     """
-    (Re)calcule et fige tous les bulletins présents en base.
+    Fige les bulletins qui ne le sont pas encore sous cette version.
 
     **Cette fonction imprime sa progression**, et ce n'est pas du confort. Le
     11 août 2026, le figeage du Rhône a tourné dix-sept minutes sans une ligne :
@@ -470,29 +563,89 @@ def figer(con, version=None, calcule_le=None, verbeux=True):
     corrigé dans `hubeau._pages` le matin même. Une boucle longue et muette n'est
     pas diagnosticable — et elle finit par coûter une soirée à quelqu'un.
 
-    Le coût croît avec le corpus, pas avec le lot : figer une commune refige
-    TOUT (c'est voulu, une version de référentiel s'applique au corpus entier),
-    donc la durée n'a aucune raison de rester petite quand le projet grandit.
+    Incrémental depuis le 11 août 2026, et pourquoi
+    -----------------------------------------------
+    Cette fonction refigeait TOUT le corpus à chaque appel. Mesuré ce jour-là :
+    **32,4 minutes pour 4 745 bulletins**, soit 0,41 s l'unité — pour une
+    ingestion de 65 bulletins, et le verrou de la base tenu pendant tout ce
+    temps. Le coût croissait avec le corpus et non avec le lot : à 35 000
+    communes, chaque ingestion aurait coûté des heures d'indisponibilité. Le
+    découpage moisson/ingestion aurait levé un verrou de trois heures pour en
+    installer un autre.
+
+    Ce qui est sauté est **exactement** ce qui n'a pas à être recalculé : un
+    bulletin déjà présent dans `analyses_figees` sous CETTE version. Trois
+    situations, et les trois restent justes :
+
+      · **un bulletin nouvellement ingéré** n'y est pas -> il est figé ;
+      · **le référentiel a changé** -> `version_referentiel` change, donc plus
+        personne n'y est sous la nouvelle version -> tout est refigé. C'est la
+        règle du projet et elle est intacte : une version s'applique au corpus
+        entier, jamais à une partie ;
+      · **un bulletin réingéré** (ses mesures ont été remplacées) voit ses
+        lignes figées supprimées par l'ingestion elle-même — cf.
+        `ingest.ingest_bulletin`. Sans cela il garderait un verdict qui ne
+        décrit plus ses données, ce qui est le pire cas possible ici.
+
+    Reste le quatrième cas, et c'est lui qui demandait un mécanisme : **le
+    calcul lui-même change** sans que le référentiel bouge. `version_moteur()`
+    l'attrape — si l'empreinte du code diffère de celle enregistrée pour cette
+    version, le figeage redevient complet d'office et le dit.
+
+    `complet=True` force le refigeage total. À utiliser quand on doute.
     """
     assurer_schema(con)
     version = version or version_referentiel()
     jour = calcule_le or datetime.date.today().isoformat()
 
+    moteur = version_moteur()
+    enregistre = _moteur_enregistre(con, version)
+    if enregistre and enregistre != moteur and not complet:
+        complet = True
+        if verbeux:
+            print(f"figeage   : le code de calcul a changé depuis le dernier "
+                  f"figeage de {version} ({enregistre} -> {moteur})")
+            print(f"            refigeage COMPLET du corpus — les lignes déjà "
+                  f"figées ont été calculées autrement,")
+            print(f"            les garder ferait cohabiter deux calculs sous "
+                  f"une seule version")
+
     prels = [r[0] for r in con.execute(
         "SELECT code_prelevement FROM v_prelevement_verdict ORDER BY 1").fetchall()]
+    corpus = len(prels)
 
-    con.execute("DELETE FROM analyses_figees WHERE version_referentiel = ?", [version])
-    con.execute("DELETE FROM verdicts_figes  WHERE version_referentiel = ?", [version])
+    if complet:
+        con.execute("DELETE FROM analyses_figees WHERE version_referentiel = ?", [version])
+        con.execute("DELETE FROM verdicts_figes  WHERE version_referentiel = ?", [version])
+        a_figer = prels
+    else:
+        deja = {r[0] for r in con.execute(
+            "SELECT code_prelevement FROM analyses_figees "
+            "WHERE version_referentiel = ?", [version]).fetchall()}
+        a_figer = [cp for cp in prels if cp not in deja]
+        # On efface quand même les lignes de détail des bulletins qu'on va
+        # refiger : un figeage interrompu peut avoir laissé des `verdicts_figes`
+        # sans son `analyses_figees`, et l'INSERT buterait sur la clé.
+        for cp in a_figer:
+            con.execute("DELETE FROM verdicts_figes WHERE version_referentiel = ? "
+                        "AND code_prelevement = ?", [version, cp])
 
-    total = len(prels)
+    total = len(a_figer)
     # Un jalon tous les 5 %, borné : assez pour voir que ça avance, assez rare
     # pour ne pas noyer le journal d'un gros lot.
     pas = max(50, total // 20)
     t0 = time.time()
-    if verbeux and total:
-        print(f"figeage   : {total} bulletin(s) à refiger sous {version}")
+    if verbeux:
+        if total:
+            deja_n = corpus - total
+            print(f"figeage   : {total} bulletin(s) à figer sous {version}"
+                  + (f" ({deja_n} déjà figés, inchangés)" if deja_n else "")
+                  + (" — refigeage complet" if complet else ""))
+        else:
+            print(f"figeage   : rien à figer, les {corpus} bulletin(s) du corpus "
+                  f"sont déjà figés sous {version}")
 
-    for i, cp in enumerate(prels, 1):
+    for i, cp in enumerate(a_figer, 1):
         if verbeux and total and (i % pas == 0 or i == total):
             ecoule = time.time() - t0
             reste = ecoule / i * (total - i)
@@ -561,9 +714,16 @@ def figer(con, version=None, calcule_le=None, verbeux=True):
                                         OR hors_reference)
         """, [version, cp])
 
+    # Ces deux-là se refont TOUJOURS, même quand aucun bulletin n'a été figé :
+    # elles ne décrivent pas un bulletin mais le CORPUS, et le corpus vient de
+    # changer. Le barème de finesse analytique en particulier — « le plus fin
+    # identifié sur N bulletins, M départements » (§2.14) — se déplace à chaque
+    # arrivée, et une fiche qui l'afficherait périmé situerait son laboratoire
+    # contre une base qui n'existe plus.
     figer_couverture_implicite(con, version, jour)
     figer_lq_corpus(con, version, jour)
-    return version, len(prels)
+    _enregistrer_moteur(con, version, moteur, jour)
+    return version, len(a_figer)
 
 
 def figer_couverture_implicite(con, version, calcule_le=None):

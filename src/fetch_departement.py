@@ -1,11 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-Collecte automatique à l'échelle d'un département.
+Collecte automatique à l'échelle d'un département — **un seul, verrou tenu**.
 
     py -X utf8 src/fetch_departement.py --dept 81 --limite 10   # essai, mesuré
     py -X utf8 src/fetch_departement.py --dept 81 --tous        # le département
     py -X utf8 src/fetch_departement.py --dept 81 --figer       # fige sans rien collecter
     py -X utf8 src/fetch_departement.py --dept 81 --rapport     # relit le journal
+
+Ce n'est plus la voie du passage à l'échelle
+--------------------------------------------
+`run()` tient une connexion DuckDB en lecture-écriture ouverte du début à la
+fin de la collecte, soit deux à trois heures pendant lesquelles **aucun autre
+processus ne peut ouvrir la base, même en lecture seule**. Pour un département
+isolé c'est acceptable ; pour les ~35 000 communes qui restent, c'est la
+contrainte d'ordonnancement du projet, et elle n'a pas lieu d'être : sur ces
+trois heures, l'écriture occupe quelques minutes.
+
+La voie à l'échelle sépare les deux gestes :
+
+    py -X utf8 src/moisson.py --depts 69,71,01 --tous   # réseau, parallèle, base libre
+    py -X utf8 src/ingerer.py --depts 69,71,01          # base prise quelques minutes
+
+Le journal et le cache brut sont **les mêmes** des deux côtés : un département
+commencé ici se termine là-bas, et réciproquement. Ce fichier reste le chemin
+court pour un département unique, `--figer` et `--rapport` restant utiles quel
+que soit le chemin de collecte.
 
 Ce script fait des requêtes HTTP : il doit tourner dans un environnement avec
 accès réseau depuis le shell (la machine de Yannick, Claude Code) — pas dans un
@@ -33,7 +52,6 @@ L'accès réseau est entièrement dans `src/hubeau.py`.
 """
 import argparse
 import collections
-import json
 import os
 import sys
 import time
@@ -44,86 +62,10 @@ import brut
 import collecte
 import figer
 import hubeau
-from common import DB_PATH, JOURNAL_DIR, SEUIL_COMPLET
-
-
-# ---------------------------------------------------------------------------
-# Journal de reprise
-#
-# Il porte de quoi REFIGER sans réseau : statut, prélèvements retenus, commune
-# de prélèvement, et l'identité complète de la commune (nom, coordonnées). Une
-# collecte interrompue se termine donc par `--figer`, sans redemander une seule
-# ligne à Hub'Eau.
-# ---------------------------------------------------------------------------
-def chemin_journal(dept):
-    os.makedirs(JOURNAL_DIR, exist_ok=True)
-    return os.path.join(JOURNAL_DIR, f"dept_{dept}.jsonl")
-
-
-def lire_journal(dept):
-    """{code_insee: dernière entrée} — permet de reprendre où on s'est arrêté."""
-    chemin = chemin_journal(dept)
-    vu = {}
-    if not os.path.exists(chemin):
-        return vu
-    with open(chemin, encoding="utf-8") as fh:
-        for ligne in fh:
-            ligne = ligne.strip()
-            if not ligne:
-                continue
-            try:
-                e = json.loads(ligne)
-            except json.JSONDecodeError:
-                continue
-            if e.get("code_insee"):
-                vu[e["code_insee"]] = e
-    return vu
-
-
-def ecrire_journal(dept, entree):
-    with open(chemin_journal(dept), "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(entree, ensure_ascii=False) + "\n")
-
-
-# ---------------------------------------------------------------------------
-# L'énumération des communes, mise au cache elle aussi
-#
-# Elle coûte un appel, mais elle porte les centroïdes — donc la position de
-# chaque commune sur la carte, y compris celles qui n'auront jamais de bulletin.
-# La garder rend la réingestion depuis le cache entièrement hors ligne : sans
-# elle, une commune réingérée après une perte de base n'aurait plus de lon/lat
-# et disparaîtrait de la carte sans que rien ne le signale.
-# ---------------------------------------------------------------------------
-def chemin_communes(dept):
-    return os.path.join(brut.BRUT_DIR, str(dept), "_communes.json")
-
-
-def ecrire_communes_cache(dept, communes):
-    os.makedirs(os.path.dirname(chemin_communes(dept)), exist_ok=True)
-    with open(chemin_communes(dept), "w", encoding="utf-8") as fh:
-        json.dump(communes, fh, ensure_ascii=False, indent=1, sort_keys=True)
-
-
-def lire_communes_cache(dept):
-    """
-    L'énumération mise au cache, ou {} si elle est absente ou illisible.
-
-    `utf-8-sig` et non `utf-8` : un fichier réécrit à la main sous Windows
-    porte souvent un BOM, et `json.load` refuse de le lire. Un cache illisible
-    ne doit pas faire tomber l'appelant — il doit se lire comme une absence,
-    parce que le script de reprise automatique interroge cette fonction pour
-    savoir s'il reste du travail, et qu'une exception à ce moment-là ferait
-    échouer la reprise sans que personne ne le voie.
-    """
-    chem = chemin_communes(dept)
-    if not os.path.exists(chem):
-        return {}
-    try:
-        with open(chem, encoding="utf-8-sig") as fh:
-            return json.load(fh)
-    except (OSError, json.JSONDecodeError) as e:
-        print(f"  cache d'énumération illisible ({type(e).__name__}) : {chem}")
-        return {}
+import ingerer
+from common import DB_PATH, SEUIL_COMPLET
+from journal import (chemin_journal, ecrire_communes_cache, ecrire_journal,
+                     lire_communes_cache, lire_journal, reste_a_faire)
 
 
 # ---------------------------------------------------------------------------
@@ -144,42 +86,14 @@ def reingerer_departement(dept, db=DB_PATH):
 
     L'ingestion est idempotente (DELETE puis INSERT sur `code_prelevement`),
     donc relancer cette commande ne duplique rien.
+
+    Le travail lui-même vit dans `src/ingerer.py` depuis la séparation
+    moisson/ingestion : c'est exactement le même geste, et deux copies d'une
+    règle d'ingestion divergeraient à la première retouche. `--reingerer`
+    équivaut donc à `ingerer.py --depts <dept> --tout --sans-figer`, le
+    figeage restant à la charge de l'appelant comme avant.
     """
-    if not os.path.exists(db):
-        print(f"base absente : {db}\nlance d'abord : py -X utf8 src/build_db.py")
-        sys.exit(1)
-
-    entrees = brut.lister(dept)
-    if not entrees:
-        print(f"cache brut vide pour le département {dept} — rien à réingérer")
-        return 0
-
-    communes = lire_communes_cache(dept)
-    print(f"réingestion : {len(entrees)} bulletin(s) du cache, sans réseau")
-    con = duckdb.connect(db)
-    n = 0
-    try:
-        for _d, cp, _chem in entrees:
-            rows = brut.lire(dept, cp)
-            if not rows:
-                print(f"  {cp} — illisible, ignoré")
-                continue
-            r0 = rows[0]
-            insee = str(r0.get("code_commune") or "")
-            # L'identité vient du cache d'énumération quand elle y est : elle
-            # porte les coordonnées. Sinon on retombe sur ce que la ligne dit
-            # d'elle-même, quitte à n'avoir pas de position.
-            commune = dict(communes.get(insee) or
-                           {"code_insee": insee, "nom": r0.get("nom_commune")})
-            commune.setdefault("code_insee", insee)
-            collecte._ingerer(con, insee, commune, rows, insee[:2] or dept)
-            n += 1
-            if n % 100 == 0:
-                print(f"  {n}/{len(entrees)}")
-    finally:
-        con.close()
-    print(f"réingéré : {n} bulletin(s)")
-    return n
+    return ingerer.ingerer([str(dept)], db=db, tout=True, figeage=False)
 
 
 # ---------------------------------------------------------------------------
@@ -191,8 +105,12 @@ def figer_departement(dept, db=DB_PATH, verbeux=True):
 
     Séparé de la collecte pour deux raisons. D'abord la reprise : une coupure
     au milieu d'un département ne doit pas coûter le figeage de ce qui a été
-    obtenu. Ensuite le coût : `figer.figer()` recalcule TOUT le corpus, et
-    l'appeler à chaque commune serait quadratique.
+    obtenu. Ensuite le coût : `figer.figer()` balaie le corpus, et l'appeler à
+    chaque commune serait quadratique.
+
+    `complet=True` refige tout le corpus au lieu des seuls bulletins non encore
+    figés. Long, et rarement nécessaire : un changement de référentiel comme un
+    changement du code de calcul déclenchent le refigeage d'eux-mêmes.
     """
     vu = lire_journal(dept)
     if not vu:
@@ -203,7 +121,7 @@ def figer_departement(dept, db=DB_PATH, verbeux=True):
     try:
         figer.assurer_schema(con)
         version = figer.version_referentiel()
-        version, n = figer.figer(con, version=version)
+        version, n = figer.figer(con, version=version, complet=complet)
         for e in vu.values():
             if e.get("etat") == "erreur":
                 continue
@@ -222,7 +140,14 @@ def figer_departement(dept, db=DB_PATH, verbeux=True):
         # existante : les statuts inscrits ci-dessus, plus précis, sont gardés.
         figer.figer_couverture_implicite(con, version)
         if verbeux:
-            print(f"\nfigé : {n} bulletin(s), version de référentiel {version}")
+            # « figé : N » veut dire N NOUVEAUX depuis que le figeage est
+            # incrémental. Sans son total, ce compte se lirait comme la taille
+            # du corpus — un compte sans son dénominateur (§2.8).
+            corpus = con.execute(
+                "SELECT COUNT(*) FROM analyses_figees WHERE version_referentiel = ?",
+                [version]).fetchone()[0]
+            print(f"\nfigé : {n} nouveau(x) bulletin(s) — "
+                  f"{corpus} au total sous {version}")
         return version, n
     finally:
         con.close()
@@ -358,18 +283,9 @@ def run(dept, limite=None, depuis=None, tous=False, repli=True, cache=True,
     if vu:
         print(f"journal   : {len(vu)} commune(s) déjà traitée(s), reprise")
 
-    # Une commune EN ERREUR n'est pas une commune faite.
-    #
-    # Défaut réel, trouvé le 8 août 2026 en dépouillant la première collecte
-    # départementale : neuf communes du Tarn — dont Castres et Cordes-sur-Ciel —
-    # ont échoué sur des coupures réseau de Hub'Eau, sept d'affilée. Le journal
-    # portait bien leur échec, mais la reprise les considérait comme traitées et
-    # ne les redemandait jamais. Elles seraient restées « non documentées » à
-    # tort, ce qui est précisément le pire cas du §2.4 transposé à la commune :
-    # une absence de donnée qui n'est pas une absence de fait, présentée comme
-    # un état stable. Un échec réseau est transitoire ; il se retente.
-    a_faire = [c for i, c in sorted(communes.items())
-               if (vu.get(i) or {}).get("etat") in (None, "erreur")]
+    # Une commune EN ERREUR n'est pas une commune faite — la règle et le défaut
+    # réel qui l'a fait écrire vivent dans `journal.reste_a_faire`.
+    a_faire = reste_a_faire(communes, vu)
     a_retenter = sum(1 for c in a_faire if c["code_insee"] in vu)
     if a_retenter:
         print(f"reprise   : {a_retenter} commune(s) en erreur à retenter")
@@ -459,6 +375,9 @@ def main():
                    help="ignorer le journal et retraiter toutes les communes")
     p.add_argument("--figer", action="store_true",
                    help="figer depuis le journal, sans rien collecter")
+    p.add_argument("--refiger", action="store_true",
+                   help="avec --figer : refiger TOUT le corpus, et pas seulement "
+                        "les bulletins non encore figés (long)")
     p.add_argument("--reingerer", action="store_true",
                    help="rejouer tout le cache brut dans la base, sans réseau, puis figer")
     p.add_argument("--rapport", action="store_true",
@@ -474,11 +393,10 @@ def main():
         if not communes:
             print(f"département {a.dept} : pas de cache d'énumération, état inconnu")
             sys.exit(1)
-        # Même règle que la reprise : une commune en erreur reste à faire.
-        # Sans cela, `--termine` annoncerait « terminé » sur un département
-        # amputé de ses échecs réseau.
-        reste = [i for i in communes
-                 if (vu.get(i) or {}).get("etat") in (None, "erreur")]
+        # Même règle que la reprise, et la MÊME fonction : une commune en
+        # erreur reste à faire. Sans cela, `--termine` annoncerait « terminé »
+        # sur un département amputé de ses échecs réseau.
+        reste = reste_a_faire(communes, vu)
         en_erreur = sum(1 for i in communes if (vu.get(i) or {}).get("etat") == "erreur")
         faites = len(communes) - len(reste)
         print(f"département {a.dept} : {faites}/{len(communes)} communes traitées, "
@@ -494,7 +412,7 @@ def main():
         rapport(a.dept)
         return
     if a.figer:
-        figer_departement(a.dept)
+        figer_departement(a.dept, complet=a.refiger)
         rapport(a.dept)
         return
     run(a.dept, limite=a.limite, depuis=a.depuis, tous=a.tous,

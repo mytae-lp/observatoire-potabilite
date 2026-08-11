@@ -82,6 +82,71 @@ def verifier_homogeneite(rows):
     return codes.pop() if codes else None
 
 
+def par_libelle(rows):
+    """
+    Lignes d'un bulletin -> {libellé: ligne retenue}, dédupliqué.
+
+    La PK de `mesures` est (code_prelevement, libelle_parametre) : deux lignes
+    de même libellé sont le même paramètre, et la première gagne.
+    """
+    retenues = {}
+    for r in rows:
+        lib = r.get("libelle_parametre")
+        if not lib:
+            continue
+        retenues.setdefault(lib, r)
+    return retenues
+
+
+def identifier(meta, rows):
+    """
+    (code_prelevement, nb_parametres_distincts, est_complet) — **sans base**.
+
+    Extrait de `ingest_bulletin` pour que la moisson puisse dire ce qu'elle
+    rapatrie sans ouvrir DuckDB (`src/moisson.py`). C'est la définition unique
+    de « combien de paramètres porte ce bulletin » et donc de `est_complet` :
+    la recopier ailleurs ferait diverger le seuil du §2.3 entre la trace de
+    collecte et ce qui entre réellement en base.
+    """
+    code_prel = verifier_homogeneite(rows) or meta.get("code_prelevement")
+    if not code_prel:
+        raise ValueError("aucun code_prelevement : bulletin non identifiable")
+    nb = len(par_libelle(rows))
+    return code_prel, nb, nb > SEUIL_COMPLET
+
+
+# Les tables figées dépendent des mesures. Réingérer sans les invalider
+# laisserait un verdict qui ne décrit plus ses données.
+_TABLES_FIGEES = ("analyses_figees", "verdicts_figes")
+
+
+def _invalider_figeage(con, code_prel):
+    """
+    Efface les lignes figées du prélèvement qu'on s'apprête à remplacer.
+
+    Tant que `figer.figer()` refigeait tout le corpus à chaque appel, cette
+    invalidation était inutile : le figeage suivant réécrivait la ligne de
+    toute façon. **Depuis que le figeage est incrémental, elle est ce qui rend
+    l'incrémentalité correcte** — sans elle, un bulletin réingéré (correction
+    d'un bug d'ingestion, `--tout`, cache refait) serait vu comme « déjà figé »
+    et garderait indéfiniment le verdict calculé sur les anciennes mesures.
+
+    Toutes versions confondues, et non la seule version courante : une ligne
+    figée sous une version antérieure décrit elle aussi des mesures qui
+    viennent de disparaître. Un verdict daté reste vrai contre sa grille ; il
+    ne reste pas vrai contre des données qu'on a remplacées.
+
+    Silencieux si les tables n'existent pas encore : l'ingestion doit pouvoir
+    tourner sur une base qui n'a jamais été figée.
+    """
+    presentes = {r[0] for r in con.execute(
+        "SELECT table_name FROM information_schema.tables "
+        "WHERE table_name IN ('analyses_figees', 'verdicts_figes')").fetchall()}
+    for table in _TABLES_FIGEES:
+        if table in presentes:
+            con.execute(f"DELETE FROM {table} WHERE code_prelevement = ?", [code_prel])
+
+
 def ingest_bulletin(con, meta, rows):
     """
     Insère commune + prélèvement + mesures. Retourne (code_prelevement, nb, est_complet).
@@ -90,9 +155,7 @@ def ingest_bulletin(con, meta, rows):
     prélèvement est complet, donc s'il entre dans les analyses (CLAUDE.md §2.3).
     """
     insee = meta["code_insee"]
-    code_prel = verifier_homogeneite(rows) or meta.get("code_prelevement")
-    if not code_prel:
-        raise ValueError("aucun code_prelevement : bulletin non identifiable")
+    code_prel, nb, est_complet = identifier(meta, rows)
 
     con.execute(
         "INSERT OR REPLACE INTO communes VALUES (?,?,?,?,?,?)",
@@ -100,17 +163,9 @@ def ingest_bulletin(con, meta, rows):
          meta.get("codes_postaux"), meta.get("lon"), meta.get("lat")],
     )
 
-    # Déduplication par libellé : la PK de mesures est (code_prelevement, libelle_parametre)
-    par_libelle = {}
-    for r in rows:
-        lib = r.get("libelle_parametre")
-        if not lib:
-            continue
-        par_libelle.setdefault(lib, r)
+    retenues = par_libelle(rows)
 
-    nb = len(par_libelle)
-    est_complet = nb > SEUIL_COMPLET
-
+    _invalider_figeage(con, code_prel)
     con.execute("DELETE FROM mesures WHERE code_prelevement = ?", [code_prel])
     con.execute("DELETE FROM prelevements WHERE code_prelevement = ?", [code_prel])
 
@@ -138,7 +193,7 @@ def ingest_bulletin(con, meta, rows):
     )
 
     lignes = []
-    for lib, r in par_libelle.items():
+    for lib, r in retenues.items():
         num, lq, unite, quantifie = _valeur(r)
         code_param = r.get("code_parametre")
         brut_limite = r.get("limite_qualite_parametre")

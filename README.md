@@ -45,6 +45,13 @@ python3 src/fetch_departement.py --dept 17 --limite 5    # essai sur 5 communes
 python3 src/fetch_departement.py --dept 17               # le département entier
 python3 src/fetch_departement.py --dept 17 --rapport     # couverture, sans rien collecter
 
+# À l'échelle : collecter et ingérer sont deux gestes séparés, et seul le
+# second prend le verrou de la base — quelques minutes au lieu de trois heures.
+python3 src/moisson.py --depts 17,79,86 --tous   # réseau, en parallèle, base LIBRE
+python3 src/moisson.py --etat                    # avancement de chaque département
+python3 src/ingerer.py --etat                    # ce qui attend au tampon
+python3 src/ingerer.py --depts 17,79,86          # verse le tampon, puis fige
+
 python3 site/build_site.py                  # la vitrine publique dans site/public/
 python3 sortie/build_fiche.py               # la fiche autonome, en un seul fichier
 python3 atelier/atelier.py                  # le poste de pilotage local, 127.0.0.1:8760
@@ -79,7 +86,11 @@ src/
   ingest.py                      ingestion d'un bulletin, idempotente
   observer.py                    point d'entrée : code postal -> analyse figée
   figer.py                       sortie estampillée (version + date) et sommes
-  fetch_departement.py           collecte à l'échelle d'un département
+  fetch_departement.py           collecte d'un département, base ouverte de bout en bout
+  moisson.py                     collecte parallèle de plusieurs départements, SANS base
+  ingerer.py                     cache brut -> base, sans réseau, puis figeage
+  journal.py                     journal de reprise et cache d'énumération
+  console.py                     trace atomique et étiquetée par fil
   fetch_hubeau.py                collecte pour des communes (INSEE ou code postal)
   catalogue_parametres.py        inventaire des paramètres réellement mesurés
   queries.sql                    requêtes de référence, dont la requête de la thèse

@@ -215,6 +215,35 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 # ---------------------------------------------------------------------------
 # Extraction
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Départements publiables
+# ---------------------------------------------------------------------------
+# `None` = on publie tout ce qui est figé. Sinon, un tuple de codes.
+#
+# Pourquoi ce garde-fou existe. La base accumule des retombées d'essais : une
+# commune collectée à la main, un département entamé par l'exemple de la
+# documentation. Le 11 août 2026 elle portait ainsi des morceaux du 71 (14
+# communes sur 563), du 32, du 65 et de l'01 (un bulletin) à côté de cinq
+# départements réellement complets. Publier ces morceaux peindrait la carte
+# d'un « non documenté » qui n'est pas un fait sur l'eau mais un fait sur notre
+# collecte — et le §8bis fait de « non documentée » une catégorie visible, donc
+# lue comme une information. **Un département à moitié collecté ment davantage
+# qu'un département absent.**
+#
+# La liste est explicite et ne se déduit pas : un journal de moisson peut
+# annoncer « terminé » sur une énumération elle-même incomplète (§13.4, point 6).
+# C'est une décision éditoriale, elle se prend à la main.
+DEPTS_PUBLIES = None
+
+
+def _filtre_dept(colonne="dept"):
+    """Fragment SQL restreignant aux départements publiables, et ses paramètres."""
+    if not DEPTS_PUBLIES:
+        return "", []
+    return (f" AND {colonne} IN ({','.join('?' * len(DEPTS_PUBLIES))})",
+            list(DEPTS_PUBLIES))
+
+
 def corpus(con, version):
     """
     Une ligne par commune couverte, avec ce qu'il faut pour la carte, la
@@ -234,9 +263,9 @@ def corpus(con, version):
         LEFT JOIN analyses_figees a
                ON a.code_prelevement = cc.code_prelevement
               AND a.version_referentiel = cc.version_referentiel
-        WHERE cc.version_referentiel = ?
+        WHERE cc.version_referentiel = ?""" + _filtre_dept("cc.dept")[0] + """
         ORDER BY cc.commune
-    """, [version]).fetchall()
+    """, [version] + _filtre_dept()[1]).fetchall()
 
 
 def bulletins_de_la_these(con, version):
@@ -251,9 +280,9 @@ def bulletins_de_la_these(con, version):
                nb_parametres, classe_effort, nb_mesures_notees, pct_couverture
         FROM analyses_figees
         WHERE version_referentiel = ?
-          AND est_complet AND nb_depasse_applicable = 0 AND nb_bascules > 0
+          AND est_complet AND nb_depasse_applicable = 0 AND nb_bascules > 0""" + _filtre_dept()[0] + """
         ORDER BY nb_bascules DESC, commune
-    """, [version]).fetchall()
+    """, [version] + _filtre_dept()[1]).fetchall()
 
 
 # ---------------------------------------------------------------------------
@@ -547,8 +576,9 @@ def page_accueil(lignes, these, version, calcule_le, con):
     n_bascules = sum(c["nb_bascules"] or 0 for c in lignes)
     n_depasse = sum(c["nb_depasse_applicable"] or 0 for c in lignes)
     n_bulletins = con.execute(
-        "SELECT COUNT(*) FROM analyses_figees WHERE version_referentiel = ?",
-        [version]).fetchone()[0]
+        "SELECT COUNT(*) FROM analyses_figees WHERE version_referentiel = ?"
+        + _filtre_dept()[0],
+        [version] + _filtre_dept()[1]).fetchone()[0]
 
     lignes_these = "".join(
         f"<tr><td><a href='commune/{h(t[1])}.html'>{h(t[0])}</a></td>"
@@ -653,7 +683,8 @@ def comptes_departements(con, version, lignes):
     par_dept = {}
     for r in con.execute("""
             SELECT dept, COUNT(*) FROM analyses_figees
-            WHERE version_referentiel = ? GROUP BY dept""", [version]).fetchall():
+            WHERE version_referentiel = ?""" + _filtre_dept()[0] + """
+            GROUP BY dept""", [version] + _filtre_dept()[1]).fetchall():
         par_dept.setdefault(r[0], {})["bulletins"] = r[1]
     for dept, communes in par_departement(lignes).items():
         d = par_dept.setdefault(dept, {})
@@ -1490,8 +1521,10 @@ def exporter(con, version, dossier):
         produits.append((nom, description, os.path.getsize(chemin)))
 
     dump("bulletins.csv",
-         "SELECT * FROM analyses_figees WHERE version_referentiel = ? ORDER BY commune, date_prelevement",
-         "un bulletin par ligne : verdicts, couverture, effort de recherche, sommes")
+         "SELECT * FROM analyses_figees WHERE version_referentiel = ?"
+         + _filtre_dept()[0] + " ORDER BY commune, date_prelevement",
+         "un bulletin par ligne : verdicts, couverture, effort de recherche, sommes",
+         params=[version] + _filtre_dept()[1])
 
     # Le détail, découpé par département. Le rattachement passe par la commune
     # du prélèvement lui-même, pas par celle qui l'emprunte.
@@ -1506,8 +1539,8 @@ def exporter(con, version, dossier):
         FROM verdicts_figes v
         JOIN prelevements p ON p.code_prelevement = v.code_prelevement
         JOIN communes c ON c.code_insee = p.code_insee
-        WHERE v.version_referentiel = ?
-        ORDER BY 1""", [version]).fetchall()]
+        WHERE v.version_referentiel = ?""" + _filtre_dept("c.code_departement")[0] + """
+        ORDER BY 1""", [version] + _filtre_dept()[1]).fetchall()]
     for d in depts:
         dump(f"verdicts_{d}.csv.gz",
              DETAIL.format(filtre=" AND c.code_departement = ?"),
@@ -1516,8 +1549,10 @@ def exporter(con, version, dossier):
              params=[version, d])
 
     dump("couverture_communes.csv",
-         "SELECT * FROM couverture_communes WHERE version_referentiel = ? ORDER BY commune",
-         "le statut de chaque commune, dont les non documentées")
+         "SELECT * FROM couverture_communes WHERE version_referentiel = ?"
+         + _filtre_dept()[0] + " ORDER BY commune",
+         "le statut de chaque commune, dont les non documentées",
+         params=[version] + _filtre_dept()[1])
     # La base du barème de finesse analytique (chantier C4). Les fiches
     # affirment « dix fois moins fin que la plus basse relevée » : la table qui
     # le dit doit être téléchargeable, sinon l'affirmation demande d'être crue
@@ -1539,7 +1574,14 @@ def _poids(octets):
 
 
 # ---------------------------------------------------------------------------
-def construire(destination=None, db=DB_PATH):
+def construire(destination=None, db=DB_PATH, depts=None):
+    global DEPTS_PUBLIES
+    DEPTS_PUBLIES = tuple(depts) if depts else None
+    if DEPTS_PUBLIES:
+        print(f"départements publiés : {', '.join(DEPTS_PUBLIES)}")
+    else:
+        print("départements publiés : TOUS ceux qui sont figés "
+              "— vérifie qu'aucun n'est à moitié collecté")
     if not os.path.exists(db):
         print(f"base absente : {db}\nlance d'abord : python3 src/build_db.py")
         sys.exit(1)
@@ -1581,6 +1623,16 @@ def construire(destination=None, db=DB_PATH):
 
         # --- exports ------------------------------------------------------
         exports = exporter(con, version, os.path.join(public, "donnees"))
+
+        # --- ce qui a été publié, pour que le contrôle puisse le savoir ------
+        # Sans ce fichier, `tests/test_sorties.py` compare les pages produites à
+        # la couverture du corpus ENTIER et signale comme manquantes les communes
+        # des départements volontairement écartés. Le contrôle doit vérifier
+        # qu'aucune commune PUBLIÉE n'a été oubliée, pas qu'on a tout publié.
+        os.makedirs(public, exist_ok=True)
+        with open(os.path.join(public, "departements_publies.txt"),
+                  "w", encoding="utf-8") as fh:
+            fh.write("\n".join(DEPTS_PUBLIES) + "\n" if DEPTS_PUBLIES else "")
 
         # --- pages --------------------------------------------------------
         assets = os.path.join(public, "assets")
@@ -1884,8 +1936,12 @@ def fiches_communes(con, version, lignes, public):
 def main():
     p = argparse.ArgumentParser(description="Génère la vitrine publique statique")
     p.add_argument("--sortie", help="dossier de destination (défaut : site/public)")
+    p.add_argument("--depts", help="départements à publier, séparés par des virgules "
+                                   "(ex. 28,81,69,09,31). Défaut : tous ceux qui sont "
+                                   "figés — à n'utiliser que si aucun n'est partiel.")
     a = p.parse_args()
-    construire(destination=a.sortie)
+    depts = [d.strip() for d in a.depts.split(",") if d.strip()] if a.depts else None
+    construire(destination=a.sortie, depts=depts)
 
 
 if __name__ == "__main__":

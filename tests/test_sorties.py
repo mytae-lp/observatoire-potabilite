@@ -236,12 +236,26 @@ def main():
             ok(n == 0, f"{col} = son détail partout ({n} écart(s))")
 
         print("\n3. couverture et pages")
+        # La vitrine peut ne publier qu'une partie des départements figés — un
+        # département à moitié collecté peindrait la carte d'un « non documenté »
+        # qui parle de notre collecte et non de l'eau. Le contrôle porte donc sur
+        # ce qui a été PUBLIÉ : `departements_publies.txt` est écrit par
+        # build_site.py, vide quand tout est publié.
+        publies = None
+        manifeste = os.path.join(PUBLIC, "departements_publies.txt")
+        if os.path.exists(manifeste):
+            codes = [l.strip() for l in open(manifeste, encoding="utf-8") if l.strip()]
+            publies = set(codes) or None
         couvertes = con.execute("""
-            SELECT code_insee, statut FROM couverture_communes WHERE version_referentiel = ?
+            SELECT code_insee, statut, dept FROM couverture_communes
+            WHERE version_referentiel = ?
         """, [attendue]).fetchall()
-        sans_page = [c for c, s in couvertes if s != "non_documentee"
+        retenues = [(c, s) for c, s, d in couvertes if publies is None or d in publies]
+        sans_page = [c for c, s in retenues if s != "non_documentee"
                      and not os.path.exists(os.path.join(PUBLIC, "commune", f"{c}.html"))]
-        ok(not sans_page, f"{len(couvertes)} commune(s) couverte(s), "
+        portee = ("tous départements" if publies is None
+                  else f"{len(publies)} département(s) publié(s)")
+        ok(not sans_page, f"{len(retenues)} commune(s) couverte(s) sur {portee}, "
                           f"{len(sans_page)} sans page")
         orphelins = con.execute("""
             SELECT COUNT(*) FROM analyses_figees a
