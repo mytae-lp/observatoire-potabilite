@@ -1634,12 +1634,38 @@ serait du travail à jeter.
 
 **Ce qui n'est pas fait, et ne doit pas être présenté autrement** : rien n'a été
 moissonné, aucun acte n'a été qualifié, `referentiel/arretes_eau.csv` n'existe
-pas encore. La base juridique — R. 1321-31 à R. 1321-36 du code de la santé
-publique, arrêté du 25 novembre 2003 modifié le 30 décembre 2022 — est
-**repérée et non lue** : aucune ligne n'a été créée dans `docs/INDEX_SOURCES.md`,
-et la durée maximale de trois ans annoncée par des sources secondaires n'est pas
-acquise (§2.7).
+pas encore.
 
-**La suite, dans l'ordre** : le sourçage juridique en agent `opus` séparé ; le
-moissonneur du Tarn ; les trois premiers actes qualifiés, compteurs relevés,
-montrés — puis feu vert avant le lot.
+### 16.1 Le sourçage juridique est fait — fiche `REG-09`, 11 août 2026
+
+Agent de fond `opus`, ~169 000 tokens, une heure. La fiche est archivée avec les
+sources réglementaires, sa ligne est à `docs/INDEX_SOURCES.md`, et
+`referentiel/motifs_arretes.csv` a été refondu sur ce qu'elle apprend.
+**`docs/CHANTIERS.md` §C10 fait foi** ; le détail des cinq conséquences y est.
+
+**Deux affirmations ont été recontrôlées à la main sur Légifrance** avant d'être
+versées, parce qu'elles portent tout le reste : R. 1321-34 est bien abrogé
+**avec effet au 1er janvier 2024**, et la seconde dérogation est bornée à trois
+ans pour les seuls cas 1° et 2°. Les deux tiennent.
+
+Ce qu'il faut retenir au niveau de ce fichier :
+
+- **le dénombrement d'arrêtés sera structurellement minorant** — le silence de
+  l'administration vaut acceptation au bout de quatre ou six mois, donc une
+  dérogation peut exister sans arrêté publié. À dire partout où le chiffre
+  paraît ;
+- **le plafond cumulé passe de neuf à six ans au 1er janvier 2024** : une
+  rupture datée traverse la période étudiée depuis 2016 ;
+- **l'objet d'une dérogation est l'unité de distribution, pas la commune** ;
+- **il n'existe pas de dérogation bactériologique** — c'est un contrôle, pas une
+  précision ;
+- **le visa discrimine mieux que le corps du texte** : `R. 1321-31` pour une
+  dérogation, `R. 1321-29` pour une restriction sanitaire, le code de
+  l'environnement pour la sécheresse.
+
+**Réserve principale** : **aucun arrêté de dérogation postérieur au 1er janvier
+2024 n'a été lu.** Le régime a changé à cette date, le pré-filtre est calé sur
+des actes de l'ancien régime, et il faudra le recaler.
+
+**La suite, dans l'ordre** : le moissonneur du Tarn ; les trois premiers actes
+qualifiés, compteurs relevés, montrés — puis feu vert avant le lot.

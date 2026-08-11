@@ -1896,19 +1896,67 @@ C'est aussi ce qui donne au chantier sa portée réelle : si l'information
 nationale s'arrête en 2012, la reconstituer département par département n'est
 pas un doublon, c'est **la seule voie ouverte**.
 
-#### La base juridique — repérée, pas lue
+#### La base juridique — lue le 11 août 2026, fiche `REG-09`
 
-Trois références sont apparues et sont **volontairement laissées en dehors du
-référentiel et de `docs/INDEX_SOURCES.md`**, parce qu'aucune n'a été ouverte :
-les articles **R. 1321-31 à R. 1321-36** du code de la santé publique,
-l'**arrêté du 25 novembre 2003** sur les modalités de demande de dérogation, et
-sa modification par l'**arrêté du 30 décembre 2022**. Une durée maximale de
-trois ans renouvelable est annoncée par des sources secondaires : **elle n'est
-pas acquise** tant que le texte n'a pas été lu (§2.7 et §2.5 — une durée sans
-son texte est du même ordre qu'un seuil sans sa date).
+Faite, en agent de fond `opus`, sur le modèle de `docs/CONSIGNE_SOURCAGE.md`.
+La fiche `REG-09_FR_csp-derogations-et-restrictions_2003-2026.md` est archivée
+avec les autres sources réglementaires et sa ligne est à
+`docs/INDEX_SOURCES.md`. **Deux affirmations centrales ont été recontrôlées à la
+main sur Légifrance** avant d'être versées : le statut de R. 1321-34 et le
+régime de la seconde dérogation.
 
-**Première tâche du lot A**, donc, et elle passe par un dossier de sourçage
-`opus` sur le modèle de `docs/CONSIGNE_SOURCAGE.md`.
+**Cinq faits qui changent le chantier, et pas seulement le remplissent :**
+
+1. **Le dénombrement sera structurellement minorant, et il faut le dire partout
+   où le chiffre paraît.** Le silence de l'administration vaut acceptation au
+   bout de quatre mois sur une première demande, six sur une seconde : **une
+   dérogation peut exister sans qu'aucun arrêté ait été publié.** Compter les
+   actes d'un recueil ne compte donc pas les dérogations, il compte **les
+   dérogations écrites**. C'est le §2.8 dans sa forme la plus dure — un compte
+   sans son dénominateur est une demi-vérité, et ici le dénominateur est
+   inconnaissable par cette voie.
+2. **Une rupture datée traverse la période étudiée.** L'article qui portait la
+   troisième dérogation est **abrogé avec effet au 1er janvier 2024**. Le
+   plafond cumulé passe de neuf ans à six. Une série ouverte en 2016 franchit
+   cette date : la comparer d'un bout à l'autre sans la marquer serait
+   exactement l'erreur du §2.5, transposée de la valeur à la procédure.
+3. **L'objet d'une dérogation est l'unité de distribution, pas la commune.**
+   Le corpus sait déjà travailler à cette maille. Le rattachement géographique
+   passe par là, et une dérogation recopiée au niveau communal serait un faux.
+4. **Il n'existe pas de dérogation bactériologique** — le champ est limité aux
+   paramètres chimiques, et exclut aussi les références de qualité, les valeurs
+   indicatives et les valeurs de vigilance. C'est un **contrôle** : un acte
+   qualifié « dérogation » sur un paramètre microbiologique est une lecture
+   fausse, pas une découverte.
+5. **Les deux actes ne sont pas seulement inverses, ils sont exclusifs au-delà
+   d'un certain point.** Sous la valeur sanitaire maximale, la dérogation est
+   possible ; au-dessus, aucune dérogation ne peut être octroyée et la
+   restriction des usages alimentaires s'impose. **La bascule de l'un à l'autre
+   est donc lisible, et elle est un résultat en soi.**
+
+**Et un gain pour le pré-filtre** : le **visa** discrimine mieux que n'importe
+quel mot du corps du texte. Un acte de dérogation vise `R. 1321-31` et suivants,
+une restriction sanitaire vise `R. 1321-29`, un arrêté sécheresse vise le code
+de l'environnement. `referentiel/motifs_arretes.csv` a été refondu là-dessus, et
+enrichi du vocabulaire littéral de trois arrêtés préfectoraux réellement ouverts.
+
+**Un piège nouveau, trouvé sur un acte réel** : la formule *« hors eau destinée à
+la consommation humaine »* contient mot pour mot le terme d'inclusion le plus
+fort de la liste **et signifie l'inverse**. Une inclusion qui n'apparaît que dans
+une expression d'exclusion ne compte pas — c'est la cinquième règle de
+combinaison du fichier de motifs.
+
+**Trois réserves, dans l'ordre d'importance :**
+
+1. **Aucun arrêté de dérogation postérieur au 1er janvier 2024 n'a été lu.** Le
+   régime a changé à cette date ; la forme des actes a pu changer avec lui, et
+   le pré-filtre est calé sur des actes de l'ancien régime ;
+2. l'instruction ministérielle qui organise le **bilan national des
+   dérogations** n'a pas pu être ouverte — c'est pourtant la piste la plus
+   directe vers un ordre de grandeur national, et elle reste à instruire ;
+3. la version française de la directive européenne étant inaccessible, **les
+   citations européennes de la fiche sont en anglais**. À signaler dans toute
+   sortie publique qui s'y appuierait (§2.7).
 
 #### Ce que la reconnaissance ne dit pas
 

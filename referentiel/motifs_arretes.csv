@@ -13,9 +13,7 @@
 # des territoires. Son texte contient 91 fois "restriction", 29 fois
 # "eau potable", et ZERO fois "consommation humaine", ZERO fois "agence
 # regionale de sante". Un filtre bati sur des mots isoles le retiendrait, alors
-# qu'il ne dit rien de la qualite de l'eau bue. D'ou les trois colonnes
-# ci-dessous : un terme ne vaut pas seul, il vaut par son role, sa portee et son
-# poids.
+# qu'il ne dit rien de la qualite de l'eau bue.
 #
 # LA REGLE DE COMBINAISON (elle vit ici, pas dans le code qui la lit)
 #   1. un acte entre au perimetre "eau de consommation" s'il porte au moins UN
@@ -25,29 +23,46 @@
 #   3. les termes d'orientation ne decident de rien : ils rangent le candidat
 #      dans une pile, la lecture tranche ;
 #   4. le service emetteur, lu dans le sommaire, est le premier discriminant —
-#      mais il ne suffit jamais seul (voir le commentaire de la DDT).
+#      mais il ne suffit jamais seul (voir le commentaire de la DDT) ;
+#   5. AJOUT DU 11 AOUT 2026 — une exclusion peut CONTENIR une inclusion. La
+#      formule "hors eau destinee a la consommation humaine" porte mot pour mot
+#      le terme d'inclusion le plus fort de la liste, et signifie l'inverse.
+#      Une inclusion qui n'apparait QUE dans une expression d'exclusion ne
+#      compte pas. Cas reel : arrete de la Drome du 30 juin 2026.
+#
+# CE QUI A CHANGE LE 11 AOUT 2026, APRES LE SOURCAGE JURIDIQUE [REG-09]
+# Les articles vises sont desormais LUS, et ils discriminent mieux que n'importe
+# quel mot du corps du texte : un acte de derogation vise R. 1321-31 et suivants,
+# un acte de restriction sanitaire vise R. 1321-29, un acte de secheresse vise le
+# code de l'environnement. Le VISA est le meilleur motif dont dispose ce fichier.
+# Ajoute aussi : le vocabulaire litteral de trois arretes prefectoraux reellement
+# ouverts (Orne 2021, Vosges 2025, Drome 2026).
 #
 # CE QUI N'EST PAS ACQUIS
-# Aucun de ces termes n'a encore ete eprouve sur un corpus d'actes reels : ils
-# viennent d'UN recueil sonde et de la lecture du vocabulaire reglementaire. Le
-# premier lot du Tarn doit rendre un taux de faux positifs et un taux de faux
+# Aucun de ces termes n'a ete eprouve sur un CORPUS d'actes : ils viennent d'un
+# recueil sonde, de trois arretes isoles et de la lecture des textes nationaux.
+# Aucun arrete de derogation POSTERIEUR au 1er janvier 2024 n'a ete lu — le
+# regime a change a cette date, la forme des actes a pu changer avec lui. Le
+# premier lot du Tarn doit rendre un taux de faux positifs ET un taux de faux
 # negatifs, et ce fichier se corrige a partir de la — pas avant.
 #
 # Colonnes : terme;role;portee;poids;commentaire
 #   role   : inclusion | exclusion | restriction | levee | derogation |
 #            protection | autorisation
-#   portee : texte | intitule | service
+#   portee : texte | intitule | service | visa
 #   poids  : fort | faible
 #
 terme;role;portee;poids;commentaire
 consommation humaine;inclusion;texte;fort;le terme reglementaire — absent des arretes secheresse
-eau destinee a la consommation humaine;inclusion;texte;fort;formulation complete du code de la sante publique
-unite de distribution;inclusion;texte;fort;le perimetre nomme d'un acte de potabilite
+eau destinee a la consommation humaine;inclusion;texte;fort;formulation complete du code de la sante publique — voir la regle 5 de l'en-tete
+unite de distribution;inclusion;texte;fort;LE perimetre d'un acte de derogation — R. 1321-31 porte sur l'UDI et non sur la commune
 limite de qualite;inclusion;texte;fort;vocabulaire des annexes de l'arrete du 11 janvier 2007
-reference de qualite;inclusion;texte;fort;idem — a ne pas confondre avec une limite
+reference de qualite;inclusion;texte;fort;NON derogeable — un acte qui en parle n'est pas une derogation
 personne responsable de la production;inclusion;texte;fort;la PRPDE — demandeur d'une derogation
-code de la sante publique;inclusion;texte;fort;un acte de police de l'eau vise le code de l'environnement
+code de la sante publique;inclusion;visa;fort;un acte de police de l'eau vise le code de l'environnement
+R. 1321-;inclusion;visa;fort;prefixe des articles EDCH — le meilleur discriminant du fichier
 potabilite;inclusion;texte;fort;
+ARS;inclusion;intitule;fort;le numero d'acte porte le service — cas reel Vosges 2025 numerote 2025/ARS/DT88
 eau du robinet;inclusion;texte;faible;langue courante — frequent dans les communiques
 eau potable;inclusion;texte;faible;PIEGE — 29 occurrences dans l'arrete secheresse sonde
 reseau public;inclusion;texte;faible;
@@ -56,29 +71,46 @@ agence regionale de sante;inclusion;service;fort;le signataire des actes de pota
 delegation departementale;inclusion;service;faible;a croiser avec l'ARS
 direction departementale des territoires;exclusion;service;faible;AMBIGU — signe la secheresse ET les perimetres de protection
 service eau risques environnement securite;exclusion;service;faible;idem — police de l'eau
+R. 1321-29;restriction;visa;fort;LE fondement de la restriction sanitaire — joue que les limites aient ete ou non respectees
+interdiction de la consommation d'eau;restriction;intitule;fort;intitule litteral — cas reel Vosges 14 octobre 2025
 interdiction de consommer;restriction;texte;fort;
 restriction de consommation;restriction;texte;fort;a ne pas confondre avec restriction d'usage
+restriction dans l'utilisation des eaux;restriction;texte;fort;formule du code de la sante publique
+usages alimentaires;restriction;texte;fort;boisson preparation des aliments cuisson — le perimetre que l'acte enonce
+ne pas utiliser l'eau du reseau public;restriction;texte;fort;formule d'instruction reprise dans les actes
 ne pas boire;restriction;texte;fort;
 impropre a la consommation;restriction;texte;fort;
-usage alimentaire;restriction;texte;fort;boisson et preparation des aliments
+valeur sanitaire maximale;restriction;texte;fort;la ligne de partage — au-dessus aucune derogation n'est possible
+VMax;restriction;texte;fort;abreviation employee par les ARS
 deconseillee aux nourrissons;restriction;texte;fort;restriction partielle — population visee
 femmes enceintes;restriction;texte;faible;idem — jamais seul
 eau non potable;restriction;texte;fort;
+levee de restriction;levee;intitule;fort;intitule litteral — cas reel Eure-et-Loir 27 juillet 2026
 levee de la restriction;levee;texte;fort;c'est lui qui donne la duree
 fin de la restriction;levee;texte;fort;
 abrogation de l'arrete;levee;texte;faible;une abrogation ne vise pas toujours une restriction
 retour a un usage normal;levee;texte;faible;
+portant derogation aux limites de qualite;derogation;intitule;fort;intitule litteral — cas reel Orne 15 fevrier 2021
 derogation;derogation;texte;fort;
+periode derogatoire;derogation;texte;fort;formule du code de la sante publique
+valeur maximale admissible;derogation;texte;fort;ce que l'acte autorise a distribuer
+est autorisee a distribuer pour la consommation humaine;derogation;texte;fort;le dispositif litteral d'un acte de derogation
 valeur derogatoire;derogation;texte;fort;
-R. 1321-31;derogation;texte;fort;article vise dans les arretes de derogation — NON LU a ce jour
-R. 1321-36;derogation;texte;fort;idem — NON LU a ce jour
-arrete du 25 novembre 2003;derogation;texte;fort;modalites de demande — NON LU a ce jour
-plan d'actions;derogation;texte;faible;condition de delivrance — jamais seul
+R. 1321-31;derogation;visa;fort;article fondateur — LU le 11 aout 2026 [REG-09]
+R. 1321-33;derogation;visa;fort;seconde derogation trois ans cas 1 et 2 seulement — LU
+R. 1321-34;derogation;visa;fort;troisieme derogation ABROGEE au 1er janvier 2024 — un acte qui la vise est anterieur
+arrete du 25 novembre 2003;derogation;visa;fort;modalites de demande — LU le 11 aout 2026
+mesures correctives;derogation;texte;faible;condition de delivrance — jamais seul
 perimetre de protection;protection;texte;fort;denominateur — aucune these
 declaration d'utilite publique;protection;texte;fort;denominateur
 captage;protection;texte;faible;
 autorisation de distribuer;autorisation;texte;fort;denominateur
 autorisation de produire;autorisation;texte;fort;denominateur
+hors eau destinee a la consommation humaine;exclusion;texte;fort;PIEGE MAJEUR — contient l'inclusion la plus forte et signifie l'inverse. Cas reel Drome 30 juin 2026
+restriction temporaire des usages de l'eau;exclusion;intitule;fort;l'intitule type de l'arrete secheresse — code de l'environnement
+R. 211-66;exclusion;visa;fort;article secheresse du code de l'environnement
+L. 211-3;exclusion;visa;fort;idem
+code de l'environnement;exclusion;visa;faible;
 secheresse;exclusion;texte;fort;22 occurrences dans l'acte sonde
 alerte renforcee;exclusion;texte;fort;niveau de gestion secheresse
 debit d'objectif d'etiage;exclusion;texte;fort;police de l'eau
