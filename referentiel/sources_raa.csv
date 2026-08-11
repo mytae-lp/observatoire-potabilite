@@ -1,0 +1,19 @@
+# La carte des recueils des actes administratifs, departement par departement.
+#
+# POURQUOI CE FICHIER EXISTE
+# Il n'existe aucune source nationale des arretes prefectoraux : chaque
+# prefecture publie son recueil sur son propre site, avec son propre plan. Ce
+# fichier est la carte de ces sites. Une ligne par departement, ecrite APRES
+# avoir ouvert le site et verifie le chemin — jamais deduite du code
+# departemental (§2.7 transpose de la valeur au chemin).
+#
+# UN DEPARTEMENT ABSENT DE CE FICHIER EST UN DEPARTEMENT NON INSTRUIT.
+# Ce n'est pas un departement sans arretes. C'est la meme distinction que
+# "conforme / depassement / indetermine" appliquee a la couverture (§2.4).
+#
+# Colonnes : departement;base_url;chemin_raa;gabarit;verifie_le;commentaire
+#   gabarit : la forme du site, qui decide du code de parcours employe.
+#             "gouv-fr-2024" = annee > mois > recueil > un ou plusieurs PDF.
+#
+departement;base_url;chemin_raa;gabarit;verifie_le;commentaire
+81;https://www.tarn.gouv.fr;/Publications/RAA-Recueil-des-Actes-Administratifs/RAA;gouv-fr-2024;2026-08-11;archive annoncee de 2005 a 2026 — un recueil mensuel est decoupe en plusieurs parties de 10 a 25 Mo

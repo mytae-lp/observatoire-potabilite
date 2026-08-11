@@ -1973,6 +1973,61 @@ Quatre inconnues assumées, à lever au premier moissonnage et pas avant :
 
 ---
 
+### Mise à jour du 11 août 2026 — la contrainte de débit, et elle est dure
+
+**Le premier inventaire du Tarn s'est arrêté sur une fermeture de connexion, et
+la plateforme des sites de préfecture a cessé de répondre.** Ce n'est pas une
+hypothèse : c'est ce qui a été mesuré, et c'est la contrainte la plus lourde du
+chantier.
+
+Le déroulé, pour qu'il ne soit pas réinterprété plus tard :
+
+| | ce qui a été fait | ce qui s'est passé |
+|---|---|---|
+| sondage | 4 pages, 1 appel/s | tout répond |
+| inventaire | ~70 pages, 1 appel/s | fermeture de connexion au 6ᵉ mois de 2016 |
+| relance | 1 page | **la racine elle-même ne répond plus** |
+| diagnostic | 6 appels | rien ne répond, y compris `robots.txt` |
+
+**Le discriminant a été posé** : `tarn-et-garonne.gouv.fr`, **jamais sollicité
+par le projet**, ne répond pas davantage ; Légifrance répond (403, mais il
+répond) et Hub'Eau répond 200. **Ce n'est donc ni notre réseau, ni le site du
+Tarn en particulier : c'est la plateforme des sites de préfecture qui refuse la
+connexion.**
+
+**Deux lectures possibles, et rien dans nos données ne tranche entre elles :**
+
+1. la plateforme connaît une indisponibilité qui n'a rien à voir avec nous ;
+2. notre adresse a été mise à l'écart par un pare-feu après quelques dizaines
+   d'appels, et le blocage porte sur toute la plateforme d'un coup.
+
+**Trois états, pas deux** (§2.4) : tant que le site n'a pas été retrouvé
+disponible, la cause est **indéterminée**. Ne pas écrire que nous avons été
+bloqués, ne pas écrire que le site était en panne.
+
+**Ce qui est décidé, quelle que soit la cause :**
+
+- **on s'arrête.** Aucune relance tant que la disponibilité n'est pas revenue,
+  et aucun contournement — ni changement d'identité déclarée, ni détour par un
+  autre chemin. Le `User-Agent` du projet dit qui nous sommes et laisse une
+  adresse : c'est la condition pour être en droit de revenir ;
+- **le débit devient un paramètre, et il ne se baisse jamais.** `--pause` est
+  ajouté à `raa_moisson.py`, avec la mesure du jour en clair dans son aide ;
+- **l'ordre de grandeur du chantier change.** Si quelques dizaines d'appels par
+  minute suffisent à fermer la porte, un inventaire départemental ne se fait pas
+  en une heure : il se fait **étalé, sur des jours**, et un lot national ne se
+  fait pas du tout dans cette forme. C'est à instruire avant toute promesse de
+  couverture ;
+- **`robots.txt` n'a jamais pu être lu** — la seule tentative est tombée sur la
+  même fermeture. Il devra l'être avant toute reprise, et ses règles priment sur
+  les nôtres.
+
+**Ce que l'inventaire a quand même établi**, sur les six premiers mois de 2016 :
+**88 fichiers PDF pour 62 pages de recueil**, soit environ 1,4 fichier par
+recueil — la découpe en parties n'est donc pas la règle générale, elle ne
+concerne que les recueils mensuels volumineux. **Le corpus n'a pas de taille
+connue à ce jour**, et il n'en aura pas avant que l'inventaire aille au bout.
+
 ### La typologie — liste fermée, et le hors-périmètre se compte aussi
 
 Un acte reçoit un type et un seul. La liste est fermée : un acte qui n'entre

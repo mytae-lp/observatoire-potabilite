@@ -1667,5 +1667,35 @@ Ce qu'il faut retenir au niveau de ce fichier :
 2024 n'a été lu.** Le régime a changé à cette date, le pré-filtre est calé sur
 des actes de l'ancien régime, et il faudra le recaler.
 
-**La suite, dans l'ordre** : le moissonneur du Tarn ; les trois premiers actes
-qualifiés, compteurs relevés, montrés — puis feu vert avant le lot.
+### 16.2 Le moissonneur est écrit — l'inventaire du Tarn est INTERROMPU
+
+`src/raa_moisson.py` et `referentiel/sources_raa.csv` sont écrits et commités.
+Le module **n'importe jamais `duckdb`**, vérifié à l'exécution : la base reste
+libre. Deux gestes, et le premier ne télécharge aucun fichier — l'inventaire
+relève l'adresse, la taille et la date de chaque PDF en ne lisant que des pages
+HTML, parce qu'un recueil mensuel peut peser plus de 70 Mo et qu'on ne lance pas
+un téléchargement départemental sans avoir vu le chiffre.
+
+**L'inventaire n'est pas allé au bout.** Il a couvert **les six premiers mois de
+2016 — 88 fichiers pour 62 pages de recueil** — puis la **plateforme des sites
+de préfecture a cessé de répondre**, y compris sur `tarn-et-garonne.gouv.fr`
+que le projet n'avait jamais sollicité. Légifrance et Hub'Eau répondaient au
+même moment : ce n'est pas notre réseau.
+
+**La cause est indéterminée** — indisponibilité de la plateforme, ou mise à
+l'écart de notre adresse après quelques dizaines d'appels. Ne pas trancher sans
+l'avoir constaté (§2.4). **Décision : on s'arrête, sans contournement d'aucune
+sorte.** Détail, chiffres et conséquences : `docs/CHANTIERS.md` §C10, mise à
+jour du 11 août, qui fait foi.
+
+**Deux défauts trouvés et corrigés au passage**, tous deux du genre que le dépôt
+a déjà payé : un mois était marqué vu alors qu'un de ses recueils avait échoué —
+la relance l'aurait sauté et le recueil aurait manqué **en silence**, comme les
+quatre communes du 28 (§10.1) ; et une seule page injoignable faisait tomber
+tout l'inventaire, alors que `src/journal.py` porte déjà la règle inverse pour
+les communes.
+
+**La suite, dans l'ordre** : reprendre l'inventaire quand la plateforme répond,
+à débit nettement plus bas et étalé — `--pause` existe pour cela, et ne se
+baisse jamais ; lire `robots.txt`, qui n'a jamais pu l'être ; puis les trois
+premiers actes qualifiés, compteurs relevés, montrés — feu vert avant le lot.
