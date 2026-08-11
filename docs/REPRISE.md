@@ -1695,7 +1695,30 @@ quatre communes du 28 (§10.1) ; et une seule page injoignable faisait tomber
 tout l'inventaire, alors que `src/journal.py` porte déjà la règle inverse pour
 les communes.
 
-**La suite, dans l'ordre** : reprendre l'inventaire quand la plateforme répond,
-à débit nettement plus bas et étalé — `--pause` existe pour cela, et ne se
-baisse jamais ; lire `robots.txt`, qui n'a jamais pu l'être ; puis les trois
-premiers actes qualifiés, compteurs relevés, montrés — feu vert avant le lot.
+### 16.3 La fenêtre passe à six mois — décision du 11 août au soir
+
+Décision de Yannick, après la mesure de volume : **on travaille les six derniers
+mois, pas dix ans.** « On ne va pas générer des centaines de Go pour rien. On se
+focus sur le récent, le maintenant. […] l'objectif reste de publier le site. »
+
+Le défaut de `--depuis` est passé à **`2026-02`**, la borne se lit au mois, et
+elle se lit **sur le chemin du recueil** — jamais sur la date de mise en ligne
+annoncée par le site, qui vaut « 09/06/2016 » pour le recueil de janvier 2016 et
+daterait faux.
+
+**La conséquence à ne jamais perdre de vue, parce qu'elle n'est pas
+symétrique** : la fenêtre courte couvre bien **les restrictions de
+consommation** — actes courts et datés — et **manque les dérogations en
+vigueur**, qui durent jusqu'à trois ans renouvelables une fois et ont donc été
+signées avant. On pourra écrire « voici les restrictions prononcées ces six
+derniers mois » ; on ne pourra **pas** écrire « voici les dérogations en
+vigueur ». Le stock reste une question ouverte, rangée, pas abandonnée.
+
+**Rien n'a pu être relancé** : la plateforme des préfectures refusait toujours
+la connexion au moment de l'écriture, y compris sur `robots.txt`.
+
+**La suite, dans l'ordre** : une requête de test quand la plateforme répond ;
+lire `robots.txt`, qui n'a jamais pu l'être ; l'inventaire des six derniers mois
+à débit nettement plus bas — `--pause` existe pour cela et ne se baisse jamais ;
+puis les trois premiers actes qualifiés, compteurs relevés, montrés — feu vert
+avant le lot.

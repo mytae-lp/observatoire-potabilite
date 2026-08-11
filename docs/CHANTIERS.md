@@ -1643,6 +1643,38 @@ parce qu'ils changent le chantier :
    reste un geste que Yannick lance, exactement comme la rédaction en lot —
    un arrêté est un texte de droit, et §3 du mode opératoire interdit d'appeler
    une API facturée à part depuis un script planifié.
+3. **Troisième décision, prise le 11 août au soir, après la mesure de volume —
+   la fenêtre passe de dix ans à six mois.**
+
+   > « je pense que nous allons chercher sur les 6 derniers mois pour l'instant
+   > et non sur 10 ans. On ne va pas générer des centaines de Go pour rien. On
+   > se focus sur le récent, le maintenant. […] l'objectif reste de publier le
+   > site. »
+
+   **Ce que la fenêtre courte permet, et ce qu'elle interdit — c'est la
+   conséquence méthodologique, et elle n'est pas symétrique :**
+
+   | | six mois | dix ans |
+   |---|---|---|
+   | **restrictions de consommation** | **bien couvertes** — un acte de ce type est court, daté, et s'il a lieu maintenant il est dans la fenêtre | mieux, mais marginalement |
+   | **dérogations en cours** | **manquées** — une dérogation dure jusqu'à trois ans renouvelables une fois, donc celles en vigueur aujourd'hui ont été signées **avant** la fenêtre | seule voie |
+   | **durées, séries, tendances** | impossibles | c'est leur condition |
+
+   **Donc : sur une fenêtre de six mois, on peut dire « voici les restrictions
+   prononcées ces six derniers mois » et on ne peut PAS dire « voici les
+   dérogations en vigueur ».** Le second énoncé exige le stock, que seul
+   l'historique donne. L'écrire quand même serait une affirmation d'absence
+   (§2.4) sur le pire terrain possible.
+
+   Le stock des dérogations en cours reste donc **une question ouverte, à
+   instruire autrement** — la piste la plus directe étant le bilan national que
+   le sourçage n'a pas pu ouvrir, ou une demande à l'ARS. Ce n'est pas abandonné,
+   c'est daté et rangé.
+
+   Outillage : `raa_moisson.py --depuis AAAA-MM` borne au mois, et la période se
+   lit **sur le chemin** du recueil, jamais sur la date de mise en ligne
+   annoncée par le site — celle-ci vaut « 09/06/2016 » pour le recueil de
+   janvier 2016, vestige d'une reprise en masse. S'y fier daterait faux.
 
 ### Pourquoi c'est le chantier le plus proche de la thèse
 
