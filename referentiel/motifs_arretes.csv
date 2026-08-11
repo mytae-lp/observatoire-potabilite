@@ -1,0 +1,92 @@
+# Motifs de pre-filtrage des actes prefectoraux — chantier C10 ARRETES.
+#
+# POURQUOI CE FICHIER EXISTE
+# Un recueil des actes administratifs porte tout ce que l'Etat publie dans un
+# departement : delegations de signature, medailles du travail, installations
+# classees, secheresse, urbanisme. L'eau de consommation y est une aiguille dans
+# une botte de foin. Ce fichier dit ce qu'on cherche — et c'est une DECISION
+# EDITORIALE, pas un detail de code : elle est versionnee, git en tient le
+# journal date, au meme titre qu'une ligne de referentiel_seuils.csv.
+#
+# LE PIEGE QU'IL EXISTE POUR EVITER — mesure le 11 aout 2026
+# Le recueil 81-2026-286 est un arrete SECHERESSE de la direction departementale
+# des territoires. Son texte contient 91 fois "restriction", 29 fois
+# "eau potable", et ZERO fois "consommation humaine", ZERO fois "agence
+# regionale de sante". Un filtre bati sur des mots isoles le retiendrait, alors
+# qu'il ne dit rien de la qualite de l'eau bue. D'ou les trois colonnes
+# ci-dessous : un terme ne vaut pas seul, il vaut par son role, sa portee et son
+# poids.
+#
+# LA REGLE DE COMBINAISON (elle vit ici, pas dans le code qui la lit)
+#   1. un acte entre au perimetre "eau de consommation" s'il porte au moins UN
+#      terme d'inclusion FORT, ou DEUX termes d'inclusion faibles ;
+#   2. un terme d'exclusion FORT le fait sortir, SAUF s'il porte aussi une
+#      inclusion forte — un arrete peut parler de secheresse ET de potabilite ;
+#   3. les termes d'orientation ne decident de rien : ils rangent le candidat
+#      dans une pile, la lecture tranche ;
+#   4. le service emetteur, lu dans le sommaire, est le premier discriminant —
+#      mais il ne suffit jamais seul (voir le commentaire de la DDT).
+#
+# CE QUI N'EST PAS ACQUIS
+# Aucun de ces termes n'a encore ete eprouve sur un corpus d'actes reels : ils
+# viennent d'UN recueil sonde et de la lecture du vocabulaire reglementaire. Le
+# premier lot du Tarn doit rendre un taux de faux positifs et un taux de faux
+# negatifs, et ce fichier se corrige a partir de la — pas avant.
+#
+# Colonnes : terme;role;portee;poids;commentaire
+#   role   : inclusion | exclusion | restriction | levee | derogation |
+#            protection | autorisation
+#   portee : texte | intitule | service
+#   poids  : fort | faible
+#
+terme;role;portee;poids;commentaire
+consommation humaine;inclusion;texte;fort;le terme reglementaire — absent des arretes secheresse
+eau destinee a la consommation humaine;inclusion;texte;fort;formulation complete du code de la sante publique
+unite de distribution;inclusion;texte;fort;le perimetre nomme d'un acte de potabilite
+limite de qualite;inclusion;texte;fort;vocabulaire des annexes de l'arrete du 11 janvier 2007
+reference de qualite;inclusion;texte;fort;idem — a ne pas confondre avec une limite
+personne responsable de la production;inclusion;texte;fort;la PRPDE — demandeur d'une derogation
+code de la sante publique;inclusion;texte;fort;un acte de police de l'eau vise le code de l'environnement
+potabilite;inclusion;texte;fort;
+eau du robinet;inclusion;texte;faible;langue courante — frequent dans les communiques
+eau potable;inclusion;texte;faible;PIEGE — 29 occurrences dans l'arrete secheresse sonde
+reseau public;inclusion;texte;faible;
+eau distribuee;inclusion;texte;faible;
+agence regionale de sante;inclusion;service;fort;le signataire des actes de potabilite
+delegation departementale;inclusion;service;faible;a croiser avec l'ARS
+direction departementale des territoires;exclusion;service;faible;AMBIGU — signe la secheresse ET les perimetres de protection
+service eau risques environnement securite;exclusion;service;faible;idem — police de l'eau
+interdiction de consommer;restriction;texte;fort;
+restriction de consommation;restriction;texte;fort;a ne pas confondre avec restriction d'usage
+ne pas boire;restriction;texte;fort;
+impropre a la consommation;restriction;texte;fort;
+usage alimentaire;restriction;texte;fort;boisson et preparation des aliments
+deconseillee aux nourrissons;restriction;texte;fort;restriction partielle — population visee
+femmes enceintes;restriction;texte;faible;idem — jamais seul
+eau non potable;restriction;texte;fort;
+levee de la restriction;levee;texte;fort;c'est lui qui donne la duree
+fin de la restriction;levee;texte;fort;
+abrogation de l'arrete;levee;texte;faible;une abrogation ne vise pas toujours une restriction
+retour a un usage normal;levee;texte;faible;
+derogation;derogation;texte;fort;
+valeur derogatoire;derogation;texte;fort;
+R. 1321-31;derogation;texte;fort;article vise dans les arretes de derogation — NON LU a ce jour
+R. 1321-36;derogation;texte;fort;idem — NON LU a ce jour
+arrete du 25 novembre 2003;derogation;texte;fort;modalites de demande — NON LU a ce jour
+plan d'actions;derogation;texte;faible;condition de delivrance — jamais seul
+perimetre de protection;protection;texte;fort;denominateur — aucune these
+declaration d'utilite publique;protection;texte;fort;denominateur
+captage;protection;texte;faible;
+autorisation de distribuer;autorisation;texte;fort;denominateur
+autorisation de produire;autorisation;texte;fort;denominateur
+secheresse;exclusion;texte;fort;22 occurrences dans l'acte sonde
+alerte renforcee;exclusion;texte;fort;niveau de gestion secheresse
+debit d'objectif d'etiage;exclusion;texte;fort;police de l'eau
+irrigation;exclusion;texte;fort;13 occurrences dans l'acte sonde
+arrosage;exclusion;texte;fort;usage non alimentaire
+lavage des vehicules;exclusion;texte;fort;usage non alimentaire
+remplissage des piscines;exclusion;texte;fort;usage non alimentaire
+eaux de baignade;exclusion;texte;fort;autre police sanitaire — hors perimetre
+assainissement;exclusion;texte;faible;peut apparaitre dans un acte de potabilite
+installation classee;exclusion;texte;fort;
+crise;exclusion;texte;faible;PIEGE — 247 occurrences dans l'acte sonde comme NIVEAU de secheresse

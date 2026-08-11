@@ -1592,3 +1592,54 @@ c'est l'INSERT plutôt que la lecture des `.jsonl.gz` ou le parsing.
 - **`outils/reprendre_collecte.cmd` appelle encore `fetch_departement.py`**,
   donc encore la voie à verrou tenu. À reprendre si la reprise automatique au
   démarrage doit servir au passage à l'échelle.
+
+---
+
+## 16. Mise à jour du 11 août 2026 — C10 ARRÊTÉS élargi et spécifié, collecte non lancée
+
+Yannick a élargi le chantier C10 : il ne porte plus les seules dérogations mais
+**tout acte préfectoral touchant l'eau de consommation, depuis 2016, par
+département**, avec dénombrement, et il doit **se déclencher à la fin de la
+collecte d'un département**.
+
+**`docs/CHANTIERS.md` §C10 fait foi** — tout est là, y compris la reconnaissance.
+Ce qui suit n'en est que le repère.
+
+**Deux décisions prises** : large en collecte et fin en qualification (sans quoi
+il n'y a pas de dénominateur) ; l'automatisme s'arrête à la fabrication des
+dossiers de candidats, la lecture des actes restant un geste lancé à la main.
+
+**Reconnaissance du Tarn faite le 11 août** — quatre pages consultées, **un seul
+recueil téléchargé et sondé**. Ce qu'elle établit :
+
+- l'archive du RAA du Tarn **remonte à 2005** : la profondeur, qui était le
+  risque n° 1, n'en est pas un ici ;
+- les recueils sont **du texte extractible**, pas des scans — 32 pages,
+  65 189 caractères, zéro page vide sur celui qui a été sondé ;
+- **le sommaire est structuré** : service, identifiant, intitulé, longueur, page
+  de début. Le découpage recueil → actes se fait là, et nulle part ailleurs —
+  les motifs d'en-tête habituels sont absents du corps ;
+- **le bruit dominant est la sécheresse**, et il est mesuré : l'acte sondé porte
+  91 fois « restriction » et 29 fois « eau potable » pour **zéro** « consommation
+  humaine » et **zéro** « agence régionale de santé ». Un filtre par mots isolés
+  ne tient pas ;
+- **il n'existe aucun raccourci national** : la donnée ministérielle sur les
+  dérogations n'est plus publiée depuis 2012.
+
+**Trois fichiers écrits, aucun code** : `docs/CHANTIERS.md` §C10 réécrit,
+`referentiel/motifs_arretes.csv` (le pré-filtre, versionné parce qu'éditorial) et
+`docs/CONSIGNE_QUALIFICATION_ARRETE.md` (le brief d'agent). La forme des
+collecteurs dépend de ce que le premier moissonnage mesurera : l'écrire avant
+serait du travail à jeter.
+
+**Ce qui n'est pas fait, et ne doit pas être présenté autrement** : rien n'a été
+moissonné, aucun acte n'a été qualifié, `referentiel/arretes_eau.csv` n'existe
+pas encore. La base juridique — R. 1321-31 à R. 1321-36 du code de la santé
+publique, arrêté du 25 novembre 2003 modifié le 30 décembre 2022 — est
+**repérée et non lue** : aucune ligne n'a été créée dans `docs/INDEX_SOURCES.md`,
+et la durée maximale de trois ans annoncée par des sources secondaires n'est pas
+acquise (§2.7).
+
+**La suite, dans l'ordre** : le sourçage juridique en agent `opus` séparé ; le
+moissonneur du Tarn ; les trois premiers actes qualifiés, compteurs relevés,
+montrés — puis feu vert avant le lot.

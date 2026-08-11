@@ -67,7 +67,7 @@ un, ici ou dans une autre session.
 | **C7** | CAPTAGE | la dilution comme mode de gestion — hypothèse à instruire | **premier livrable posé** |
 | **C8** | ATELIER | comprendre et fiabiliser le back-office | **prêt à lancer** |
 | **C9** | VITRINE | le parcours, la carte, la liste, le référentiel, et « que faire » | **en cours** — ouvert le 9 août 2026 |
-| **C10** | ARRÊTÉS | les dérogations préfectorales au dépassement de seuil, par département | **prêt à lancer** — le plus proche de la thèse |
+| **C10** | ARRÊTÉS | les actes préfectoraux qui touchent l'eau de consommation, par département | **élargi le 11 août 2026** — reconnaissance du Tarn faite, spécification écrite, collecte non lancée |
 
 ### Lancer un chantier dans une autre session
 
@@ -88,7 +88,7 @@ tableau dit qui écrit où — à relire avant d'en lancer deux ensemble.
 | C5 TERRITOIRES | `sortie/redactions.json`, `tests/test_sorties.py` (contrôle 8), `CLAUDE.md` §2.11 | C4, C8 |
 | C7 CAPTAGE | `src/build_db.py` (vues de mélange), `src/etude_melange.py`, `docs/METHODE_DILUTION.md` | C3 ; **C2 sur `build_db.py`** |
 | C8 ATELIER | `atelier/atelier.py`, `tests/` | tous, en lecture |
-| C10 ARRÊTÉS | `referentiel/derogations.csv`, `docs/INDEX_SOURCES.md`, `src/` | il touchera au **modèle de seuils** (date de fin) — voir sa section |
+| C10 ARRÊTÉS | `referentiel/arretes_eau.csv`, `referentiel/motifs_arretes.csv`, `docs/CONSIGNE_QUALIFICATION_ARRETE.md`, `src/raa_*.py`, `docs/INDEX_SOURCES.md` | son lot C touchera au **modèle de seuils** (date de fin) — les lots A et B, non |
 | C6 ÉCHELLE | `src/collecte.py`, `src/brut.py`, `src/fetch_departement.py`, `src/hubeau.py`, `src/observer.py` | **tous, par le corpus** — une collecte change les chiffres de chaque chantier |
 | C9 VITRINE | `site/build_site.py`, `site/gabarits/`, `docs/VITRINE.md`, `referentiel/retention_procedes.csv` | **C6 par le corpus** ; C1, dont il porte le livrable |
 
@@ -1611,6 +1611,39 @@ deux règles à la fois.
 > ces arrêtés, et cela par département. Donc chaque département aura sa liste
 > d'arrêtés spécifiques ! »
 
+### Ce que Yannick demande — l'élargissement du 11 août 2026
+
+> « pour chaque département, je souhaite travailler sur l'historique à partir de
+> 2016 des arrêtés préfectoraux qui portent sur l'eau de consommation. Je veux
+> lister et quantifier les arrêtés portant sur l'interdiction de boire l'eau, de
+> contourner une norme, etc. Je veux quelque chose qui se lance de manière
+> automatisée lorsque tout un département est collecté. »
+
+Trois déplacements par rapport à la commande d'origine, et il faut les nommer
+parce qu'ils changent le chantier :
+
+| | commande du 9 août | commande du 11 août |
+|---|---|---|
+| objet | la **dérogation** seule | **tout acte** touchant l'eau de consommation |
+| livrable | une liste | une liste **et son dénombrement** |
+| départ | un geste à la main | **accroché à la fin de collecte d'un département** |
+
+**Deux décisions prises le 11 août 2026, elles commandent toute la suite :**
+
+1. **Large en collecte, fin en qualification.** On ramasse et on compte tout
+   acte qui touche l'eau de consommation — y compris les périmètres de
+   protection et les autorisations de distribution, qui ne portent aucune
+   thèse. Motif : sans eux il n'y a **pas de dénominateur**, et « 37 arrêtés de
+   restriction dans le Tarn » ne se lit pas sans savoir sur combien. C'est le
+   §2.8 appliqué au corpus documentaire. La qualification fine, elle, ne porte
+   que sur les restrictions et les dérogations.
+2. **L'automatisme s'arrête aux candidats.** L'enchaînement moissonne, extrait,
+   découpe, pré-filtre et fabrique les dossiers, puis rend la main :
+   *« 81 : 412 actes eau, 37 candidats, dossiers prêts »*. La lecture des actes
+   reste un geste que Yannick lance, exactement comme la rédaction en lot —
+   un arrêté est un texte de droit, et §3 du mode opératoire interdit d'appeler
+   une API facturée à part depuis un script planifié.
+
 ### Pourquoi c'est le chantier le plus proche de la thèse
 
 Le projet a documenté jusqu'ici **deux** mécanismes par lesquels une eau devient
@@ -1758,6 +1791,288 @@ Découpage proposé :
   doute sur la portée ou les dates d'un arrêté, on ne prononce rien ;
 - **étiquette** — les sites de préfecture ne sont pas Hub'Eau, mais la règle du
   §3.2 vaut : débit modéré, journal de reprise, agent identifiant le projet.
+
+---
+
+### Mise à jour du 11 août 2026 — la reconnaissance du Tarn
+
+**Ce qui suit a été lu ou mesuré, pas supposé.** Aucune collecte n'a été lancée :
+quatre pages du site de la préfecture ont été consultées et **un seul recueil a
+été téléchargé et sondé localement**. Les comptes qui en viennent portent sur ce
+recueil-là et sur rien d'autre.
+
+#### Où la matière se trouve, et sous quelle forme
+
+Le recueil des actes administratifs du Tarn est publié sur
+`www.tarn.gouv.fr`, rubrique *Publications → RAA*. L'index annonce les années
+**2005 à 2026** : la profondeur d'archive, qui était le risque n° 1 du chantier,
+**n'en est pas un ici**. Reste à vérifier qu'il en va de même ailleurs — un
+département n'est pas cent.
+
+L'arborescence est régulière : une page par année, une page par mois, une page
+par recueil, avec pagination sur les pages de mois. Les fichiers, eux, sont à des
+adresses opaques du type
+`/contenu/telechargement/10325/112034/file/recueil-81-2016-050-…pdf` :
+**les URL ne se fabriquent pas, il faut parcourir les pages.** C'est ce qui
+décide la forme du moissonneur.
+
+Deux repères de volume, et ce sont des repères, pas un compte : janvier 2016
+porte au moins dix recueils sur sa première page **et en a une seconde** ; le
+recueil `81-2026-286` est publié le 17 juillet 2026. L'ordre de grandeur est
+donc de la centaine à quelques centaines de recueils par an — **à mesurer au
+premier moissonnage, pas à annoncer.**
+
+#### Le recueil sondé — 81-2026-286, publié le 17 juillet 2026
+
+| ce qui a été mesuré | valeur |
+|---|---|
+| pages | 32 |
+| caractères extraits | 65 189 |
+| pages quasi vides (indice de scan) | **0** |
+
+**C'est du texte, pas une image.** `pypdf`, déjà installé pour le perchlorate,
+suffit. Une réserve : le recueil mensuel `81-2016-050` **dépasse 10 Mo** — les
+fichiers ne sont pas petits, et rien ne dit encore que ceux de 2016 soient
+également extractibles.
+
+#### La découverte technique qui change l'architecture — le sommaire est structuré
+
+Chaque recueil s'ouvre sur un sommaire régulier : le service émetteur, puis une
+ligne par acte. Relevé littéralement :
+
+```
+Direction Départementale des Territoires / Service Eau Risques
+Environnement Sécurité
+81-2026-07-16-00004 - 260718 AP restriction Vdef-1 (29 pages) Page 3
+```
+
+On y lit d'un coup **l'identifiant de l'acte, sa date au jour près, son
+intitulé, sa longueur et sa page de début**. Conséquence : le découpage
+recueil → actes se fait **sur le sommaire**, jamais en cherchant des en-têtes
+dans le corps — les motifs habituels (`Arrêté n°`, `ARRÊTÉ`, `DÉCISION`) sont
+d'ailleurs **absents** du document sondé, un découpage qui s'y fierait rendrait
+zéro acte. Le sommaire donne en prime le service signataire, qui est le premier
+discriminant du pré-filtre.
+
+#### Le piège principal, mesuré plutôt que redouté
+
+L'acte que porte ce recueil est un **arrêté sécheresse** de la direction
+départementale des territoires. Comptes relevés dans son texte :
+
+| terme | occurrences |
+|---|---|
+| « restriction » | 91 |
+| « eau potable » | 29 |
+| « alerte » | 468 |
+| « crise » | 247 |
+| « sécheresse » | 22 |
+| **« consommation humaine »** | **0** |
+| **« agence régionale de santé »** | **0** |
+
+Un pré-filtre bâti sur « restriction » et « eau potable » **le retiendrait**, et
+il n'a rien à voir avec la potabilité : il limite l'arrosage et l'irrigation, il
+ne dit rien de la qualité de l'eau bue. Les arrêtés sécheresse sont nombreux,
+volumineux, annuels et saturent aussi la recherche web — chercher « arrêté
+préfectoral restriction eau Tarn » ne rend qu'eux.
+
+**Donc : le pré-filtre ne peut pas être une liste de mots isolés.** Il combine
+au minimum le service émetteur, un terme d'inclusion fort — « consommation
+humaine », « unité de distribution », l'agence régionale de santé — et une
+exclusion explicite du vocabulaire sécheresse. C'est ce que porte
+`referentiel/motifs_arretes.csv`, versionné parce que c'est une décision
+éditoriale, pas un détail de code.
+
+#### Pas de raccourci national
+
+Cherché, non trouvé. La donnée ministérielle sur les dérogations **n'est plus
+publiée depuis 2012** : la carte des dérogations de la Fondation Danielle
+Mitterrand et de *60 millions de consommateurs* repose sur les données de
+l'automne 2012 et n'a jamais été mise à jour — « plus d'un millier de
+dérogations réparties sur 419 communes ». **Chiffre de seconde main, jamais
+vérifié par le projet, cité ici comme ordre de grandeur historique et rien
+d'autre.** Il n'entre nulle part sans lecture d'une source primaire.
+
+C'est aussi ce qui donne au chantier sa portée réelle : si l'information
+nationale s'arrête en 2012, la reconstituer département par département n'est
+pas un doublon, c'est **la seule voie ouverte**.
+
+#### La base juridique — repérée, pas lue
+
+Trois références sont apparues et sont **volontairement laissées en dehors du
+référentiel et de `docs/INDEX_SOURCES.md`**, parce qu'aucune n'a été ouverte :
+les articles **R. 1321-31 à R. 1321-36** du code de la santé publique,
+l'**arrêté du 25 novembre 2003** sur les modalités de demande de dérogation, et
+sa modification par l'**arrêté du 30 décembre 2022**. Une durée maximale de
+trois ans renouvelable est annoncée par des sources secondaires : **elle n'est
+pas acquise** tant que le texte n'a pas été lu (§2.7 et §2.5 — une durée sans
+son texte est du même ordre qu'un seuil sans sa date).
+
+**Première tâche du lot A**, donc, et elle passe par un dossier de sourçage
+`opus` sur le modèle de `docs/CONSIGNE_SOURCAGE.md`.
+
+#### Ce que la reconnaissance ne dit pas
+
+Quatre inconnues assumées, à lever au premier moissonnage et pas avant :
+
+1. si les recueils de 2016 sont eux aussi du texte extractible ;
+2. le compte exact de recueils par année ;
+3. s'il existe un moteur de recherche plein texte sur le site — il n'y en a
+   aucun au niveau du RAA, et aucun n'a été localisé ailleurs ;
+4. **s'il existe seulement des arrêtés de restriction de consommation dans le
+   Tarn sur la période.** La recherche web n'en rend aucun. **Ne rien conclure
+   de cette absence** : c'est le §2.4 appliqué au document — non trouvé n'est
+   pas inexistant, tant que les recueils n'ont pas été lus.
+
+---
+
+### La typologie — liste fermée, et le hors-périmètre se compte aussi
+
+Un acte reçoit un type et un seul. La liste est fermée : un acte qui n'entre
+dans aucune case ne s'invente pas de case, il sort en `autre_eau_consommation`
+et attend une relecture.
+
+| type | ce qu'il fait | rôle |
+|---|---|---|
+| `restriction_consommation` | interdit ou limite l'usage alimentaire de l'eau distribuée | **thèse** |
+| `levee_restriction` | met fin à une restriction antérieure | **thèse** — c'est lui qui donne la durée |
+| `derogation_limite` | autorise à distribuer au-dessus d'une limite, pour un temps borné | **thèse** |
+| `derogation_suite` | renouvelle, prolonge ou clôt une dérogation | **thèse** |
+| `autorisation_distribution` | autorise la production ou la distribution | dénominateur |
+| `perimetre_protection` | déclaration d'utilité publique, périmètres de captage | dénominateur |
+| `autre_eau_consommation` | touche l'eau de consommation sans entrer dans les cases | dénominateur |
+| `hors_perimetre` | sécheresse, police de l'eau, assainissement, baignade | **le bruit, compté à part** |
+
+Compter le `hors_perimetre` n'est pas du zèle : c'est la seule façon de dire
+plus tard *« le filtre a écarté 2 300 actes, en voici la composition »* au lieu
+de demander qu'on lui fasse confiance.
+
+### La forme du fichier de sortie
+
+`referentiel/arretes_eau.csv` remplace le `derogations.csv` prévu le 9 août —
+même esprit, périmètre plus large, la dérogation n'y étant qu'un type parmi
+huit. Séparateur `;`, barre verticale à l'intérieur des cellules, jamais de
+point-virgule dans une valeur (§5).
+
+Une ligne par acte, et elle porte : **le département et l'identifiant de
+l'acte** ; **le recueil dont il vient, sa page de début et son adresse** — la
+traçabilité du §8bis n° 9, transposée du bulletin au document ; **la date de
+signature et celle de publication** ; **le service signataire** ; **l'intitulé
+littéral** ; **le type** ; **les deux bornes de la période** ; **le périmètre
+nommé, les codes INSEE et l'unité de distribution** ; pour une dérogation, **le
+paramètre, la valeur autorisée et son unité** ; **le motif tel qu'écrit dans
+l'acte** ; enfin **la fiabilité et la date de qualification**.
+
+Les deux exigences du 9 août tiennent, et une troisième s'ajoute :
+
+- **une ligne sans date de fin ne produit aucune durée** — elle existe, elle se
+  compte, elle ne se chronomètre pas ;
+- **une ligne sans source primaire reste `a_verifier`** et ne produit aucun
+  dénombrement publiable ;
+- **une ligne dont le périmètre n'est pas nommé ne produit aucun rattachement
+  géographique.** Rattacher au mauvais périmètre fabriquerait des faux positifs
+  à la chaîne, et c'est le §2.13 : le faux positif coûte plus cher.
+
+### La chaîne — le déterministe aux deux bouts, le modèle au milieu
+
+Calquée sur `moisson.py` / `ingerer.py` et sur `rediger_lot.py`, qui sont les
+deux découpages qui ont déjà fait leurs preuves dans ce dépôt.
+
+```
+py -X utf8 src/raa_moisson.py --dept 81 --depuis 2016   # réseau seul
+py -X utf8 src/raa_lot.py --dept 81 --index             # sommaires → actes
+py -X utf8 src/raa_lot.py --dept 81 --candidats         # pré-filtre → candidats
+py -X utf8 src/raa_lot.py --dept 81 --dossiers          # dossiers de faits
+                                                        # → qualifier en Claude Code
+py -X utf8 src/raa_lot.py --dept 81 --verifier          # contrôle, sans rien écrire
+py -X utf8 src/raa_lot.py --dept 81 --integrer          # contrôle puis écrit
+py -X utf8 src/raa_lot.py --dept 81 --etat              # où en est le département
+```
+
+Quatre règles, et elles ne se déduisent pas du code :
+
+1. **Aucun des deux scripts n'importe `duckdb`.** Le chantier ne touche jamais
+   la base : il peut donc tourner **pendant** une ingestion, verrou tenu, sans
+   rien attendre. C'est la garantie mécanique héritée de `moisson.py`, et elle
+   vaut ici encore plus cher.
+2. **Le découpage se fait sur le sommaire**, avec la page de début et le nombre
+   de pages. Un recueil dont le sommaire ne se lit pas est **signalé, pas
+   deviné**.
+3. **L'idempotence se lit dans les fichiers de sortie**, comme partout dans le
+   dépôt : un recueil déjà au cache ne se retélécharge pas, un acte déjà
+   qualifié ne se requalifie pas. Un lot interrompu se relance sans précaution.
+4. **Le pré-filtre ne décide de rien.** Il propose des candidats. Ce qui décide
+   du type d'un acte, c'est la lecture — et elle est contrôlée au retour.
+
+### Le contrôle au retour, qui est la vraie valeur du script
+
+Sur le modèle exact de `rediger_lot.py`, et en **réutilisant** ses fonctions
+plutôt qu'en écrivant une seconde version :
+
+1. **le type est dans la liste fermée**, sinon blocage ;
+2. **toute date et tout nombre absents du texte extrait de l'acte bloquent.**
+   C'est le contrôle qui attrape la valeur inventée, la date recopiée de
+   mémoire, la durée calculée de tête ;
+3. **le périmètre est nommé, et ses codes INSEE existent** dans les communes de
+   la base — sinon la ligne passe sans rattachement plutôt qu'avec un faux ;
+4. **une dérogation sans paramètre nommé n'est pas une dérogation** : elle
+   redescend en `autre_eau_consommation` ;
+5. **trois états, jamais deux** — qualifié / hors périmètre / **indéterminé**.
+   Un acte dont la portée est douteuse sort en indéterminé et se compte comme
+   tel.
+
+### Le déclenchement automatique, et où il s'arrête
+
+Le point d'accroche existe : `--termine` est le seul juge de la complétude d'un
+département (§10.1 de `docs/REPRISE.md`), et il rend 0. L'enchaînement est donc :
+
+```
+moisson → ingerer → si --termine rend 0 : raa_moisson, --index, --candidats, --dossiers
+```
+
+et il **s'arrête là**, sur une phrase de compte. La qualification est un geste
+lancé à la main. Deux raisons, et la seconde est la vraie : un script planifié
+qui appellerait un modèle passerait par une API facturée hors du canal de
+Yannick (§3 du mode opératoire) ; et surtout, **on ne fait pas interpréter des
+textes de droit en lot sans que quelqu'un ait décidé de lancer ce lot.**
+
+### Ce qu'on quantifie, et le dénominateur qui va avec
+
+Par département et par année : le nombre d'actes touchant l'eau de consommation,
+sa **composition par type**, les communes concernées, les jours cumulés de
+restriction — **uniquement sur les couples restriction/levée réellement
+appariés** — et les dérogations par paramètre.
+
+Deux règles de sortie qui découlent de tout ce qui précède :
+
+- **la durée n'est pas dans l'acte, elle est dans le couple.** Une restriction
+  est souvent levée par un acte distinct, publié plus tard. Sans appariement,
+  toute durée annoncée est fausse. Une restriction non appariée se compte, elle
+  ne se chronomètre pas ;
+- **un département non moissonné est « non instruit », jamais « sans
+  dérogation ».** C'est le §2.4 transposé au document, et c'est le piège le plus
+  facile à commettre au moment de faire une carte.
+
+### Les trois lots, et ce qui bloque quoi
+
+| lot | ce qu'il rend | dépend du modèle de seuils |
+|---|---|---|
+| **A** | la liste des actes du Tarn, datée, typée, sourcée | non |
+| **B** | les dénombrements, avec leur dénominateur | non |
+| **C** | le croisement avec les bulletins — la démonstration nominative | **oui** — la borne haute reste à ajouter |
+
+Le blocage annoncé le 9 août — *« ce chantier ne peut pas être livré sans
+ajouter la borne haute au modèle de seuils »* — **ne vaut que pour le lot C**.
+A et B se livrent seuls, et ce sont eux que la commande du 11 août demande.
+
+### Le coût — à mesurer sur trois actes, jamais à annoncer
+
+Le seul comparable mesuré dans le dépôt est le sourçage de substance :
+**~140 000 tokens en `opus` par substance**, un agent à la fois
+(`docs/CONSIGNE_SOURCAGE.md` §0). La qualification d'un acte est une tâche plus
+étroite — un document déjà fourni, un schéma fermé, pas de recherche
+documentaire — donc vraisemblablement moins chère, **et « vraisemblablement »
+n'est pas un chiffre**. Protocole : trois actes qualifiés, compteurs relevés
+avant et après, résultat montré, feu vert, puis le lot.
 
 ---
 
