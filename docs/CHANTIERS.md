@@ -2022,11 +2022,27 @@ bloqués, ne pas écrire que le site était en panne.
   même fermeture. Il devra l'être avant toute reprise, et ses règles priment sur
   les nôtres.
 
-**Ce que l'inventaire a quand même établi**, sur les six premiers mois de 2016 :
-**88 fichiers PDF pour 62 pages de recueil**, soit environ 1,4 fichier par
-recueil — la découpe en parties n'est donc pas la règle générale, elle ne
-concerne que les recueils mensuels volumineux. **Le corpus n'a pas de taille
-connue à ce jour**, et il n'en aura pas avant que l'inventaire aille au bout.
+**Ce que l'inventaire a quand même établi**, et c'est déjà beaucoup — sur les
+**six premiers mois de 2016** :
+
+| | |
+|---|---|
+| recueils | **57** |
+| fichiers PDF | **88**, soit ~1,5 par recueil |
+| taille annoncée | **0,52 Go**, et **les 88 annoncent la leur** |
+| scans probables | 0 — mais aucun fichier n'a encore été ouvert |
+
+La découpe en parties n'est donc **pas** la règle générale : elle ne concerne
+que les recueils mensuels volumineux.
+
+**L'ordre de grandeur du département, et c'est une extrapolation, pas une
+mesure** : un demi-2016 pèse 0,52 Go, et le rythme de publication a environ
+**quadruplé** entre 2016 et 2026 — 57 recueils en six mois d'un côté, le
+n° 286 atteint à la mi-juillet de l'autre. Le Tarn sur onze ans est donc
+vraisemblablement dans **les dizaines de gigaoctets**. Ce chiffre sert à
+décider d'une méthode, **pas à annoncer une date ni un volume** : seul
+l'inventaire complet le dira. Et il justifie à lui seul le choix de ne garder
+que le texte.
 
 ### La typologie — liste fermée, et le hors-périmètre se compte aussi
 
