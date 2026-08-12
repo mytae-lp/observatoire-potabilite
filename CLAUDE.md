@@ -18,6 +18,7 @@ commité, l'historique git ne le porte donc pas.
 | le raisonnement complet derrière un garde-fou, ses cas, ses citations | `docs/GARDE-FOUS.md` |
 | pourquoi le dépôt est construit ainsi — atelier/vitrine, prose, indicateurs, figeage | `docs/ARCHITECTURE.md` |
 | l'effet cocktail | `docs/METHODE_EFFET_COCKTAIL.md` |
+| pourquoi toute substance mesurée reçoit une attribution, même « rien ne se prononce » | `docs/METHODE_ATTRIBUTION.md` |
 | le mélange de réseaux et la dilution | `docs/METHODE_DILUTION.md` |
 | l'état du chantier, ce qui est en cours | `docs/REPRISE.md` puis `docs/CHANTIERS.md` |
 | une source documentaire | `docs/INDEX_SOURCES.md` |
@@ -443,9 +444,21 @@ Quatre règles, et elles ne se déduisent pas du code :
    sous la version courante. Ce qui périme une ligne figée est attrapé :
    référentiel modifié (la version change), bulletin réingéré (`ingest`
    efface ses lignes figées), **code de calcul modifié**
-   (`figer.version_moteur()` force le refigeage complet). Et
-   `analyses_figees` / `verdicts_figes` sont **un seul figeage** : ne jamais
-   en reconstruire une sans vider l'autre. `--refiger` force le tout.
+   (`figer.version_moteur()` — le figeage **refuse alors de tourner**, il
+   n'efface rien, et attend un `--refiger` explicite). Et `analyses_figees` /
+   `verdicts_figes` sont **un seul figeage** : ne jamais en reconstruire une
+   sans vider l'autre.
+
+   **Détruire une sortie figée ne doit jamais être un effet de bord** — c'est
+   un geste qu'on demande. Le 11 août 2026, une ingestion a effacé 7 279
+   lignes figées parce qu'une autre session avait ajouté une fonction
+   éditoriale à `common.py` : `docs/REPRISE.md` §17.
+
+   **Corollaire opérationnel : pendant une campagne de collecte, `figer.py`,
+   `build_db.py` et `common.py` sont gelés.** Toucher l'un des trois, même un
+   commentaire, fait refuser le prochain figeage jusqu'à un refigeage complet
+   (~100 min sur 9 500 bulletins). À dire aux sessions qui travaillent en
+   parallèle.
 4. **Le parallélisme n'autorise pas à peser plus lourd** (§3.2). Les pauses de
    `hubeau` sont locales à un fil : à quatre fils elles quadruplent la charge
    sans que rien ne le dise. `hubeau.REGULATEUR` borne le débit du **processus

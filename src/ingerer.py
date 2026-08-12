@@ -200,7 +200,19 @@ def figer_departements(con, depts, complet=False):
     """
     figer.assurer_schema(con)
     version = figer.version_referentiel()
-    version, n = figer.figer(con, version=version, complet=complet)
+    try:
+        version, n = figer.figer(con, version=version, complet=complet)
+    except figer.MoteurChange as e:
+        # Rien n'a été figé, rien n'a été effacé. L'ingestion, elle, a bien eu
+        # lieu : les bulletins sont en base, simplement pas encore figés — donc
+        # pas citables (§8bis), ce qui est leur statut réel et non un mensonge.
+        dire_brut(f"\n  ! FIGEAGE REFUSÉ — {e}")
+        dire_brut("\n  les bulletins sont INGÉRÉS mais NON FIGÉS : rien n'est "
+                  "publiable d'eux tant que")
+        dire_brut("  le refigeage n'a pas eu lieu. `src/ingerer.py --etat` et le "
+                  "rapport de département")
+        dire_brut("  montrent l'écart.")
+        return None, 0
     # Le nombre figé N'EST PAS le corpus : depuis que le figeage est
     # incrémental, « figé : 65 » veut dire « 65 nouveaux », pas « 65 en tout ».
     # Annoncer le premier sans le second, c'est publier un compte sans son

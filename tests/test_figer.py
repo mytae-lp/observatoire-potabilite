@@ -291,16 +291,40 @@ def main():
         # `version_referentiel` est identique, donc rien ne distinguerait les
         # lignes d'avant de celles d'après : deux calculs sous une seule
         # version, et aucune trace. C'est `version_moteur` qui l'attrape.
+        #
+        # Le figeage REFUSE alors de travailler, et surtout **n'efface rien**.
+        # Sa première version forçait un refigeage complet d'office, donc
+        # effaçait tout avant de recalculer : le 11 août 2026, une autre session
+        # a ajouté une fonction éditoriale à `common.py` — sans effet sur aucun
+        # verdict — et une simple ingestion a détruit 7 279 lignes figées avant
+        # de mourir au bulletin 3 780. Détruire une sortie figée est un geste
+        # qu'on demande, jamais un effet de bord.
         con.execute("UPDATE figeage_moteur SET empreinte_moteur = 'autre-moteur' "
                     "WHERE version_referentiel = ?", [v1])
-        _v, refiges = figer.figer(con, version=v1, verbeux=False)
+        try:
+            figer.figer(con, version=v1, verbeux=False)
+            verifie(False, "un changement du code de calcul doit faire ÉCHOUER le figeage")
+        except figer.MoteurChange:
+            verifie(True, "un changement du code de calcul fait échouer le figeage, "
+                          "au lieu de mélanger deux calculs sous une version")
+        verifie(con.execute(
+            "SELECT COUNT(*) FROM analyses_figees WHERE version_referentiel = ?",
+            [v1]).fetchone()[0] == avant,
+            f"et il n'efface RIEN : les {avant} bulletin(s) figés sont intacts")
+
+        # Le refigeage complet, lui, est explicite — et il remet l'empreinte.
+        _v, refiges = figer.figer(con, version=v1, verbeux=False, complet=True)
         verifie(refiges == avant,
-                f"un changement du code de calcul refige TOUT le corpus "
-                f"({refiges} bulletin(s)), sans qu'on l'ait demandé")
+                f"--refiger, demandé explicitement, refige tout le corpus "
+                f"({refiges} bulletin(s))")
         verifie(con.execute(
             "SELECT empreinte_moteur FROM figeage_moteur WHERE version_referentiel = ?",
             [v1]).fetchone()[0] == figer.version_moteur(),
             "et l'empreinte du moteur est réenregistrée")
+        verifie(con.execute(
+            "SELECT COUNT(*) FROM verdicts_figes WHERE version_referentiel = ?",
+            [v1]).fetchone()[0] == nfig,
+            "sans perdre le détail au passage")
 
         # 3e cas — le REFERENTIEL change. La version change avec lui, donc plus
         # personne n'est figé sous la nouvelle : tout est recalculé. La règle du

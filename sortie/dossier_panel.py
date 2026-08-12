@@ -36,6 +36,7 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RACINE, "src"))
 
 import figer  # noqa: E402
+import common as C  # noqa: E402
 
 DB_PATH = os.path.join(RACINE, "data", "eau.duckdb")
 DOSSIERS = os.path.join(RACINE, "data", "dossiers")
@@ -64,10 +65,18 @@ def dossier(con, version):
     d = []
     a = d.append
 
+    # Restreint aux départements collectés EN ENTIER (referentiel/departements_publies.csv).
+    # Un dossier de faits est une pièce à conviction : il ne doit contenir que ce
+    # que le lecteur peut aller vérifier sur le site. Sans ce filtre, le dossier
+    # du 11 août portait le 71 — 174 bulletins pour 14 communes sur 563, et
+    # aucune page publiée.
+    publies = C.departements_publies()
     depts = [r[0] for r in con.execute("""
         SELECT dept FROM analyses_figees WHERE version_referentiel = ? AND est_complet
         GROUP BY 1 HAVING COUNT(*) >= ? ORDER BY COUNT(*) DESC
     """, [version, MIN_BULLETINS]).fetchall()]
+    if publies:
+        depts = [d for d in depts if d in publies]
     liste = ", ".join(depts)
 
     a("# Dossier de faits — le panel d'analyse\n")

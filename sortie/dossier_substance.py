@@ -44,8 +44,30 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RACINE, "src"))
 
 import figer  # noqa: E402
+import common as C  # noqa: E402
 
 DB_PATH = os.path.join(RACINE, "data", "eau.duckdb")
+
+
+def filtre_dept(alias="a.dept"):
+    """
+    Restreint aux départements collectés EN ENTIER, et rend un fragment SQL.
+
+    **Un dossier de faits est une pièce à conviction : il ne doit contenir que
+    ce que le lecteur peut aller vérifier sur le site.** Sans ce filtre, le
+    dossier de CGA 369873 du 11 août portait le 71 — 174 bulletins pour 14
+    communes sur 563 — et le recalage de la prose a bâti son argument central
+    sur 18 mesures issues de ce département, invisible du lecteur.
+
+    Les codes sont écrits en clair dans la requête plutôt que passés en
+    paramètres : les quatre requêtes concernées ont des listes de paramètres
+    d'ordres différents, et y insérer des marqueurs positionnels au bon endroit
+    est plus fragile que de filtrer une liste dont la source est un fichier
+    versionné du dépôt. Le motif ci-dessous garantit qu'aucun autre caractère
+    qu'un code de département ne peut entrer dans le SQL.
+    """
+    codes = [c for c in C.departements_publies() if re.fullmatch(r"[0-9A-Z]{2,3}", c)]
+    return "" if not codes else " AND %s IN ('%s')" % (alias, "', '".join(codes))
 DOSSIERS = os.path.join(RACINE, "data", "dossiers")
 
 # Une substance ne mérite un dossier que si elle a de quoi en porter un.
@@ -196,7 +218,7 @@ def dossier(con, libelle, version):
                  WHERE b.version_referentiel = a.version_referentiel AND b.dept = a.dept)
         FROM verdicts_figes v JOIN analyses_figees a
           USING (code_prelevement, version_referentiel)
-        WHERE v.version_referentiel = ? AND v.libelle_parametre = ?
+        WHERE v.version_referentiel = ? AND v.libelle_parametre = ?""" + filtre_dept() + """
         GROUP BY a.dept, a.version_referentiel ORDER BY 4 DESC
     """, [version, libelle]).fetchall():
         a(f"| {r[0]} | {date_fr(r[1])} | {date_fr(r[2])} | {r[3]} | {r[4]} | {r[5]} | {r[6]} |")
@@ -218,7 +240,7 @@ def dossier(con, libelle, version):
                COUNT(*) FILTER (WHERE v.est_quantifie), COUNT(*)
         FROM verdicts_figes v JOIN analyses_figees a
           USING (code_prelevement, version_referentiel)
-        WHERE v.version_referentiel = ? AND v.libelle_parametre = ?
+        WHERE v.version_referentiel = ? AND v.libelle_parametre = ?""" + filtre_dept() + """
         GROUP BY 1 HAVING COUNT(*) >= 10 ORDER BY 6 DESC
     """, [version, libelle]).fetchall():
         taux = f"{fr(100.0 * r[4] / r[5], 1)} %" if r[5] else "—"
@@ -258,7 +280,7 @@ def dossier(con, libelle, version):
                COUNT(*) FILTER (WHERE v.bascule_2016_2026)
         FROM verdicts_figes v JOIN analyses_figees a
           USING (code_prelevement, version_referentiel)
-        WHERE v.version_referentiel = ? AND a.est_complet
+        WHERE v.version_referentiel = ? AND a.est_complet""" + filtre_dept() + """
         GROUP BY 1 HAVING COUNT(*) FILTER (WHERE v.bascule_2016_2026 AND v.libelle_parametre = ?) > 0
         ORDER BY 2 DESC
     """, [libelle, version, libelle]).fetchall():
@@ -327,7 +349,7 @@ def dossier(con, libelle, version):
                        v.depasse_applicable
                 FROM verdicts_figes v JOIN analyses_figees a
                   USING (code_prelevement, version_referentiel)
-                WHERE v.version_referentiel = ? AND v.libelle_parametre = ?
+                WHERE v.version_referentiel = ? AND v.libelle_parametre = ?""" + filtre_dept() + """
                   AND v.est_quantifie AND v.resultat_num > ?
                 ORDER BY abs(date_diff('day', ?::DATE, a.date_prelevement)) LIMIT 8
             """, [dapp, version, libelle, ref[3] or 0, dapp]).fetchall():

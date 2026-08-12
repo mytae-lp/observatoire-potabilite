@@ -12,10 +12,25 @@ justesse — les cas sont cités, ils valent mieux qu'un principe.
 
 ## 0. Règles d'emploi, avant d'écrire le brief
 
-- **Un agent à la fois, et seulement quand Yannick le demande.** Décision du
-  11 août 2026, après qu'un lot de cinq agents lancés en parallèle a consommé une
-  part importante d'une fenêtre de quota. Coût mesuré : **~140 000 tokens par
-  substance** en `opus`.
+- **Un agent à la fois par défaut, et seulement quand Yannick le demande.**
+  Décision du 11 août 2026, **reformulée le même jour au soir sur précision de
+  Yannick** : *« ma règle réelle n'est pas le nombre de tokens, c'est de lancer
+  un agent et pas huit simultanément. Mais parfois si je le décide on peut en
+  lancer trois. »* La règle porte donc sur ce qu'on peut **suivre**, pas sur ce
+  que ça coûte. Jusqu'à trois agents de front sur décision explicite ; au-delà,
+  jamais.
+- **Un agent lancé se surveille — c'est la moitié de la règle.** *« Ce que j'ai
+  vu, c'est qu'il faut les suivre pour voir s'ils ont planté ou ne répondent
+  plus. »* Le 11 août, trois agents ont écrit une fois puis plus rien pendant
+  1 h 30 à 2 h 15, sans qu'aucun processus ne tourne. **Les transcriptions
+  d'agents font 0 octet** : le seul signal disponible est la **date de
+  modification du fichier de sortie**. La relever régulièrement, et le dire
+  quand elle cesse de bouger — Yannick l'a vu avant moi deux fois.
+- **Le coût, pour information et non comme fondement de la règle.** Mesures du
+  11 août 2026, cinq dossiers en `opus` : **125 000 à 247 000 tokens, 176 000 en
+  moyenne**, 59 à 140 appels d'outil, 12 à 36 minutes. L'ancienne rédaction de
+  cette consigne annonçait ~140 000, chiffre qui sous-évalue d'un quart en
+  moyenne et de trois quarts dans le pire cas.
 - **`opus` obligatoire.** On touche à des seuils, des dates d'applicabilité, des
   unités et des sources : §1 du mode opératoire.
 - **Interdire explicitement à l'agent de lancer ses propres sous-agents.** Le
@@ -209,6 +224,23 @@ juridictions suivantes »**, jamais « le plus strict au monde » (§2.14).
 **Un fichier, écrit tôt et complété au fil du travail** — une tâche a été perdue
 dans la nuit du 10 au 11 août sans rien laisser sur le disque. Le dire dans le
 brief.
+
+**Précisé le 11 août 2026 au soir, et c'est la nuance qui décide : écrire après
+CHAQUE source lue, avant de passer à la suivante.** « Écrire tôt » ne suffisait
+pas — trois agents ont écrit une amorce puis se sont tus pendant deux heures, et
+tout ce qu'ils avaient lu entre-temps est perdu, les transcriptions faisant
+0 octet. Trois règles à recopier dans chaque brief, avec la précédente :
+
+1. **écrire dans le fichier après chaque source**, pas à la fin ;
+2. **une seule tentative par adresse** — une page qui ne répond pas est notée
+   « inaccessible » dans le tableau des juridictions, et on passe. Une
+   juridiction inaccessible est un livrable attendu (§5), pas un échec ;
+3. **un budget annoncé de 30 minutes**, avec les mesures du §0 comme repère, et
+   consigne de clore les pistes stériles plutôt que de creuser.
+
+Effet mesuré : le dossier dalapon, échoué deux fois en 1 h 30 et 2 h 15, a été
+rendu en **12 minutes** au troisième essai avec ces règles — le plus rapide des
+cinq.
 
 Structure :
 

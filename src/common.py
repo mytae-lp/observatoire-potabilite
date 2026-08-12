@@ -21,6 +21,35 @@ REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 ALIAS_CSV = os.path.join(RACINE, "referentiel", "alias_parametres.csv")
 CATALOGUE_CSV = os.path.join(RACINE, "referentiel", "catalogue_parametres_hubeau.csv")
 JOURNAL_DIR = os.path.join(RACINE, "data", "journal")
+DEPTS_PUBLIES_CSV = os.path.join(RACINE, "referentiel", "departements_publies.csv")
+
+
+def departements_publies():
+    """
+    Les départements collectés en entier, et eux seuls — source unique.
+
+    Lue par la vitrine ET par les dossiers de faits. Un département à moitié
+    collecté peint la carte d'un « non documenté » qui parle de notre collecte
+    et non de l'eau ; et dans un dossier de faits, il fait reposer la prose sur
+    des chiffres que le lecteur ne peut pas aller vérifier, faute de page.
+
+    Rend une liste vide si le fichier est absent — l'appelant décide alors s'il
+    publie tout ou s'il refuse. Ne jamais faire échouer une lecture ici : ce
+    fichier est un garde-fou éditorial, pas une dépendance technique.
+    """
+    codes = []
+    try:
+        with open(DEPTS_PUBLIES_CSV, encoding="utf-8-sig") as fh:
+            for ligne in fh:
+                ligne = ligne.strip()
+                if not ligne or ligne.startswith("#") or ligne.startswith("code;"):
+                    continue
+                code = ligne.split(";")[0].strip()
+                if code:
+                    codes.append(code)
+    except OSError:
+        return []
+    return codes
 
 # --- Constantes de méthode -------------------------------------------------
 # Un prélèvement n'est retenu comme "complet" qu'au-delà de ce nombre de

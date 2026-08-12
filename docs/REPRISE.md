@@ -1722,3 +1722,928 @@ lire `robots.txt`, qui n'a jamais pu l'être ; l'inventaire des six derniers moi
 à débit nettement plus bas — `--pause` existe pour cela et ne se baisse jamais ;
 puis les trois premiers actes qualifiés, compteurs relevés, montrés — feu vert
 avant le lot.
+
+---
+
+## 17. Incident du 11 août 2026 — une ingestion détruit le figeage du corpus
+
+**À lire avant de retoucher `figer.py`, `build_db.py` ou `common.py`.**
+
+### 17.1 Les faits
+
+`py -X utf8 src/ingerer.py --depts 32,47,64,65,82` a versé ses 2 196 bulletins,
+puis **effacé les 7 279 lignes de `analyses_figees`** et commencé à tout
+recalculer. Le processus est mort au bulletin 3 780 (code de sortie 127,
+inexpliqué à ce jour). Le corpus s'est retrouvé **dans un état pire qu'avant la
+commande** : 9 475 prélèvements en base, 3 780 figés, et le figeage complet
+d'avant définitivement perdu.
+
+Aucune donnée brute n'a été perdue : le cache brut est intact, et c'est lui qui
+a permis de tout refaire.
+
+### 17.2 La cause, et elle n'est pas où on la cherche
+
+À 15 h 54, une **autre session** a ajouté `departements_publies()` à
+`src/common.py` — une fonction éditoriale, **sans le moindre effet sur un
+verdict**. `figer.version_moteur()` hache les octets de `figer.py`,
+`build_db.py` et `common.py` : il a vu changer le fichier, en a conclu que le
+calcul avait changé, et a forcé un refigeage complet.
+
+Le principe est juste : deux calculs sous une seule `version_referentiel`
+seraient invisibles, et c'est le pire cas du §8bis. **La réponse était fausse
+sur quatre points**, tous corrigés :
+
+| défaut | ce qui est fait maintenant |
+|---|---|
+| détruire le figeage **d'office** | `figer()` lève `MoteurChange`, **n'écrit ni n'efface rien**. Refiger se demande (`--refiger`) |
+| effacer **tout en amont**, donc corpus amputé si interruption | remplacement **bulletin par bulletin** : une interruption laisse un corpus mixte, mais rien n'est perdu |
+| progression **non flushée**, invisible si le processus meurt | `flush=True` — l'incident a dû être reconstitué en interrogeant la base |
+| empreinte trop grossière | **inchangée et assumée** : elle ne peut pas distinguer un ajout inoffensif d'un changement de calcul. Mais elle ne détruit plus rien, donc son excès de zèle ne coûte qu'un refus explicite |
+
+La règle de fond, et elle dépasse ce fichier : **détruire une sortie figée ne
+doit jamais être un effet de bord.** C'est un geste qu'on demande, jamais un
+geste qu'on subit.
+
+### 17.3 La contrainte que cela crée, et qu'il faut connaître
+
+**Pendant une campagne de collecte, `figer.py`, `build_db.py` et `common.py`
+sont gelés.** Toute modification de l'un des trois — même un commentaire, même
+une fonction sans rapport — change l'empreinte et fait refuser le prochain
+figeage jusqu'à un `--refiger` complet, soit ~100 min sur le corpus actuel.
+
+Ce n'est pas un défaut à corriger : c'est le prix de la garantie. Mais il se
+sait à l'avance, et il se dit aux autres sessions qui travaillent en parallèle.
+
+### 17.4 Réparation, et coût réel du refigeage complet
+
+```
+figé : 9475 nouveau(x) bulletin(s) — 9475 au total sous f3e1d448101f
+verrou de la base tenu 101.9 min
+```
+
+Vérifié après coup : 9 475 prélèvements, 9 475 figés, 9 475 avec leur détail,
+**écart nul**, et l'empreinte enregistrée égale l'empreinte courante.
+
+**Un refigeage complet coûte donc ~0,65 s par bulletin** (101,9 min pour
+9 475), contre ~0,41 s en figeage incrémental — le remplacement au fil ajoute
+deux DELETE par bulletin. C'est le prix de ne plus jamais amputer le corpus, et
+il est payé une fois par changement de moteur, pas à chaque ingestion.
+
+### 17.5 Ce qui reste inexpliqué
+
+**Le code de sortie 127.** C'est « commande introuvable » pour un shell, ce qui
+n'a aucun sens pour un processus qui tournait depuis vingt minutes. Deux
+hypothèses ont été examinées et écartées : un figeage concurrent d'une autre
+session (les journaux montrent que ses figeages portaient sur une base
+temporaire de test, jamais sur `data/eau.duckdb`), et une contention DuckDB
+(un second écrivain échoue à ouvrir, il ne tue pas le premier).
+
+Le refigeage suivant, plus long et plus lourd, s'est terminé en code 0. **C'est
+donc un incident isolé sans cause établie, et il est écrit ici comme tel** — pas
+comme un mystère résolu. S'il se reproduit, ce sera un signal, et cette note
+sera le premier point de comparaison.
+
+### 17.6 État du corpus au terme de la journée
+
+**9 475 bulletins figés sous `f3e1d448101f`, écart nul.**
+
+| dept | bulletins | couverture | cas |
+|---|---|---|---|
+| Ariège (09) | 1 189 | 93,2 % | 5 |
+| Eure-et-Loir (28) | 1 611 | 90,1 % | 260 |
+| Haute-Garonne (31) | 1 236 | 92,3 % | 45 |
+| Gers (32) | 897 | 94,4 % | **299** |
+| Hautes-Pyrénées (65) | 576 | 92,8 % | 49 |
+| Rhône (69) | 1 486 | 75,1 % | 275 |
+| Saône-et-Loire (71), partiel | 174 | 86,9 % | 40 |
+| Tarn (81) | 1 575 | 93,7 % | 100 |
+| Tarn-et-Garonne (82) | 722 | 92,6 % | 116 |
+
+Huit départements entiers, un partiel. **1 189 cas** — des bulletins complets,
+déclarés conformes en 2026, qui ne l'auraient pas été il y a dix ans. Le Gers
+en porte à lui seul 299 pour 897 bulletins, la proportion la plus forte du
+corpus : **à regarder de près, et à ne pas citer avant vérification.**
+
+
+---
+
+## 18. Mise à jour du 11 août 2026, soir — chapitre sourçage réglementaire
+
+Session parallèle à celle du §17, sur un autre objet : **cinq substances
+sourcées en agents de fond**, sans jamais toucher au code ni au référentiel.
+Rendus dans `data/etudes/sourcage_C/`.
+
+### 18.1 CORRECTION AU §17.5 — le code de sortie 127 a une cause, et c'est moi
+
+**Le §17.5 tient l'arrêt au bulletin 3 780 pour « un incident isolé sans cause
+établie ». Il en a une : j'ai tué le processus.**
+
+Déroulé :
+
+- **16 h 08 min 28** — le processus démarre. Je ne le vois pas partir.
+- **~16 h 20** — je cherche à interroger la base pour un dossier de sourçage :
+  elle est verrouillée. Je constate un processus Python à ~3,5 cœurs, un journal
+  d'écriture de 13 Mo, et le fichier de base passé de 855 à 915 Mo.
+- **17 h 20** — je présente les faits à Yannick comme un probable débordement
+  d'agent, il tranche « tout arrêter », et j'exécute `Stop-Process -Force`.
+- **17 h 26** — un second processus démarre. Cette fois je lis sa ligne de
+  commande **avant** d'agir : `ingerer.py --depts 32,47,64,65,82 --refiger`,
+  travail légitime d'une autre session. Je n'y touche pas.
+
+**Ce que j'ai mal fait, et c'est la leçon** : j'ai constaté qu'un processus
+écrivait dans la base et j'en ai conclu qu'il n'avait rien à y faire, **sans
+avoir lu sa ligne de commande**. `Get-CimInstance Win32_Process -Filter
+"ProcessId=N"` la donne en une seconde, et elle aurait dit `ingerer.py`. **Un
+processus inconnu se lit avant de se tuer** — remonter l'arbre des parents dit
+en outre s'il vient d'un terminal ou d'un outil.
+
+Conséquence : le refigeage a été payé deux fois, ~68 min perdues. Rien
+d'irréversible, la relance étant en `--refiger`, qui reprend les 9 475 de toute
+façon. **Le §17.2 reste entièrement valide** : c'est bien un changement de
+`common.py` qui a déclenché le refigeage. Je n'ai causé que son interruption,
+pas son déclenchement.
+
+**Le §17.5 est donc clos, pas ouvert.** Si un code 127 réapparaît sans qu'une
+session ait tué un processus, ce sera un vrai signal — mais il n'y a pas de
+précédent à invoquer.
+
+### 18.2 Les cinq dossiers rendus
+
+| substance | verdict | fait principal |
+|---|---|---|
+| **Fluoranthène** | C2 pour l'eau distribuée | nommé dans une somme opposable française — mais **eaux brutes**, 1 µg/L, six composés : autre milieu que le corpus |
+| **Fréon 113** | C2 | l'OMS ne l'a **jamais examiné** ; absent même de la table des renoncements motivés |
+| **Phosphate de tributyle** | C2, **pas** C-g | le SANDRE ne le range dans aucune liste phytosanitaire : la question du caractère pesticide n'est même pas ouverte |
+| **Dalapon** | **C-g, le texte répond oui** | « les herbicides organiques » figurent littéralement dans la définition des pesticides ; SANDRE Liste A, pas Liste B |
+| **Tétrachlorure de carbone** | C2 | **la somme suisse le capte** — voir 18.4 |
+
+**Aucun ne recommande de verser un seuil. Cinq fois sur cinq.** C'est un
+résultat, pas une absence de résultat : dans chaque cas, choisir une valeur
+plutôt qu'une autre **produirait** le verdict au lieu de le constater.
+
+Le tétrachlorure de carbone le démontre en une ligne. Maximum du corpus
+**0,67 µg/L** : **dépassement** contre la valeur californienne (0,5 µg/L),
+**conforme** contre la suisse (2), la japonaise (2), la britannique (3) et le
+repère OMS (4). Même eau, même mesure, deux verdicts opposés selon la
+juridiction.
+
+Le dalapon porte l'écart le plus large mesuré à ce jour : les seules
+juridictions qui le **nomment** sont américaines, à **0,2 mg/L** — deux mille
+fois plus permissif que les 0,10 µg/L de la règle européenne de catégorie.
+
+### 18.3 Quatre acquis de méthode, réutilisables hors sourçage
+
+1. **L'appariement par code SANDRE bat la ressemblance de libellé, trois fois
+   sur trois.** La fiche d'une somme désigne ses composants par code. L'agrégat
+   « Somme de COHV » (7485) liste 14 codes : les deux fréons en sont **absents**,
+   le tétrachlorure de carbone y **figure**. Le libellé aurait dit l'inverse
+   pour les fréons.
+2. **L'arithmétique du bulletin est une preuve de composition d'agrégat.**
+   Quand un bulletin porte un agrégat et ses composants, la somme observée dit
+   ce que le laboratoire additionne. Vérifié sur `02800129138` :
+   benzo(a)pyrène 0,0004 + benzo(b)fluoranthène 0,0005 + fluoranthène 0,007 →
+   la somme des 4 vaut 0,0005 (le seul benzo(b)), la somme des 6 vaut 0,0079
+   (les trois). C'est une preuve, pas un indice.
+3. **La classification SANDRE discrimine le C-g.** « Liste B – Phytosanitaires »
+   = AQUAREF renvoie l'arbitrage au gestionnaire, donc question ouverte
+   (biphényle). Liste A, ou aucune liste = la question est tranchée (dalapon,
+   phosphate de tributyle). **Réserve : la note AQUAREF définissant la Liste A
+   n'a pas pu être lue** — une tentative, PDF muet.
+4. **La nature d'une valeur ne se déduit jamais de son rang.** L'objectif de
+   santé publique californien a été, sur trois dossiers : plus permissif que la
+   limite opposable (Fréon 113, 4 mg/L contre 1,2), plus élevé qu'elle
+   (dalapon, 0,79 contre 0,2 mg/L), et cinq fois plus bas (tétrachlorure,
+   0,1 contre 0,5 µg/L). Sur le plomb il est cinquante fois sous le niveau
+   d'action. **Il faut lire ce qu'est chaque valeur, jamais où elle se situe.**
+
+### 18.4 Une somme opposable fermée par une DÉFINITION, pas par une liste
+
+**C'est le résultat qui dépasse les cinq dossiers, et il remet en cause des
+conclusions déjà rendues.**
+
+La Suisse fixe **10 µg/L** (ordonnance du DFI, RS 817.022.11, annexe 2) à :
+
+> « Hydrocarbures halogénés, volatils : somme de toutes les substances
+> halogénées dont la structure fondamentale comporte entre un et trois atomes
+> de carbone et aucun autre groupe fonctionnel »
+
+Toute la doctrine du projet sur les périmètres — *chercher le mot qui ferme la
+liste*, « the following five substances » — **suppose des périmètres
+nominatifs**. Celui-ci ne l'est pas : il se ferme par une définition
+structurale, et attrape donc des substances qu'aucun texte ne nomme.
+
+Deux agents l'ont lu indépendamment. Le second a ouvert le texte officiel
+lui-même et relève **deux confirmations internes au texte** : le dichlorométhane
+et le 1,2-dichloroéthane y portent la note « *Voir aussi : Hydrocarbures
+halogénés, volatils* » — le mécanisme « valeur individuelle **et** comptage dans
+la somme » est celui du législateur suisse, pas une interprétation de notre
+part. Et la Suisse fixe **en plus** une valeur nominative :
+tétrachlorométhane **2 µg/L**.
+
+**CONTRADICTION NON LEVÉE, à trancher avant tout usage.** Le premier agent
+annonce l'état au **01/02/2024**, vérifié par double extraction ; le second n'a
+pu ouvrir qu'un document portant « **État le 1er mai 2018** », le site officiel
+n'ayant jamais répondu (JavaScript, 4 URL essayées). **Les valeurs suisses sont
+donc établies sur l'état 2018 et `a_verifier` sur l'état en vigueur.** Le
+dossier Fréon 113 est à corriger sur ce point.
+
+**Ce que ça oblige à faire** : les dossiers rendus sur les organohalogénés
+volatils — Fréon 113, Fréon 11, trichloroéthane-1,1,1, dichloroéthane-1,1,
+dichloroéthylènes-1,2, dichloroéthylène-1,1, dibromométhane, tétrachlorure de
+carbone — concluent tous « aucune valeur opposable identifiée ». **À relire un
+par un contre cette définition avant toute publication.**
+
+### 18.5 Deux défauts du moteur, confirmés en base APRÈS le refigeage
+
+**Ils survivent au refigeage : ce sont le référentiel et les règles de famille
+qu'il faut corriger, pas le calcul.**
+
+1. **Quatre HAP sont captés par la règle `pesticide_individuel_0_1`** —
+   benzo(b)fluoranthène (1116), benzo(k)fluoranthène (1117),
+   benzo(g,h,i)pérylène (1118), indéno(1,2,3-cd)pyrène (1204). Chacun reçoit
+   0,10 µg/L en grille 2026, sur 297 mesures. **Ce ne sont pas des pesticides,
+   et la directive ne leur donne aucune limite individuelle** : seule leur somme
+   (2033) en a une. C'est exactement le cas que le §4 de `CLAUDE.md` demande de
+   surveiller sur `v_regle_famille_appliquee`.
+   Aucun faux dépassement aujourd'hui — maximum quantifié 0,0005 µg/L, deux
+   cents fois sous le seuil — mais le piège est armé, et ces quatre lignes
+   gonflent le dénominateur de couverture comme si elles avaient été jugées.
+   **Correctif : quatre lignes `dans somme (2033)`, symétrique de ce qui a été
+   fait le 10 août pour les cinq acides haloacétiques.**
+2. **Le benzo(a)pyrène (1115) est jugé par la seule limite déclarée** —
+   0,010 µg/L, grille `declare`, 297 mesures. Il a pourtant sa propre valeur
+   dans la directive. Conséquence du §2.8 : une limite seulement déclarée ne
+   produit jamais de verdict 2016 ni de bascule, donc **cette substance ne peut
+   pas apparaître dans la démonstration centrale du projet**, et elle n'est pas
+   jugée du tout sur un bulletin où la limite n'est pas déclarée.
+   **Correctif : une ligne sourcée.**
+
+Les deux correctifs changent le référentiel, donc la version, donc **imposent un
+refigeage complet (~100 min, §17.4). Les faire ensemble, pas l'un après
+l'autre.**
+
+### 18.6 Reliquat en base : 3 209 lignes figées sous l'ancienne version
+
+`analyses_figees` porte 9 475 lignes sous `f3e1d448101f` **et 3 209 sous
+`435b9a089f1d`**, antérieures aux six lignes des acides haloacétiques. Rien de
+faux n'est publiable — chaque ligne porte sa version, et la vitrine lit la
+courante — mais toute requête qui oublie de filtrer mélange deux générations de
+verdicts. Purge mécanique, quelques secondes, aucun recalcul.
+
+Observé au passage, à vérifier quand `figer.py` sera repris : **9 475 bulletins
+figés pour 9 455 marqués complets**, soit 20 de plus.
+
+### 18.7 Le coût réel d'un dossier — le chiffre du §0 de la consigne est faux
+
+`docs/CONSIGNE_SOURCAGE.md` §0 fonde la règle « un seul agent à la fois » sur
+une mesure de **~140 000 tokens par substance**. Mesures de la soirée :
+
+| dossier | tokens | outils | durée |
+|---|---:|---:|---:|
+| Fluoranthène | 247 305 | 140 | 36 min |
+| Fréon 113 | 197 880 | 76 | 18 min |
+| Phosphate de tributyle | 180 886 | 64 | 17 min |
+| Dalapon (3ᵉ tentative) | 130 292 | 59 | **12 min** |
+| Tétrachlorure de carbone | 125 061 | 61 | 15 min |
+
+**881 424 tokens pour cinq dossiers, soit ~176 000 en moyenne**, jusqu'à
+247 000 — et **trois tentatives abandonnées en plus, au coût non mesuré**. Le
+chiffre de 140 000 sous-évalue de 25 % en moyenne et de 75 % dans le pire cas.
+**À corriger dans la consigne.**
+
+Corrélation utile : les deux dossiers les plus chers sont les deux qui ont fait
+le plus d'appels d'outil (140 et 76). Le plus rapide (12 min, 59 appels) est
+celui qui portait les règles de cadence du 18.8.
+
+### 18.8 Trois agents ont tourné à vide — cause probable et correctif appliqué
+
+Trois tentatives (dalapon deux fois, tétrachlorure, éthylbenzène) ont écrit une
+fois puis **plus rien pendant 1 h 30 à 2 h 15**, sans aucun processus vivant sur
+la machine. Aucun diagnostic direct n'est possible : **les fichiers de
+transcription des agents font 0 octet**, y compris pour les agents qui
+aboutissent. Le seul signal disponible est la date de modification du fichier de
+sortie.
+
+Hypothèse la plus probable : un appel réseau qui ne revient pas. Même schéma que
+le blocage sur la commune 69063 (§14.7) — un silence prolongé sans message
+d'erreur signifie que le processus n'est pas dans une boucle de reprise.
+
+**Correctif appliqué au brief, et il a marché** : le dalapon est passé de deux
+échecs à un dossier rendu en 12 minutes.
+
+1. **écrire dans le fichier après CHAQUE source lue**, avant de passer à la
+   suivante ;
+2. **une seule tentative par URL** : une page qui ne répond pas est notée
+   « inaccessible » dans le tableau des juridictions, et on passe ;
+3. **budget annoncé de 30 minutes**, avec les mesures du 18.7 comme repère ;
+4. **ordre de travail imposé**, avec une écriture entre chaque étape.
+
+**À porter dans `docs/CONSIGNE_SOURCAGE.md` §6**, qui demande déjà d'écrire tôt
+mais pas d'écrire *à chaque source*. C'est la nuance qui fait la différence, et
+elle est mesurée.
+
+### 18.9 Deux erreurs de comptage de ma part, dans des briefs d'agents
+
+Dans le brief du phosphate de tributyle j'ai écrit « six ou sept des quinze
+quantifications dépassent 0,10 µg/L » sans avoir les valeurs sous les yeux :
+**il y en a une**. Dans celui du dalapon j'ai écrit « six des treize » en ayant
+les treize valeurs recopiées dans le brief lui-même : **il y en a huit**. Les
+deux agents ont relevé l'écart, rien ne s'est propagé dans un dossier.
+
+**C'est la règle 1 de la consigne enfreinte dans le document qui la porte.** Un
+compte se compte, il ne s'estime pas — y compris quand il ne sert qu'à cadrer un
+agent, parce qu'un brief est lu comme un fait établi.
+
+### 18.10 Sur la numérotation de ce fichier
+
+**FAIT le 11 août 2026 au soir, sur accord de Yannick — plus rien ne tournait.**
+Deux sections portaient le numéro 16 : « C10 ARRÊTÉS élargi » et « Incident du
+11 août », écrites par deux sessions parallèles. Renumérotation :
+
+| avant | après |
+|---|---|
+| §16 C10 ARRÊTÉS élargi | **inchangé, §16** |
+| §16 Incident / ingestion | **§17**, sous-sections 16.1 à 16.6 → 17.1 à 17.6 |
+| §17 sourçage réglementaire | **§18**, sous-sections 17.1 à 17.11 → 18.1 à 18.11 |
+
+27 lignes touchées, renvois internes compris. **Et le pointeur de `CLAUDE.md`
+§6, qui renvoyait à `docs/REPRISE.md` §16 pour l'incident, a été corrigé en
+§17** — c'était le seul renvoi hors de ce fichier.
+
+### 18.11 État matériel au terme de cette session
+
+- **Base libre**, cohérente, 9 475 prélèvements, refigeage complet vérifié.
+- **Aucun agent en vol**, aucun processus Python hors les deux serveurs du site
+  (port 8765, vivants depuis 9 h 50).
+- **Aucun fichier du dépôt modifié par cette session hors ce §17** : le
+  référentiel, `common.py`, `figer.py` et `build_db.py` sont intacts. Sauvegarde
+  du fichier avant ajout : `docs/REPRISE.md.bak-avant-17`.
+- Cinq dossiers dans `data/etudes/sourcage_C/`, plus un répertoire
+  `_interrompus_2026-08-11/` contenant l'état exact des trois tentatives
+  arrêtées — dont **`ethylbenzene_INTERROMPU`, 11,5 Ko, verdict rédigé et dix
+  sections structurées, avec la valeur guide OMS 0,3 mg/L et sa mention « (C) »
+  signalant que goût et odeur peuvent être affectés en dessous de cette
+  valeur. Celui-là est à terminer, pas à refaire.**
+
+### 18.12 EXÉCUTÉ le 11 août 2026 au soir — les neuf points, sur décision de Yannick
+
+Décisions prises point par point et appliquées dans la foulée.
+
+**Six lignes versées au référentiel, aucune valeur écrite sans lecture en source
+primaire par la session principale elle-même** — pas par un agent, pas de
+mémoire :
+
+| lignes | contenu | source lue |
+|---|---|---|
+| 1116, 1117, 1118, 1204 | benzo(b)fluoranthène, benzo(k)fluoranthène, benzo(g,h,i)pérylène, indéno(1,2,3-cd)pyrène → `dans somme (2033)`, aucun seuil individuel | REG-01 annexe I partie B **et** REG-02 annexe I d'origine, extraites et lues |
+| 1115 | benzo(a)pyrène → `limite` **0,010 µg/L en 2016 comme en 2026** | idem, valeur identique dans les deux textes |
+| 2094 | dalapon → `vigilance`, **aucun seuil**, `a_verifier` | REG-01, définition des pesticides |
+
+**Le périmètre des quatre est confirmé mot pour mot dans les deux grilles**, ce
+qui n'était pas acquis : directive 2020/2184, « *Sum of concentrations of the
+following specified compounds: benzo(b)fluoranthene, benzo(k)fluoranthene,
+benzo(ghi)perylene, and indeno(1,2,3-cd)pyrene* » ; arrêté de 2007 d'origine,
+« *Pour la somme des composés suivants : benzo[b]fluoranthène,
+benzo[k]fluoranthène, benzo[ghi]pérylène, indéno[1,2,3-cd]pyrène* ». **Même
+périmètre de quatre substances en 2007 et aujourd'hui.** Et l'annexe II de 2007
+porte bien, elle, la somme de **six** composés à 1 µg/L pour les **eaux
+brutes** — le dossier fluoranthène est confirmé indépendamment.
+
+Le contrôle de forme écrit pour l'occasion a **refusé une première version** :
+un point-virgule dans une cellule de la ligne 1115. C'est l'erreur qui a décalé
+quatorze lignes puis quatre autres par le passé, attrapée cette fois avant
+écriture.
+
+**RÉSULTAT PARTIEL, à connaître — la correction des quatre HAP n'a produit que
+la moitié de l'effet voulu.** Vérification en base après chargement :
+
+- la règle `pesticide_individuel_0_1` ne les capture plus : **zéro ligne** dans
+  `v_regle_famille_appliquee`. Ce défaut-là est corrigé ;
+- **mais les quatre reçoivent maintenant 0,10 µg/L par la limite déclarée par la
+  source** (`grille_applicable = 'declare'`). Le moteur retombe sur le troisième
+  niveau de la hiérarchie du §2.8, et **notre ligne à seuils vides ne l'en
+  empêche pas**.
+
+Comparaison qui éclaire le mécanisme : les cinq acides haloacétiques, corrigés
+le 10 août de la même façon, sortent bien en `grille = aucune`. **La différence
+ne vient pas du correctif mais de la source** : SISE-Eaux ne déclare aucune
+limite sur les cinq acides, et déclare `<= 0,1 µg/L` sur chacun des quatre HAP.
+
+**Le fait est intéressant en soi, et il est éditorial** : l'administration
+applique individuellement, dans ce qu'elle publie, la valeur que la directive ne
+fixe que pour la somme. Conséquence pratique atténuée — une limite seulement
+déclarée ne produit ni verdict 2016 ni bascule (§2.8) — mais elle produit
+toujours un « conforme » individuel contre un seuil que le texte ne fixe pas.
+
+**Question ouverte, à trancher par Yannick, et elle touche le moteur** : une
+ligne du référentiel portant `dans somme` doit-elle **bloquer** le repli sur la
+limite déclarée ? Ce serait dire que notre référentiel prime sur la déclaration
+de la source pour affirmer une **absence** de seuil. C'est une décision de
+méthode, pas un correctif technique — et elle demande de toucher les vues, ce
+qui impose à son tour un refigeage complet.
+
+**Autres points exécutés :**
+
+- **la fiche de relecture de la somme suisse est écrite** :
+  `data/etudes/sourcage_C/RELECTURE_somme-suisse_2026-08-11.md`. Elle rassemble
+  les huit dossiers concernés, la définition suisse, les trois précautions de
+  méthode et ce qu'il reste à décider. Écrite parce que « relire les dossiers »
+  n'est pas une consigne actionnable si on ne dit pas où ils sont ;
+- **règle arrêtée par Yannick sur les textes étrangers : on se réfère toujours à
+  la version la plus récente en vigueur.** Elle tranche la contradiction
+  2018 / 2024 sur l'ordonnance suisse dans son principe — reste à ouvrir la
+  version en vigueur, Fedlex n'ayant jamais répondu ;
+- **`CONSIGNE_SOURCAGE.md` corrigée sur deux points** : la règle « un agent à la
+  fois » est reformulée telle que Yannick l'énonce — elle porte sur ce qu'on peut
+  **suivre**, pas sur ce que ça coûte, avec jusqu'à trois agents sur décision
+  explicite et **l'obligation de surveiller la date de modification du fichier de
+  sortie** ; et le §6 porte désormais la règle d'écriture **après chaque source**,
+  avec son effet mesuré ;
+- **le dossier éthylbenzène est relancé** pour être terminé, pas refait ;
+- **la purge des générations figées est reportée à après le prochain refigeage**,
+  et c'est délibéré : le référentiel ayant changé, les 9 475 lignes actuelles
+  vont elles aussi devenir une génération périmée. Une seule purge au lieu de
+  deux.
+
+**État à la clôture** : le référentiel porte 94 paramètres, la base est
+cohérente et libre, **et elle attend un refigeage complet** — les six lignes
+nouvelles ne produiront leurs effets sur les sorties figées qu'après lui.
+
+
+### 18.13 Sixième dossier — l'éthylbenzène, et le quatuor BTEX bouclé
+
+Terminé, pas refait : l'agent a repris le fichier interrompu et l'a complété.
+**92 042 tokens, 29 appels d'outil, 7 minutes** — le tiers du coût moyen des
+cinq autres. **Reprendre un dossier interrompu coûte trois fois moins que le
+relancer de zéro** : à retenir avant de jeter un travail à moitié fait.
+
+**Verdict C2, assorti d'un C-g organoleptique**, et une recommandation de ne
+verser aucun seuil — la sixième consécutive.
+
+**Le résultat éditorial : quatre substances, un seul paquet analytique, quatre
+régimes.** Benzène, toluène, éthylbenzène, xylènes sortent de la même injection,
+sur le même prélèvement, au même instant. **Seul le benzène peut produire une
+non-conformité en France.** Les trois autres sont des indéterminés — mesurés,
+parfois quantifiés, jugés par rien. Et **aucune somme BTEX opposable n'existe** :
+l'OMS écrit que ces substances s'évaluent « individually ».
+
+Lu en source primaire : fédéral américain **0,7 mg/L**, ligne
+`(11) 100-41-4 | Ethylbenzene | 0.7` du 40 CFR 141.61(a) ; **absence** de
+l'éthylbenzène au 40 CFR 143.3, les recommandations américaines fondées sur le
+goût et l'odeur ne portant qu'un paramètre « Odor — 3 threshold odor number »
+non nominatif, et se qualifiant elles-mêmes de *reasonable goals* ; TrinkwV 2023
+annexe 2 lue intégralement, **Ethylbenzol absent**, le benzène y étant à
+0,0010 mg/L.
+
+**Quatrième configuration du couple californien**, et elle achève la
+démonstration : limite opposable 0,3 mg/L et objectif de santé publique
+0,3 mg/L, **identiques**. Sur quatre dossiers, ce couple a été tour à tour plus
+permissif que la limite, plus élevé, cinq fois plus bas, et égal. **Le rang ne
+se déduit jamais — la nature se lit.**
+
+**Axe sanitaire contre acceptabilité** : les deux quantifications du corpus,
+0,056 et 0,78 µg/L, sont 5 357 et 385 fois sous la valeur à fondement sanitaire,
+et **sous le plus bas seuil d'odeur relevé (2 µg/L)**. À ces concentrations
+l'eau ne sent rien et n'est jugée par rien.
+
+**Non établi, déclaré comme tel** : classement CIRC laissé **vide** plutôt que
+déduit d'une substance voisine ; aucun texte trouvé imposant nominativement
+cette recherche au programme français ; six juridictions non instruites, dont le
+Canada inaccessible (403 sur deux adresses, valeurs de moteur de recherche
+écartées à dessein).
+
+**Total de la journée : six dossiers, 973 466 tokens**, plus trois tentatives
+abandonnées au coût non mesuré.
+
+### 18.14 Décision de méthode — toute substance mesurée reçoit une attribution
+
+**Décision de Yannick, 11 août 2026 au soir. Note écrite :
+`docs/METHODE_ATTRIBUTION.md`. Rien n'est implémenté.**
+
+Point de départ, chiffré ce soir : **327 592 mesures sur 240 libellés ne
+reçoivent aucun verdict** — une mesure du corpus sur dix — et **environ 76 000
+d'entre elles sont des quantifications**. Le laboratoire a cherché, il a trouvé,
+et la sortie du projet n'en dit rien.
+
+Principe arrêté : *« si la substance ressort, on doit lui donner une attribution,
+même si cette attribution est rien ne se prononce sur cette partie »*.
+
+Quatre attributions, une par situation réelle : **jugé** (trio actuel conforme /
+dépassement / indéterminé) · **compte dans un ensemble** · **rien ne se
+prononce**, avec deux sous-états *établi par un dossier* et *non encore instruit*
+· **jugé sur la seule déclaration de l'administration**.
+
+**Le mot « vigilance » a été écarté à dessein** : il qualifie déjà une substance
+dont la norme **a bougé ou est contestée** (chlorothalonil, dalapon). Ces cas
+disent « ça bouge », le cas nouveau dit « c'est muet » — deux faits sous un même
+mot, l'erreur que le projet évite partout ailleurs.
+
+**Effet de bord qui résout la question ouverte du 18.12** : « compte dans un
+ensemble » **est une réponse, pas un vide**, donc elle prime sur la limite
+déclarée par la source. Les quatre hydrocarbures aromatiques cessent d'être notés
+individuellement contre une valeur que la directive ne fixe que pour leur somme.
+L'arbitrage de hiérarchie devient inutile.
+
+**Deux points de vigilance portés dans la note** :
+
+1. **la rédaction**, et c'est le plus délicat. « Rien ne se prononce » ne doit
+   jamais se lire comme un feu vert. Yannick formule l'intention ainsi :
+   *« attention, dans votre eau conforme vous buvez déjà toute cette soupe
+   chimique »*. **L'intention est juste, le mot ne l'est pas** : « soupe
+   chimique » est un qualificatif de notre cru, donc la seule prise par laquelle
+   ce travail est attaquable (§2.1, §2.2). La version factuelle est **plus dure,
+   pas plus douce** — « cette eau est déclarée conforme, elle contient N
+   substances de synthèse quantifiées, dont M que la réglementation ne juge pas,
+   vérification faite sur les textes nommés » — et elle ne se conteste pas. Test
+   à appliquer avant publication : *si on retire tous les adjectifs, reste-t-il
+   un fait daté et sourcé ?*
+2. **l'attribution doit être produite par le moteur et figée**, pas déduite à
+   l'affichage — sinon deux écrans peuvent dire deux choses du même bulletin,
+   ce que le figeage existe pour empêcher. Cela touche les vues, donc **impose un
+   recalcul complet**.
+
+**Écart à réconcilier avant tout chiffre public** : la vue de diagnostic compte
+215 libellés sans seuil, la vue des verdicts en compte 240. Les deux ne filtrent
+pas pareil.
+
+**Ce que ça ouvre** : les dossiers de sourçage cessent d'être un travail interne
+et deviennent la pièce justificative d'une attribution affichée. Et les deux
+sous-états de « rien ne se prononce » rendent **l'avancement public et honnête à
+chaque étape** d'un chantier de plusieurs mois — ce qui est démontré est marqué
+démontré, ce qui ne l'est pas est marqué comme tel.
+
+
+---
+
+## 19. ÉTAT ACTUEL au 12 août 2026, 18 h 30 — clôture de session
+
+**Cette section remplace le §18.11 sur l'état matériel. À lire en premier.**
+
+Le dépôt **n'est pas versionné** (`git rev-parse` échoue) : aucun commit n'a pu
+clore cette session. Le fichier de reprise est donc la seule mémoire.
+
+---
+
+### 19.1 CE QUI TOURNE, ET CE QU'IL FAUT EN FAIRE
+
+**1. L'ingestion de PACA — en cours, interruptible sans coût.**
+
+```
+py -X utf8 src/ingerer.py --depts 04,05,06,13,24,26,33,46,83,84,99 --sans-figer
+```
+
+12 645 bulletins à verser, environ 6 h au rythme mesuré (35/min). Elle en était
+au cinquième département sur onze à 18 h 30. **Elle saute ce qui est déjà en
+base** : la tuer et relancer la même commande reprend où elle en était. Yannick
+ne pouvant pas laisser la machine allumée la nuit, c'est le geste prévu.
+
+**2. Le refigeage complet — À LANCER DEMAIN MATIN, d'une traite.**
+
+```
+py -X utf8 src/ingerer.py --tous --refiger > data/journal/refigeage_2026-08-13.log 2>&1
+```
+
+Environ **6 heures sur ~24 000 bulletins**, base verrouillée. `figer.py` n'a pas
+d'option de refigeage, il faut passer par l'ingesteur, et il exige `--tous`.
+
+**CE GESTE NE SE DÉCOUPE PAS.** Avec `--refiger`, tous les bulletins sont
+repris ; sans, le figeage refuse tant que l'empreinte du moteur ne correspond
+pas — et elle n'est écrite qu'à la toute fin. Un refigeage interrompu se
+relance donc depuis zéro. C'est le garde-fou du §17, il fonctionne comme prévu.
+
+**Pourquoi ce refigeage est nécessaire** : le filtre du détail figé a été élargi
+(§19.2). Sans lui, l'attribution « rien ne se prononce » reste invisible.
+
+**3. Après le refigeage, dans l'ordre :**
+
+- **purger les générations périmées de `couverture_communes`** — elle en porte
+  **quatre** (`d0fb678dcbe2` 4 151 lignes, `f3e1d448101f` 3 004, `435b9a089f1d`
+  687, `a74139a57d87` 29). La purge du 12 août ne regardait qu'`analyses_figees` ;
+- **ajouter les six départements PACA** à `referentiel/departements_publies.csv` :
+  04 (198 communes), 05 (162), 06 (163), 13 (119), 83 (153), 84 (151). **Les six
+  passent `--termine` à zéro**, vérifié le 12 août ;
+- **régénérer les dossiers de faits** — leurs comptes changent de sens avec le
+  filtre élargi (§19.2) ;
+- **reconstruire la vitrine** : `py -X utf8 site/build_site.py`.
+
+---
+
+### 19.2 LE FILTRE DU FIGEAGE A ÉTÉ ÉLARGI — conséquence à connaître
+
+`figer.py` ne filtrait que les mesures ayant un seuil de comparaison
+(`notee OR seuil_strict IS NOT NULL OR hors_reference`). **Le détail figé est
+désormais la photographie ENTIÈRE du bulletin.**
+
+Motif, mesuré : le moteur calculait l'attribution « rien ne se prononce, non
+instruit » sur **413 050 mesures**, et le détail figé n'en conservait que
+**364** — 0,1 %. La population qu'on venait de décider de rendre visible était
+exactement celle que le figeage écartait.
+
+**Conséquence : tout compte tiré de `verdicts_figes` change de sens.** Il portait
+sur « les mesures notées », il porte sur « les mesures ». Volume : +11 %
+(~450 000 lignes sur 4,2 millions). **Les dossiers de faits en tirent des
+chiffres — les régénérer après le refigeage.**
+
+---
+
+### 19.3 LA DÉCOUVERTE DU 12 AOÛT — conformité sur panel réduit
+
+**Le chantier éditorial le plus fort de la journée.** Tout est dans
+`data/etudes/conformite_sur_panel_reduit/` : un README de méthode, l'analyse
+d'ensemble `ANALYSE_2026-08-12.md`, 18 dossiers commune par commune, une
+synthèse CSV, et 21 PDF dans `pdf/`.
+
+**Le fait :** sur 37 communes instruites, **18 portent au moins un paramètre qui
+était en dépassement à la dernière analyse complète et n'a plus été mesuré
+depuis au moins deux ans**. 49 paramètres. 555 contrôles de routine depuis. Le
+plus ancien abandon remonte à **119 mois**.
+
+**Sur les 61 analyses complètes de ces 18 communes, 55 sont non conformes — 90 %.
+Pour 15 communes sur 18, elles le sont TOUTES.**
+
+**Ce qui cesse d'être mesuré :** l'atrazine déséthyl (13 communes), le **total
+des pesticides analysés** (12), l'atrazine déséthyl déisopropyl (6), l'atrazine
+(4), l'ESA métolachlore (4). Des métabolites d'un herbicide interdit en 2003.
+
+**Le mécanisme le plus important, et il est neuf :** le « total des pesticides »
+est une **limite opposable** (0,5 µg/L) et c'est une **somme**. Cesser de mesurer
+les termes rend l'agrégat **incalculable**. Le paramètre le plus protecteur du
+dispositif s'éteint quand ses composants s'éteignent.
+
+**Une hypothèse séduisante ÉCARTÉE, à ne pas ressortir** : « vingt ans après
+l'interdiction ». Les arrêts s'étalent de 2016 à 2023 — Oinville en 2016, Gas et
+Nottonville en 2018, Varize et Louville en 2019. Il n'y a pas de règle des vingt
+ans, il y a un cas qui y ressemble (Thiville). **C'est le piège du Tarn, §2.11.**
+Ce que la chronologie montre : des **pics en 2018, 2020 et 2023**, compatibles
+avec des renouvellements de marché — *jamais « causés par »*.
+
+**Prudence de lecture, obligatoire :** 16 des 18 communes sont en Eure-et-Loir,
+mais l'Eure-et-Loir pèse 22 des 37 instruites parce que c'est le département le
+plus profondément collecté. **Un département mieux documenté produit
+mécaniquement plus de candidats** (§2.11). Cette carte ne se lit pas comme une
+carte de France.
+
+**Outil :** `src/etude_panel_reduit.py`
+(`--candidats`, `--insee 28389,…`, `--limite N`, `--tous`). Cache disque, pause
+de 0,4 s entre appels. Il écrit ses sorties sous le préfixe **`auto_`** — un
+script ne doit jamais pouvoir écraser ce qu'une main a écrit ; il l'a fait une
+fois le 12 août, sur l'étude rédigée de Thiville.
+
+---
+
+### 19.4 CE QUE CE CHANTIER DEMANDE — non fait
+
+1. **L'alerte sur la fiche de chaque commune :**
+   > **Aucune analyse complète (plus de 200 paramètres) depuis X mois.**
+
+   Avec ses deux compléments **obligatoires** : le **nombre de contrôles**
+   intervenus depuis, sans quoi l'alerte se lit comme un abandon de surveillance
+   — ce qui serait faux et injuste (§2.1) ; et le **nom des paramètres** qui
+   étaient en dépassement et ne sont plus mesurés.
+
+   **Coût nul en appels** pour la première : `hubeau.selectionner_bulletins`
+   construit déjà l'inventaire de TOUS les bulletins avec leur nombre de
+   paramètres, puis **jette** ceux qui sont sous le seuil. Il suffit d'en garder
+   la date la plus récente et la taille maximale.
+
+2. **Rechercher les bulletins postérieurs au dernier complet** pour alimenter le
+   second complément. Le corpus ne les contient pas : la collecte filtre à la
+   source (`nb_lignes > SEUIL_COMPLET`). C'est un appel API par commune.
+
+3. **Étendre le balayage à PACA** une fois l'ingestion et le figeage faits.
+
+4. **Revoir le critère** : il exige un dépassement à la dernière analyse
+   complète. Une commune conforme en apparence, dont un paramètre approchait la
+   limite et n'est plus mesuré, échappe au filtre.
+
+5. **Relecture humaine avant toute publication.** Chaque dossier nomme une
+   commune et un exploitant implicite. Vérifier phrase à phrase qu'aucune ne
+   glisse du constat vers le procès.
+
+---
+
+### 19.5 LA RECHERCHE DOCUMENTAIRE — chantier de Yannick
+
+**Le maillon qui manque n'est pas informatique.** La liste des paramètres
+recherchés est **régionale** et **figée par les marchés pluriannuels d'analyses
+des ARS** : le laboratoire retenu applique le catalogue annexé pour toute la
+durée du marché. Mécanisme décrit par l'instruction **DGS/EA4/2020/177**
+(`REG-05`), avec la réserve d'usage — elle décrit, elle ne prouve aucun cas.
+
+**Deux conséquences déjà écrites au README du dossier :** un exploitant n'a pas
+la main sur ce qu'on mesure chez lui ; et la formulation reste **« compatible
+avec un renouvellement de marché »**, jamais « causé par ».
+
+**À retrouver, et c'est public :** les marchés d'analyses de l'ARS
+Centre-Val de Loire — date de notification, durée, **liste de paramètres
+annexée**. Ces pièces transformeraient l'hypothèse en fait établi, ou
+l'infirmeraient. Yannick prévoit en parallèle une recherche en presse locale
+commune par commune.
+
+**Les six communes aux abandons les plus anciens**, par où commencer :
+Oinville-Saint-Liphard (119 mois), Gas (103), Villars (102), Nottonville (101),
+Varize (100), Louville-la-Chenard (90) — toutes en Beauce, plusieurs sur la même
+intercommunalité.
+
+---
+
+### 19.6 LES CINQ ATTRIBUTIONS — implémentées, PAS ENCORE AFFICHÉES
+
+Décision du 11 août, implémentée le 12 : `v_mesures_verdict` porte une colonne
+**`attribution`**, et `verdicts_figes` la fige. Cinq valeurs, définies dans
+`docs/METHODE_ATTRIBUTION.md` §0 : `juge` · `juge_avec_son_groupe` ·
+`juge_sur_valeur_declaree` · `norme_non_exprimee` ·
+`rien_ne_se_prononce_{etabli,non_instruit}`.
+
+**Ce qui manque : l'affichage.** Ni la fiche ni la vitrine ne lisent encore
+cette colonne. La décision est appliquée dans le moteur, invisible pour le
+lecteur.
+
+**Défaut corrigé au passage :** les quatre HAP de la somme réglementée
+(benzo(b)fluoranthène, benzo(k)fluoranthène, benzo(g,h,i)pérylène,
+indéno(1,2,3-cd)pyrène) étaient notés individuellement contre 0,10 µg/L — valeur
+que la directive ne fixe que pour leur somme. Une ligne « dans somme » prime
+désormais sur la limite déclarée par la source.
+
+**Cinquième attribution née d'un défaut trouvé à la vérification** : le pH, la
+conductivité et la turbidité ressortaient en « rien ne se prononce », ce qui est
+**faux** — le texte les encadre par une **plage**, que le modèle ne sait pas
+exprimer.
+
+---
+
+### 19.7 LA FICHE ET LA CARTE — modifiées, à vérifier après republication
+
+**Trois changements de fiche**, demandés le 12 août :
+
+1. **le tiret a disparu** — « recherché, seuil de détection non communiqué »
+   remplace le « — » ambigu. Et jamais « 0 » : un laboratoire qui ne trouve rien
+   ne mesure pas zéro (§2.4) ;
+2. **le bloc PFAS ne s'efface plus jamais.** Sans PFAS cherché, il l'écrit :
+   *« Ce n'est pas un résultat : c'est une absence de recherche. »* Vérifié sur
+   Chein-Dessus (31140) ;
+3. **toutes les substances cherchées sont listées**, pas seulement les
+   quantifiées, et les PFAS non recherchés sont nommés. Vérifié sur Calmont
+   (31100) : 22 lignes dont 20 en « < 0,0015 µg/L ».
+
+**Livraison partielle assumée** : le troisième changement n'est implémenté que
+dans le bloc PFAS. Ailleurs, une substance non cherchée ne produit toujours
+aucune ligne.
+
+**La carte** : une commune rattachée à un réseau garde son verdict. La fonction
+`niveau_commune` sortait sur le rattachement **avant** de regarder le verdict —
+il était calculé, puis jeté. Cercle bicolore : moitié blanche pour l'emprunt,
+moitié colorée pour le verdict. Vérifié sur l'Eure-et-Loir : 181 cercles,
+181 demi-disques, **95 bascules et 49 dépassements qui étaient invisibles**.
+
+---
+
+### 19.8 LE SOURÇAGE RÉGLEMENTAIRE — six dossiers, et ce qui reste ouvert
+
+Six dossiers rendus le 11 août au soir dans `data/etudes/sourcage_C/` —
+fluoranthène, Fréon 113, phosphate de tributyle, dalapon, tétrachlorure de
+carbone, éthylbenzène. **Aucun ne recommande de verser un seuil**, six fois sur
+six : dans chaque cas, choisir une valeur produirait le verdict au lieu de le
+constater. **973 466 tokens** au total.
+
+**Sept dossiers corrigés le 12 août** après lecture de l'ordonnance suisse dans
+sa **version en vigueur (état au 1er janvier 2026)** — les deux versions citées
+la veille, 2018 et 2024, étaient périmées **toutes les deux**. Voie d'accès
+réutilisable : le *filestore* de Fedlex sert du HTML statique là où le portail
+résiste.
+
+**Restent ouverts :**
+
+- **les deux dichloroéthylènes** : la double liaison C=C compte-t-elle comme
+  « autre groupe fonctionnel » au sens du texte suisse ? Non tranché, `a_verifier`
+  dans les deux sens ;
+- **le dossier Fréon 113** attribuait un renvoi à un paramètre « toxicité
+  inconnue » que la version en vigueur ne porte pas — marqué comme lecture de
+  version périmée, non supprimé ;
+- **la ligne « prête à verser » du fréon 11**, écrite sur un mauvais en-tête :
+  **ne pas la verser en l'état** ;
+- **l'écart de comptage 215 contre 240** sur les substances sans seuil : la vue
+  de diagnostic et la vue des verdicts ne filtrent pas pareil. **À réconcilier
+  avant de citer un chiffre en public** ;
+- **la file de sourçage** : dibromométhane (réponse déjà connue par le dossier
+  suisse), les HAP hors somme en un seul dossier, puis la queue longue ;
+- **la troisième grille de la thèse — `seuil_strict` — est vide pour presque tout
+  le référentiel.** Un seul balayage mondial a été fait, sur les PFAS.
+
+---
+
+### 19.9 ÉTAT MATÉRIEL
+
+- **11 départements publiés** : 28, 81, 69, 09, 31, 12, 32, 47, 65, 71, 82.
+  3 955 fiches de commune, 807 Mo, version `d0fb678dcbe2`.
+- **Corpus en base** : 12 652 bulletins avant l'ingestion PACA en cours.
+- **Deux serveurs debout** : vitrine sur **8765**, atelier sur **8760**.
+  `.claude/launch.json` les connaît tous les deux depuis le 12 août.
+- **L'atelier est bloqué** pendant tout verrou de la base ; **la vitrine, non** —
+  c'est un dossier de fichiers statiques, elle reste consultable et
+  démontrable pendant l'ingestion comme pendant le refigeage.
+- **Outils nouveaux** : `src/etude_panel_reduit.py`, `src/md_en_pdf.py`
+  (Pandoc + Chrome sans interface — pas de LaTeX sur cette machine, WeasyPrint
+  réclame des bibliothèques GTK absentes).
+
+---
+
+### 19.10 CE QUI A ÉTÉ CORRIGÉ EN COURS DE ROUTE — à ne pas refaire
+
+- **deux comptages faux dans des briefs d'agents** : « six ou sept sur quinze »
+  (il y en avait une), « six sur treize » (huit). Un compte se compte ;
+- **l'indicateur binaire « jamais recherché »** ratait quatre communes sur cinq :
+  un paramètre recontrôlé une fois puis abandonné huit ans passait pour suivi.
+  Remplacé par l'**ancienneté de la dernière mesure** ;
+- **le test de non-conformité ratait le trait d'union** — « non-conforme » contre
+  « non conforme ». Villemaury ressortait à 8 non conformes sur 10 au lieu de 10.
+  L'erreur allait dans le sens qui **affaiblit** le constat ;
+- **un script a écrasé une étude rédigée à la main** : même dossier, même nom.
+  Préfixe `auto_` désormais, avec la date et le motif dans le code ;
+- **un processus tué sans avoir lu sa ligne de commande** (§18.1). Un processus
+  inconnu se lit avant de se tuer.
+
+---
+
+### 19.11 ÉTAT RÉEL DE L'INGESTION AU MOMENT DE L'ARRÊT — 12 août, 21 h 40
+
+**L'ingestion a été arrêtée volontairement** (Yannick ne peut pas laisser la
+machine allumée). Arrêt propre, base rendue.
+
+**Corpus en base : 20 794 prélèvements** (12 652 avant).
+
+| département | versé |
+|---|---|
+| Alpes-de-Haute-Provence (04) | **1 749 — terminé** |
+| Hautes-Alpes (05) | **1 584 — terminé** |
+| Alpes-Maritimes (06) | **2 182 — terminé** |
+| Bouches-du-Rhône (13) | **2 623 — terminé** |
+| Var (83) | **interrompu en plein versement** (3 618 attendus) |
+| Vaucluse (84) | **pas commencé** (884 attendus) |
+| 24, 26, 33, 46, 99 | 1 bulletin chacun, résidus d'essais |
+
+**Il reste environ 4 500 bulletins à verser**, soit à peu près deux heures.
+
+**PREMIER GESTE DEMAIN MATIN — reprendre l'ingestion, la même commande :**
+
+```
+py -X utf8 src/ingerer.py --depts 04,05,06,13,24,26,33,46,83,84,99 --sans-figer
+```
+
+Elle saute les 20 794 déjà en base et reprend au Var. **Ne lancer le refigeage
+qu'après** : il balaie le corpus entier, et le lancer sur un corpus incomplet
+obligerait à tout refaire.
+
+---
+
+### 19.12 SICOVAL AEP — un défaut d'affichage sérieux, à ouvrir demain
+
+Trouvé le 12 août au soir sur une question de Yannick, et **c'est probablement
+le défaut d'affichage le plus grave repéré cette semaine.**
+
+**Le constat.** La fiche annonce « SICOVAL AEP — 35 communes » et montre le
+bulletin de Ramonville-Saint-Agne. Or **ces 35 communes ne boivent pas la même
+eau.** Ce que Hub'Eau rend comme réseau, commune par commune :
+
+| commune | réseau(x) déclaré(s) |
+|---|---|
+| Castanet-Tolosan, Labège | SICOVAL PSSE **+** VENERQUE |
+| Baziège, Escalquens | **SICOVAL MONTAGNE NOIRE** |
+| Montgiscard | VENERQUE + SICOVAL PSSE |
+| Venerque | VENERQUE seul |
+| Ramonville-Saint-Agne | VENERQUE + SICOVAL PSSE, parfois **SAGE PINSAGUEL** + SICOVAL PSSE |
+
+**Le bulletin de Ramonville ne décrit pas l'eau de Baziège.** L'unité de gestion
+regroupe au moins quatre configurations de réseau réellement distinctes.
+
+**Ce que ça met en cause :** la règle du 7 août — *prendre le bulletin de l'UDI
+qui alimente la commune même s'il a été prélevé ailleurs, en le mentionnant* —
+suppose **une UDI homogène**. Ici elle ne l'est pas.
+
+**Trois points à ouvrir, décision de Yannick du 12 août au soir :**
+
+1. **vérifier si le rattachement d'une commune se fait par unité de gestion ou
+   par réseau.** Si c'est par UDI, on attribue à Baziège une eau qu'elle ne boit
+   pas — c'est un faux positif d'un genre nouveau, et il touche l'affichage le
+   plus consulté du site ;
+2. **afficher le ou les réseaux réels** de chaque commune, pas seulement
+   l'unité de gestion, et nommer la commune où l'analyse a été prélevée
+   (le §8bis obligation 5 l'exige déjà, il n'est pas honoré ici) ;
+3. **garder SICOVAL comme terrain du chantier dilution** (§7.2), qui attend un
+   cas concret depuis le 8 août : plusieurs réseaux, des mélanges déclarés, une
+   usine de production par branche — Vieille-Toulouse, Calmont, Pinsaguel.
+
+**Deux faits mesurés à l'appui**, échantillon de six communes desservies,
+analyses depuis 2024 :
+
+- **toutes sont contrôlées régulièrement** — 9 à 26 prélèvements chacune — mais
+  **aucun ne dépasse 37 paramètres**. L'analyse complète se fait au point de
+  production, les contrôles de routine en distribution : c'est l'architecture
+  normale du contrôle sanitaire, pas une négligence ;
+- **3 communes sur 35 seulement ont un bulletin complet en propre** dans le
+  corpus — Ramonville, Vieille-Toulouse et Odars.
+
+**Sur le captage, la réponse reste « on ne sait pas »**, et c'est un angle mort
+déjà déclaré : le maillon *quel captage alimente quelle installation* n'est pas
+exposé par Hub'Eau (§8). On voit l'installation de production — usine de
+Vieille-Toulouse, usine de Calmont, SICOVAL PSSE — jamais la ressource derrière.
