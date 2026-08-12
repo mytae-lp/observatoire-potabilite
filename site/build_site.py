@@ -54,7 +54,7 @@ GABARITS = os.path.join(ICI, "gabarits")
 sys.path.insert(0, os.path.join(RACINE, "src"))
 sys.path.insert(0, os.path.join(RACINE, "sortie"))
 
-from common import DB_PATH, SEUIL_COMPLET  # noqa: E402
+from common import DB_PATH, SEUIL_COMPLET, departements_publies  # noqa: E402
 import build_fiche as BF  # noqa: E402
 import dossier_page as DP  # noqa: E402
 
@@ -99,15 +99,47 @@ def niveau_commune(statut, depasse, bascules, indetermines):
     """
     if statut == "non_documentee":
         return "non_documentee"
+
+    verdict = ("analysee-rouge"   if depasse else
+               "analysee-bascule" if bascules else
+               "analysee-ambre"   if indetermines else
+               "analysee-vert")
+
+    # UNE COMMUNE RATTACHÉE GARDE SON VERDICT.
+    # Corrigé le 12 août 2026, sur demande de Yannick. Ce test sortait ici en
+    # renvoyant « rattachee », AVANT de regarder le verdict : une commune
+    # desservie par le point de prélèvement d'une autre — Ramonville-Saint-Agne
+    # en dessert des dizaines dans le 31 — ressortait blanche sur la carte, non
+    # pas faute de donnée mais parce que sa couleur était calculée puis jetée.
+    # Elle porte maintenant les deux informations à la fois : l'emprunt (moitié
+    # blanche) et le verdict du bulletin emprunté (moitié colorée).
+    # Le §8bis obligation 5 demande de dire quand l'analyse est empruntée ; il
+    # ne demande pas d'effacer ce qu'elle dit.
+    # `niveau` reste « rattachee » : c'est la clé de la légende, du filtre et
+    # des lignes du tableau, et un état rattaché reste un état à part entière.
+    # La couleur du verdict voyage à côté, dans `teinte` — voir plus bas.
     if statut == "rattachee_reseau":
         return "rattachee"
+    return verdict
+
+
+def teinte_commune(statut, depasse, bascules, indetermines):
+    """
+    La couleur du VERDICT, indépendamment du statut de la commune.
+
+    Elle n'a de sens que pour les communes rattachées : partout ailleurs elle
+    est déjà portée par `niveau`. Une commune rattachée a un verdict — celui du
+    bulletin emprunté — que la carte calculait puis jetait.
+    """
+    if statut != "rattachee_reseau":
+        return None
     if depasse:
-        return "analysee-rouge"
+        return "rattachee-rouge"
     if bascules:
-        return "analysee-bascule"
+        return "rattachee-bascule"
     if indetermines:
-        return "analysee-ambre"
-    return "analysee-vert"
+        return "rattachee-ambre"
+    return "rattachee-vert"
 
 
 DOT = {"analysee-rouge": "rouge", "analysee-bascule": "bascule",
@@ -545,11 +577,25 @@ def carte_svg(lignes, largeur=920, depts=None, lien_dept=None, prefixe="",
         if vedette:
             r += 2.5
         titre = f"{c['commune']} ({c['dept']}) — {c['libelle_statut']}"
+
+        # LE CERCLE BICOLORE DES COMMUNES RATTACHÉES.
+        # Moitié gauche blanche : l'analyse vient d'ailleurs, du point de
+        # prélèvement d'une autre commune du même réseau. Moitié droite : le
+        # verdict de ce bulletin, qui vaut pour l'eau qui arrive ici.
+        # Le demi-disque est un arc de rayon r allant du haut au bas du cercle,
+        # refermé par la corde verticale — donc exactement la moitié.
+        classe = c["niveau"]
+        if c.get("teinte"):
+            classe += " " + c["teinte"]
+        forme = f'<circle class="{classe}" cx="{x:.1f}" cy="{y:.1f}" r="{r}"/>'
+        if c.get("teinte"):
+            forme += (f'<path class="demi-emprunt" '
+                      f'd="M {x:.1f},{y - r:.1f} A {r},{r} 0 0 0 {x:.1f},{y + r:.1f} Z"/>')
+
         points.append(
             f'<a class="pt{" vedette" if vedette else ""}" href="{prefixe}{c["url"]}" '
             f'aria-label="{h(titre)}">'
-            f'<title>{h(titre)}</title>'
-            f'<circle class="{c["niveau"]}" cx="{x:.1f}" cy="{y:.1f}" r="{r}"/></a>')
+            f'<title>{h(titre)}</title>{forme}</a>')
 
     # Le trait entre la commune et celle où l'analyse a été prélevée. Il n'est
     # tracé que si les deux points sont connus : une liaison approximative
@@ -873,7 +919,9 @@ ETATS_CARTE = [
      "commune analysée, au moins un dépassement à la date du prélèvement"),
     ("rattachee", "lg-rattachee",
      "commune rattachée au réseau — l'analyse a été prélevée dans une commune "
-     "voisine, sur la même eau"),
+     "voisine, sur la même eau. <b>Le point est en deux moitiés</b> : la "
+     "blanche dit que l'analyse vient d'ailleurs, l'autre porte le verdict de "
+     "ce bulletin, qui vaut pour l'eau qui arrive ici"),
     ("non_documentee", "lg-nondoc",
      "commune <b>non documentée</b> — aucun bulletin complet, ni pour elle ni "
      "pour son réseau"),
@@ -1576,12 +1624,19 @@ def _poids(octets):
 # ---------------------------------------------------------------------------
 def construire(destination=None, db=DB_PATH, depts=None):
     global DEPTS_PUBLIES
+    # Sans `--depts`, on lit la source de vérité du dépôt plutôt que de publier
+    # tout ce qui traîne dans la base. `--depts` reste possible pour un essai,
+    # mais il ne doit pas devenir la façon normale de publier : trois copies
+    # d'une même liste divergent à la première retouche.
+    depts = depts or departements_publies()
     DEPTS_PUBLIES = tuple(depts) if depts else None
     if DEPTS_PUBLIES:
-        print(f"départements publiés : {', '.join(DEPTS_PUBLIES)}")
+        print(f"départements publiés : {', '.join(DEPTS_PUBLIES)} "
+              f"({len(DEPTS_PUBLIES)}, depuis referentiel/departements_publies.csv)")
     else:
-        print("départements publiés : TOUS ceux qui sont figés "
-              "— vérifie qu'aucun n'est à moitié collecté")
+        print("ATTENTION — aucun département déclaré publiable : on publie TOUT "
+              "ce qui est figé, y compris les départements à moitié collectés.\n"
+              "  renseigne referentiel/departements_publies.csv")
     if not os.path.exists(db):
         print(f"base absente : {db}\nlance d'abord : python3 src/build_db.py")
         sys.exit(1)
@@ -1609,6 +1664,8 @@ def construire(destination=None, db=DB_PATH, depts=None):
         for r in corpus(con, version):
             c = dict(zip(cols, r))
             c["niveau"] = niveau_commune(c["statut"], c["nb_depasse_applicable"],
+                                         c["nb_bascules"], c["nb_indetermines"])
+            c["teinte"] = teinte_commune(c["statut"], c["nb_depasse_applicable"],
                                          c["nb_bascules"], c["nb_indetermines"])
             c["dot"] = DOT[c["niveau"]]
             c["libelle_statut"] = {"analysee": "analysée",

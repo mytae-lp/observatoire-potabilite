@@ -137,12 +137,28 @@ def _etat(quantifie, valeur, lq, seuil, seuil_2016, seuil_strict,
 
 
 def _texte_valeur(quantifie, valeur, lq, unite):
+    """
+    Trois écritures pour trois faits, et jamais un tiret.
+
+    Le tiret confondait deux situations opposées : « recherché, rien trouvé »
+    et « on ne sait pas ce que le laboratoire a fait ». Demande de Yannick du
+    12 août 2026, sur un cas réel — une fiche où peu de substances ressortaient
+    donnait l'impression qu'on n'avait pas cherché, alors que chercher et ne
+    rien trouver est une bonne nouvelle qui mérite d'être lue comme telle.
+
+    Ce qui n'est PAS écrit ici, et ne le sera jamais : « 0 ». Un laboratoire qui
+    ne trouve rien ne mesure pas zéro, il mesure « en dessous de mon seuil ».
+    Écrire 0 dirait « il n'y en a pas » là où la donnée dit « il n'y en a pas
+    au-dessus de 0,01 µg/L » (CLAUDE.md §2.4).
+    """
     u = f" {unite}" if unite else ""
     if quantifie and valeur is not None:
         return f"{_nb(valeur)}{u}"
     if lq is not None:
         return f"< {_nb(lq)}{u}"
-    return "—"
+    # Cherché, non quantifié, et le laboratoire n'a pas communiqué son seuil.
+    # Un troisième cas réel, qui se dit au lieu de se taire.
+    return "recherché, seuil de détection non communiqué"
 
 
 def _mention_lq(lq, seuil, rapport, unite):
@@ -292,23 +308,45 @@ def pfas_par_chaine(con, a, version):
         return None
 
     rows = con.execute("""
-        SELECT libelle_parametre, code_cas, resultat_num, lq, est_quantifie, unite
+        SELECT libelle_parametre, code_cas, resultat_num, lq, est_quantifie, unite,
+               code_parametre
         FROM mesures WHERE code_prelevement = ?
     """, [a["code_prelevement"]]).fetchall()
 
     groupes = {"longue": [], "courte": []}
-    for lib, cas, val, lq, quant, unite in rows:
+    vus = set()
+    agregats = []
+    for lib, cas, val, lq, quant, unite, code in rows:
+        # Les paramètres de SOMME sont relevés à part : ce sont eux qui
+        # produisaient une valeur affichée sans aucune substance derrière.
+        n = norm(lib)
+        if "perfluor" in n and ("somme" in n or "total" in n):
+            agregats.append({
+                "libelle": lib, "code": code, "quantifie": bool(quant),
+                "texte": _texte_valeur(quant, val, lq, unite),
+            })
+            continue
         d = par_cas.get((cas or "").strip()) or par_libelle.get(norm(lib))
         if not d:
             continue
+        vus.add(d["sigle"])
         groupes[d["chaine"]].append({
             "sigle": d["sigle"], "libelle": lib, "carbones": d["carbones"],
             "type": d["type"], "quantifie": bool(quant),
             "valeur": val, "lq": lq, "unite": unite,
             "texte": _texte_valeur(quant, val, lq, unite),
         })
-    if not groupes["longue"] and not groupes["courte"]:
-        return None
+
+    # CE BLOC NE DISPARAÎT PLUS JAMAIS. Demande de Yannick du 12 août 2026 :
+    # un bloc absent se lit comme une absence de problème, alors qu'il signale
+    # au contraire qu'on n'a rien cherché — le signal le plus fort de la page.
+    # Les PFAS sont l'exemple type : leur recherche est une obligation récente,
+    # donc beaucoup de bulletins anciens n'en portent aucun.
+    # Auparavant : `return None`, et la page n'affichait rien du tout.
+    non_cherchees = sorted(
+        {d["sigle"] for d in par_cas.values()} - vus,
+        key=lambda s: (len(s), s))
+    rien_de_cherche = not groupes["longue"] and not groupes["courte"]
 
     def resume(cle):
         g = sorted(groupes[cle], key=lambda x: (not x["quantifie"], -(x["valeur"] or 0)))
@@ -322,8 +360,22 @@ def pfas_par_chaine(con, a, version):
             "somme": round(sum(x["valeur"] for x in quantifies), 6) if quantifies else None,
         }
 
-    return {"longue": resume("longue"), "courte": resume("courte"),
-            "somme4_ne_voit_que_longues": True}
+    return {
+        "longue": resume("longue"), "courte": resume("courte"),
+        "somme4_ne_voit_que_longues": True,
+        # Aucun PFAS individuel dans ce bulletin : le bloc s'affiche quand même
+        # et le dit. « Non cherché » est une information, pas un vide.
+        "rien_de_cherche": rien_de_cherche,
+        "cherchees_total": len(vus),
+        "attendues_total": len({d["sigle"] for d in par_cas.values()}),
+        "non_cherchees": non_cherchees,
+        # Les paramètres de SOMME trouvés dans le bulletin. Quand il y en a un
+        # ET qu'aucune substance individuelle n'a été cherchée, la fiche
+        # affichait un total sans rien derrière : le laboratoire a rendu
+        # l'addition sans les termes. Le cas se dit maintenant explicitement.
+        "agregats": agregats,
+        "agregat_sans_detail": bool(agregats) and rien_de_cherche,
+    }
 
 
 def reperes_nourrissons(con, a, version):

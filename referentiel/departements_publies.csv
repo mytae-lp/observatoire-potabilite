@@ -1,0 +1,44 @@
+code;nom;collecte_terminee_le;communes
+# Les départements COLLECTÉS EN ENTIER, et eux seuls.
+#
+# Source de vérité unique, lue par la vitrine (site/build_site.py) ET par les
+# dossiers de faits (sortie/dossier_substance.py, sortie/dossier_panel.py).
+# Trois copies d'une même règle divergent à la première retouche : il n'y en a
+# qu'une, et c'est ce fichier.
+#
+# POURQUOI CE FICHIER EXISTE
+# La base garde tout ce qui a été collecté, et c'est bien — une donnée acquise
+# reste une donnée. Mais elle accumule aussi des retombées d'essais : une
+# commune prise à la main, un département entamé par l'exemple de la
+# documentation. Le 11 août 2026 elle portait ainsi 14 communes du 71 sur 563,
+# quatre du 32, quatre du 65, un bulletin de l'01.
+#
+# Deux dégâts distincts si on ne filtre pas :
+#   - sur la CARTE, un département à moitié collecté se peint en « non
+#     documenté », catégorie que le §8bis rend visible — le lecteur lit donc un
+#     fait sur l'eau là où il n'y a qu'un fait sur notre collecte ;
+#   - dans un DOSSIER DE FAITS, pire encore : la prose s'appuie sur des chiffres
+#     que le lecteur ne peut pas aller vérifier, faute de page. Le 11 août, le
+#     recalage de CGA 369873 a bâti son argument central sur 18 mesures du 71 —
+#     un département présent à 2,5 %, et absent du site.
+#
+# COMMENT ON L'ALIMENTE
+# Un département n'entre ici que lorsque `--termine` rend 0, c'est-à-dire quand
+# le journal de moisson ne porte plus aucune commune restante ni en erreur.
+# Le code de sortie 0 d'une collecte et le compteur [N/N] ne suffisent pas
+# (§10.1). Et la décision reste MANUELLE : un journal peut annoncer « terminé »
+# sur une énumération elle-même incomplète (§13.4, point 6).
+#
+# APRÈS TOUTE MODIFICATION : régénérer les dossiers de faits et reconstruire la
+# vitrine, sinon les deux parlent de périmètres différents.
+28;Eure-et-Loir;2026-08-09;363
+81;Tarn;2026-08-09;314
+69;Rhône;2026-08-11;266
+09;Ariège;2026-08-11;325
+31;Haute-Garonne;2026-08-11;586
+12;Aveyron;2026-08-12;285
+32;Gers;2026-08-11;458
+47;Lot-et-Garonne;2026-08-12;319
+65;Hautes-Pyrenees;2026-08-11;469
+71;Saone-et-Loire;2026-08-12;563
+82;Tarn-et-Garonne;2026-08-11;195

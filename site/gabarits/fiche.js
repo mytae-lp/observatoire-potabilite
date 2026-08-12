@@ -746,6 +746,36 @@ function renderPfas(d, zone){
   if(!p) return;
   const b = el("div", "bloc-lecture");
   b.appendChild(txt("h5", null, "PFAS — ce que la somme réglementaire regarde"));
+
+  /* AUCUN PFAS INDIVIDUEL DANS CE BULLETIN.
+     Le bloc s'affichait autrefois... en ne s'affichant pas du tout, et une
+     page silencieuse se lit comme une page rassurante. C'est l'inverse :
+     ne pas avoir cherché est le signal le plus fort de la fiche. La recherche
+     des PFAS est une obligation récente, donc beaucoup de bulletins n'en
+     portent aucun — et ceux-là ne doivent pas ressembler à une eau propre. */
+  if(p.rien_de_cherche){
+    b.appendChild(el("p", "pfas-absent",
+      "<b>Aucun PFAS n'a été recherché sur ce prélèvement.</b> Ce n'est pas un "
+      + "résultat : c'est une absence de recherche. Rien ici ne dit qu'il y en a, "
+      + "rien ne dit qu'il n'y en a pas."));
+    if(p.agregat_sans_detail){
+      const ul = el("ul", "pfas-liste");
+      p.agregats.forEach(x => {
+        const li = el("li");
+        li.appendChild(txt("b", null, x.libelle));
+        li.appendChild(txt("span", "pfas-v", x.texte));
+        ul.appendChild(li);
+      });
+      b.appendChild(el("p", null,
+        "Le laboratoire a en revanche rendu un <b>total</b>, sans le détail des "
+        + "substances qui le composent. La valeur ci-dessous ne peut donc pas "
+        + "être décomposée : on ne sait pas de quelles molécules elle est faite."));
+      b.appendChild(ul);
+    }
+    zone.appendChild(b);
+    return;
+  }
+
   b.appendChild(el("p", null,
     "La <b>somme de 4</b> mise en avant par la réglementation européenne — PFOA, PFNA, "
     + "PFHxS, PFOS — ne contient que des <b>chaînes longues</b>, c'est-à-dire "
@@ -767,9 +797,14 @@ function renderPfas(d, zone){
     if(g.somme != null)
       c.appendChild(txt("div", "pfas-somme", "somme ≥ " + String(g.somme).replace(".", ",")
         + " µg/L"));
+    /* TOUTES les substances cherchées sont listées, pas seulement celles
+       qu'on a trouvées. Corrigé le 12 août 2026 : n'afficher que les
+       quantifiées faisait paraître le bloc vide sur une eau où l'on avait
+       tout cherché sans rien trouver — c'est-à-dire dans le meilleur des cas.
+       Chercher et ne rien trouver est une information, et une bonne. */
     const ul = el("ul", "pfas-liste");
-    g.substances.filter(x => x.quantifie).forEach(x => {
-      const li = el("li");
+    g.substances.forEach(x => {
+      const li = el("li", x.quantifie ? null : "pfas-nd");
       li.appendChild(txt("b", null, x.sigle));
       li.appendChild(txt("span", "pfas-c", " C" + x.carbones + " · " + x.type));
       li.appendChild(txt("span", "pfas-v", x.texte));
@@ -783,6 +818,21 @@ function renderPfas(d, zone){
     cols.appendChild(c);
   });
   b.appendChild(cols);
+
+  /* CE QUI N'A PAS ÉTÉ CHERCHÉ, nommé. Chercher et ne rien trouver est une
+     bonne nouvelle qui doit se lire ; ne pas chercher est un fait d'une autre
+     nature, et les deux ne doivent jamais se confondre à l'œil. */
+  if((p.non_cherchees || []).length){
+    b.appendChild(el("p", "pfas-noncherche",
+      "<b>" + p.non_cherchees.length + " des " + p.attendues_total
+      + " PFAS de la somme réglementaire n'ont pas été recherchés</b> sur ce "
+      + "prélèvement : " + p.non_cherchees.join(", ")
+      + ". Sur ceux-là, l'analyse ne dit rien — ni présence, ni absence."));
+  } else {
+    b.appendChild(el("p", "pfas-noncherche",
+      "<b>Les " + p.attendues_total + " PFAS de la somme réglementaire ont tous "
+      + "été recherchés</b> sur ce prélèvement."));
+  }
   zone.appendChild(b);
 }
 
