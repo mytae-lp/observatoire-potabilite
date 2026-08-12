@@ -14,7 +14,19 @@ data/brut/
 
 # Le journal des abandons et les autres matériaux d'étude : entièrement
 # dérivés de la base, régénérés par src/etude_panel.py.
-data/etudes/
+# Les MATERIAUX d'etude (gros CSV generes) restent dehors...
+data/etudes/*
+# ...mais PAS les dossiers REDIGES, qui sont du travail editorial et la piece
+# justificative de ce que le site affiche. Corrige le 12 aout 2026 : ils
+# etaient exclus avec le reste, donc jamais versionnes.
+!data/etudes/sourcage_C/
+!data/etudes/conformite_sur_panel_reduit/
+# Les PDF se regenerent depuis le Markdown (src/md_en_pdf.py).
+data/etudes/conformite_sur_panel_reduit/pdf/
+
+# Copies de sauvegarde : inutiles des lors que git tient l'historique.
+*.bak
+*.bak-*
 
 # Les dossiers de faits envoyés en rédaction, et les réponses en attente
 # d'intégration. Entièrement dérivés de la base, refabriqués par

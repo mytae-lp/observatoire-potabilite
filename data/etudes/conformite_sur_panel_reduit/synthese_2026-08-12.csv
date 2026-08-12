@@ -1,0 +1,38 @@
+code_insee;commune;dept;derniere_complete;age_mois;nb_parametres_complete;nb_controles_depuis;dernier_controle;nb_depassements;nb_abandonnes_24m;nb_jamais_recherches;abandonnes
+09133;Génat;09;2016-07-18;121;323;41;2026-02-18;0;0;0;
+28284;Oinville-Saint-Liphard;28;2016-09-09;119;652;34;2026-04-03;4;3;3;Total des pesticides analysés (119 mois) | Atrazine déséthyl (119 mois) | Atrazine (119 mois)
+28313;Réclainville;28;2016-09-29;119;652;41;2026-05-19;4;3;0;Total des pesticides analysés (71 mois) | Atrazine déséthyl (71 mois) | Atrazine (71 mois)
+28121;Dambron;28;2017-07-11;109;651;36;2026-05-18;2;1;0;Atrazine déséthyl (70 mois)
+65239;Labastide;65;2017-11-20;105;17;155;2026-05-26;2;0;0;
+28172;Gas;28;2018-01-25;103;661;70;2026-04-22;4;4;4;Atrazine déséthyl (103 mois) | OXA metazachlore (103 mois) | ESA metazachlore (103 mois) | Total des pesticides analysés (103 mois)
+28411;Villars;28;2018-02-22;102;639;34;2026-04-09;2;2;1;Atrazine déséthyl déisopropyl (102 mois) | Atrazine déséthyl (66 mois)
+28283;Nottonville;28;2018-03-08;101;657;30;2026-04-07;7;5;1;Atrazine déséthyl déisopropyl (101 mois) | Atrazine (95 mois) | Total des pesticides analysés (95 mois) | ESA alachlore (95 mois) | Atrazine déséthyl (95 mois)
+28400;Varize;28;2018-04-24;100;638;28;2026-05-27;6;4;1;Atrazine déséthyl déisopropyl (100 mois) | ESA alachlore (85 mois) | Atrazine déséthyl (85 mois) | Total des pesticides analysés (85 mois)
+28215;Louville-la-Chenard;28;2018-08-31;96;656;31;2026-04-01;5;3;0;ESA metolachlore (90 mois) | Total des pesticides analysés (83 mois) | Atrazine déséthyl (83 mois)
+31015;Argut-Dessous;31;2019-01-08;91;286;53;2026-02-26;0;0;0;
+82122;Montbarla;82;2019-03-04;89;292;34;2026-01-06;1;1;0;ESA metolachlore (68 mois)
+12099;Fayet;12;2020-03-02;77;344;109;2026-05-06;0;0;0;
+28367;Santilly;28;2020-06-19;74;330;22;2026-04-29;3;1;0;Atrazine déséthyl (70 mois)
+09044;Baulou;09;2020-09-08;71;337;63;2026-05-07;2;0;0;
+28057;Bouville;28;2020-11-27;69;346;52;2026-03-31;4;2;0;Total des pesticides analysés (32 mois) | Atrazine déséthyl (32 mois)
+28426;Ymonville;28;2020-11-26;69;281;34;2026-05-07;4;4;1;Atrazine (69 mois) | Atrazine déséthyl déisopropyl (69 mois) | Atrazine déséthyl (69 mois) | Total des pesticides analysés (69 mois)
+12249;Saint-Sever-du-Moustier;12;2020-11-03;69;336;46;2026-05-26;0;0;0;
+31235;Guran;31;2021-05-31;63;332;27;2026-05-06;0;0;0;
+28234;Marchéville;28;2021-06-04;62;336;17;2025-12-31;0;0;0;
+09063;Le Bosc;09;2021-09-28;59;331;113;2026-03-19;0;0;0;
+09018;Arrout;09;2022-01-18;55;337;46;2026-04-15;0;0;0;
+28144;Les Étilleux;28;2022-02-08;54;359;28;2026-05-05;3;2;0;Metolachlor NOA 413173 (38 mois) | ESA metolachlore (38 mois)
+32348;Roquelaure;32;2022-04-04;52;337;8;2025-04-16;1;1;0;ESA metolachlore (50 mois)
+28049;Boncé;28;2023-04-25;40;253;22;2026-04-15;2;0;0;
+28330;Villemaury;28;2023-05-10;39;253;39;2026-04-24;5;3;1;Total des pesticides analysés (39 mois) | Atrazine déséthyl déisopropyl (38 mois) | Atrazine déséthyl (38 mois)
+28389;Thiville;28;2023-09-20;35;256;8;2026-03-12;8;6;0;Atrazine déséthyl déisopropyl (34 mois) | Atrazine déséthyl (34 mois) | Métolachlore (34 mois) | Chlorothalonil R417888 (34 mois) | Total des pesticides analysés (34 mois) | Chlorothalonil R471811 (34 mois)
+28176;Le Gault-Saint-Denis;28;2023-09-26;35;87;21;2026-05-04;3;1;0;Total des pesticides analysés (35 mois)
+28080;Charbonnières;28;2023-09-06;35;256;16;2026-04-24;1;0;0;
+28259;Montboissier;28;2023-10-11;34;256;5;2025-01-23;3;3;0;Chlorothalonil R417888 (33 mois) | Chlorothalonil R471811 (33 mois) | Total des pesticides analysés (33 mois)
+09085;Castillon-en-Couserans;09;2024-01-10;31;344;26;2026-03-02;1;0;0;
+28005;Alluyes;28;2024-04-19;28;22;10;2026-01-06;0;0;0;
+71063;Broye;71;2024-04-10;28;465;14;2025-06-11;0;0;0;
+82060;Fauroux;82;2024-06-10;26;343;7;2026-02-09;1;0;0;
+31221;Gouaux-de-Larboust;31;2024-06-20;26;343;27;2026-05-27;0;0;0;
+28270;Moriers;28;2024-06-25;26;269;4;2025-02-12;0;0;0;
+28365;Sandarville;28;2024-07-02;25;269;10;2026-04-01;1;0;0;
