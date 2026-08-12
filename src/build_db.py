@@ -258,10 +258,26 @@ SELECT
     v.seuil_strict * v.k AS seuil_strict,
     v.seuil_futur  * v.k AS seuil_futur,
     v.limite_declaree,
-    COALESCE(v.seuil_2026 * v.k, v.limite_declaree) AS seuil_2026_effectif,
+
+    -- LA LIMITE DÉCLARÉE N'EST PAS TOUJOURS UTILISABLE.
+    -- Une ligne du référentiel qui dit « dans somme » dit qu'il n'existe
+    -- AUCUNE valeur individuelle pour cette substance : le texte ne juge que
+    -- l'ensemble. C'est une RÉPONSE, pas un vide — elle prime donc sur la
+    -- limite que la source déclare quand même.
+    -- Sans ce garde-fou, les quatre HAP de la somme réglementée
+    -- (benzo(b)fluoranthène, benzo(k)fluoranthène, benzo(g,h,i)pérylène,
+    -- indéno(1,2,3-cd)pyrène) ressortaient notés individuellement contre
+    -- 0,10 µg/L — valeur que la directive 2020/2184 ne fixe QUE pour leur
+    -- somme, annexe I partie B lue en primaire le 11/08/2026. L'administration
+    -- porte ce chiffre sur chaque composant dans ses fichiers ; le texte, non.
+    -- Note de méthode : docs/METHODE_ATTRIBUTION.md §3.2.
+    CASE WHEN v.statut_2026 LIKE 'dans somme%' THEN NULL
+         ELSE v.limite_declaree END AS limite_utile,
+
+    COALESCE(v.seuil_2026 * v.k, limite_utile) AS seuil_2026_effectif,
     CASE
         WHEN v.seuil_2026 * v.k IS NOT NULL THEN 'referentiel'
-        WHEN v.limite_declaree  IS NOT NULL THEN 'declare'
+        WHEN limite_utile       IS NOT NULL THEN 'declare'
         ELSE 'absent'
     END AS origine_seuil_2026,
     (v.k IS NULL) AS unite_incomparable,
@@ -284,16 +300,52 @@ SELECT
              AND v.date_prelevement IS NOT NULL
              AND v.date_prelevement < v.date_applicabilite_2026
         THEN v.seuil_2016 * v.k
-        ELSE COALESCE(v.seuil_2026 * v.k, v.limite_declaree)
+        ELSE COALESCE(v.seuil_2026 * v.k, limite_utile)
     END AS seuil_applicable,
     CASE
         WHEN v.date_applicabilite_2026 IS NOT NULL
              AND v.date_prelevement IS NOT NULL
              AND v.date_prelevement < v.date_applicabilite_2026 THEN '2016'
         WHEN v.seuil_2026 * v.k IS NOT NULL THEN '2026'
-        WHEN v.limite_declaree IS NOT NULL   THEN 'declare'
+        WHEN limite_utile IS NOT NULL        THEN 'declare'
         ELSE 'aucune'
     END AS grille_applicable,
+
+    -- L'ATTRIBUTION — toute substance mesurée en reçoit une, y compris quand
+    -- elle dit que rien ne se prononce. Décision de Yannick du 11/08/2026 :
+    -- « mettre en lumière ce qui est analysé ; si la substance ressort, on doit
+    -- lui donner une attribution ». Avant elle, une mesure sur dix — dont
+    -- ~76 000 quantifications — n'apparaissait NULLE PART dans la sortie :
+    -- ni conforme, ni dépassement, ni indéterminée. Absente.
+    -- Les quatre valeurs et leurs libellés d'écran : docs/METHODE_ATTRIBUTION.md §0.
+    --
+    -- L'ordre des branches est signifiant et ne se réarrange pas :
+    -- « dans somme » se teste AVANT tout seuil, sinon la limite déclarée par la
+    -- source reprend la main sur une substance que le texte ne juge pas seule.
+    CASE
+        WHEN v.statut_2026 LIKE 'dans somme%'  THEN 'juge_avec_son_groupe'
+        WHEN v.seuil_2026 * v.k IS NOT NULL
+          OR v.seuil_2016 * v.k IS NOT NULL    THEN 'juge'
+        -- LA NORME EXISTE, LE MOTEUR NE SAIT PAS LA COMPARER.
+        -- Le pH est encadré par une PLAGE (6,5 à 9), la conductivité aussi
+        -- (200 à 1100 µS/cm) : deux bornes, là où le modèle ne porte qu'un
+        -- seuil unique. Les ranger dans « rien ne se prononce » serait une
+        -- affirmation FAUSSE — le texte les encadre, c'est nous qui ne savons
+        -- pas encore l'exprimer. Même famille de cas que les chlorites, dont
+        -- la référence a expiré au 31/12/2025 sans que le modèle sache porter
+        -- une date de FIN (CLAUDE.md §8).
+        WHEN v.statut_2026 LIKE 'reference%'   THEN 'norme_non_exprimee'
+        WHEN limite_utile IS NOT NULL          THEN 'juge_sur_valeur_declaree'
+        -- Rien ne juge cette substance. Reste à dire si on l'a VÉRIFIÉ.
+        -- `fiabilite` ne vient que du référentiel : elle n'est renseignée que
+        -- si une ligne existe pour ce paramètre. Une ligne sans seuil est
+        -- précisément ce qu'un dossier de sourçage produit quand il conclut
+        -- qu'aucun texte ne fixe de valeur — d'où la distinction, qui est la
+        -- règle 5 du sourçage : « je n'ai pas trouvé » n'est pas « il n'existe
+        -- pas ». Le second ne se dit que si les textes ont été consultés.
+        WHEN v.fiabilite IS NOT NULL           THEN 'rien_ne_se_prononce_etabli'
+        ELSE                                        'rien_ne_se_prononce_non_instruit'
+    END AS attribution,
     v.base_seuil_strict,
     v.statut_2026,
     COALESCE(v.est_agregat, FALSE) AS est_agregat,
@@ -304,15 +356,15 @@ SELECT
 
     -- Une mesure est « notée » si elle a un seuil de comparaison actuel.
     -- C'est le dénominateur honnête de toute affirmation de conformité.
-    (COALESCE(v.seuil_2026 * v.k, v.limite_declaree) IS NOT NULL) AS notee,
+    (COALESCE(v.seuil_2026 * v.k, limite_utile) IS NOT NULL) AS notee,
 
     -- 2016 et strict ne viennent QUE du référentiel : on n'invente pas de
     -- passé réglementaire à partir de la grille d'aujourd'hui.
     (v.est_quantifie AND v.seuil_2016   * v.k IS NOT NULL AND v.resultat_num > v.seuil_2016   * v.k) AS depasse_2016,
     (v.est_quantifie AND v.seuil_strict * v.k IS NOT NULL AND v.resultat_num > v.seuil_strict * v.k) AS depasse_strict,
     (v.est_quantifie AND v.seuil_futur  * v.k IS NOT NULL AND v.resultat_num > v.seuil_futur  * v.k) AS depasse_futur,
-    (v.est_quantifie AND COALESCE(v.seuil_2026 * v.k, v.limite_declaree) IS NOT NULL
-       AND v.resultat_num > COALESCE(v.seuil_2026 * v.k, v.limite_declaree))                         AS depasse_2026,
+    (v.est_quantifie AND COALESCE(v.seuil_2026 * v.k, limite_utile) IS NOT NULL
+       AND v.resultat_num > COALESCE(v.seuil_2026 * v.k, limite_utile))                         AS depasse_2026,
 
     -- LE VERDICT TEL QU'IL DEVAIT ÊTRE RENDU CE JOUR-LÀ.
     -- C'est celui-ci qui est comparable à la conclusion de l'ARS.
@@ -330,7 +382,7 @@ SELECT
              AND v.date_prelevement IS NOT NULL
              AND v.date_prelevement < v.date_applicabilite_2026
         THEN v.seuil_2016 * v.k
-        ELSE COALESCE(v.seuil_2026 * v.k, v.limite_declaree)
+        ELSE COALESCE(v.seuil_2026 * v.k, limite_utile)
      END)) AS depasse_applicable,
 
     -- Au-dessus du seuil de base, sous le seuil conditionnel : le verdict
@@ -341,7 +393,7 @@ SELECT
                   AND v.date_prelevement IS NOT NULL
                   AND v.date_prelevement < v.date_applicabilite_2026
              THEN v.seuil_2016 * v.k
-             ELSE COALESCE(v.seuil_2026 * v.k, v.limite_declaree) END
+             ELSE COALESCE(v.seuil_2026 * v.k, limite_utile) END
        AND v.resultat_num <= v.seuil_conditionnel * v.k) AS indetermine_condition,
 
     -- LA BASCULE : dépassait la limite de 2016, ne dépasse pas celle de 2026.

@@ -170,6 +170,14 @@ CREATE TABLE IF NOT EXISTS verdicts_figes (
     -- alors en désaccord avec son propre détail.
     seuil_applicable    DOUBLE,
     grille_applicable   VARCHAR,
+    -- L'ATTRIBUTION que portait cette mesure LE JOUR DU CALCUL.
+    -- Elle est figée, pas déduite à l'affichage : sinon deux écrans peuvent
+    -- dire deux choses du même bulletin selon le référentiel du moment, ce que
+    -- le figeage existe précisément pour empêcher (CLAUDE.md §8bis).
+    -- Cinq valeurs, définies dans docs/METHODE_ATTRIBUTION.md §0 :
+    --   juge · juge_avec_son_groupe · juge_sur_valeur_declaree ·
+    --   norme_non_exprimee · rien_ne_se_prononce_{etabli,non_instruit}
+    attribution         VARCHAR,
     depasse_2016        BOOLEAN,
     depasse_2026        BOOLEAN,
     depasse_applicable  BOOLEAN,
@@ -306,8 +314,8 @@ def assurer_schema(con, verbeux=True):
         if verbeux:
             print(f"  ! {table} : schéma obsolète, table reconstruite"
                   + (f" (colonnes ajoutées : {', '.join(manquantes)})" if manquantes else ""))
-            print("    les verdicts figés contre une version antérieure du référentiel")
-            print("    sont perdus ; les mesures, elles, sont intactes. Refige.")
+            print("    les verdicts figés contre une version antérieure du référentiel", flush=True)
+            print("    sont perdus ; les mesures, elles, sont intactes. Refige.", flush=True)
         con.execute(f"DROP TABLE IF EXISTS {table}")
         reconstruites.append(table)
     con.execute(SCHEMA_FIGE)
@@ -319,7 +327,7 @@ def assurer_schema(con, verbeux=True):
         # corpus entier au lieu de croire qu'il n'a rien à faire.
         if verbeux and len(reconstruites) == 1:
             print("    l'autre moitié du figeage est vidée avec elle : un bulletin "
-                  "et son détail ne se séparent pas")
+                  "et son détail ne se séparent pas", flush=True)
         con.execute("DELETE FROM analyses_figees")
         con.execute("DELETE FROM verdicts_figes")
         con.execute("DELETE FROM figeage_moteur")
@@ -384,6 +392,21 @@ def version_moteur():
             with open(chemin, "rb") as fh:
                 h.update(fh.read())
     return h.hexdigest()[:12]
+
+
+class MoteurChange(RuntimeError):
+    """
+    Le code de calcul a changé depuis le dernier figeage de cette version.
+
+    Levée par `figer()` **avant d'avoir écrit ou effacé quoi que ce soit**.
+    L'appelant a deux issues, et aucune n'est automatique : refiger tout le
+    corpus avec le code actuel (`complet=True`), ou ne pas figer et le dire.
+    """
+
+
+def _compte_figes(con, version):
+    return con.execute("SELECT COUNT(*) FROM analyses_figees "
+                       "WHERE version_referentiel = ?", [version]).fetchone()[0]
 
 
 def _moteur_enregistre(con, version):
@@ -590,9 +613,11 @@ def figer(con, version=None, calcule_le=None, verbeux=True, complet=False):
     Reste le quatrième cas, et c'est lui qui demandait un mécanisme : **le
     calcul lui-même change** sans que le référentiel bouge. `version_moteur()`
     l'attrape — si l'empreinte du code diffère de celle enregistrée pour cette
-    version, le figeage redevient complet d'office et le dit.
+    version, cette fonction **lève `MoteurChange` et ne fige rien**. Elle
+    n'efface rien non plus : refiger tout le corpus est un geste qui se
+    demande (`complet=True`), jamais un effet de bord d'une ingestion.
 
-    `complet=True` force le refigeage total. À utiliser quand on doute.
+    `complet=True` refige tout le corpus, en remplaçant bulletin par bulletin.
     """
     assurer_schema(con)
     version = version or version_referentiel()
@@ -601,34 +626,67 @@ def figer(con, version=None, calcule_le=None, verbeux=True, complet=False):
     moteur = version_moteur()
     enregistre = _moteur_enregistre(con, version)
     if enregistre and enregistre != moteur and not complet:
-        complet = True
-        if verbeux:
-            print(f"figeage   : le code de calcul a changé depuis le dernier "
-                  f"figeage de {version} ({enregistre} -> {moteur})")
-            print(f"            refigeage COMPLET du corpus — les lignes déjà "
-                  f"figées ont été calculées autrement,")
-            print(f"            les garder ferait cohabiter deux calculs sous "
-                  f"une seule version")
+        # ON NE FIGE RIEN, et on ne détruit rien.
+        #
+        # La première version de ce contrôle forçait `complet = True`, donc
+        # effaçait tout le figeage de la version avant de le recalculer.
+        # Défaut réel, le 11 août 2026 : une autre session avait ajouté une
+        # fonction éditoriale à `common.py` — sans le moindre effet sur un
+        # verdict —, l'empreinte a changé, et une simple ingestion a effacé
+        # 7 279 lignes figées puis est morte au bulletin 3 780. Le corpus s'est
+        # retrouvé dans un état pire qu'avant, comme effet de bord d'une
+        # commande qui ne demandait rien de tel.
+        #
+        # Deux leçons, et elles tiennent toutes les deux :
+        #   · une empreinte d'octets ne distingue pas un changement de calcul
+        #     d'un ajout sans conséquence, et elle ne le peut pas ;
+        #   · **détruire une sortie figée ne doit jamais être un effet de bord.**
+        #     C'est un geste que l'on demande, jamais un geste que l'on subit.
+        #
+        # Refuser de figer laisse le corpus COHÉRENT et incomplet : les
+        # nouveaux bulletins restent absents d'`analyses_figees`, donc non
+        # citables (§8bis), ce qui est exactement leur statut réel. C'est
+        # l'inverse de mélanger deux calculs sous une seule version, qui serait
+        # invisible.
+        raise MoteurChange(
+            f"le code de calcul a changé depuis le dernier figeage de "
+            f"{version} : empreinte {enregistre} -> {moteur}.\n"
+            f"    Rien n'a été figé, et RIEN N'A ÉTÉ EFFACÉ — les "
+            f"{_compte_figes(con, version)} bulletin(s) déjà figés sont "
+            f"intacts.\n"
+            f"    Figer les nouveaux avec le code actuel les mettrait sous la "
+            f"même version que les anciens,\n"
+            f"    calculés autrement : deux calculs sous une seule version, et "
+            f"rien pour le dire.\n"
+            f"    Fichiers surveillés : {', '.join(FICHIERS_MOTEUR)}.\n"
+            f"    Pour refiger tout le corpus avec le code actuel (long, et "
+            f"c'est le bon geste si le calcul\n"
+            f"    a réellement changé) :  --refiger")
 
     prels = [r[0] for r in con.execute(
         "SELECT code_prelevement FROM v_prelevement_verdict ORDER BY 1").fetchall()]
     corpus = len(prels)
 
     if complet:
-        con.execute("DELETE FROM analyses_figees WHERE version_referentiel = ?", [version])
-        con.execute("DELETE FROM verdicts_figes  WHERE version_referentiel = ?", [version])
+        # On n'efface PAS tout d'avance. Chaque bulletin est remplacé au moment
+        # où il est recalculé, dans la boucle. La différence n'est pas
+        # cosmétique : effacer d'abord, c'est garantir qu'une interruption
+        # laisse le corpus amputé de tout ce qui n'a pas encore été refait —
+        # ce qui est arrivé le 11 août 2026, 7 279 lignes effacées pour 3 780
+        # recalculées avant que le processus ne meure.
+        #
+        # En remplaçant au fil, une interruption laisse un corpus MIXTE : une
+        # partie recalculée, une partie ancienne. C'est moins bon qu'un corpus
+        # cohérent, mais bien meilleur qu'un corpus amputé — et surtout, c'est
+        # DÉTECTABLE : `figeage_moteur` n'est mis à jour qu'à la toute fin, donc
+        # une reprise revoit l'écart d'empreinte et refuse de figer tant que le
+        # refigeage n'a pas été mené à son terme.
         a_figer = prels
     else:
         deja = {r[0] for r in con.execute(
             "SELECT code_prelevement FROM analyses_figees "
             "WHERE version_referentiel = ?", [version]).fetchall()}
         a_figer = [cp for cp in prels if cp not in deja]
-        # On efface quand même les lignes de détail des bulletins qu'on va
-        # refiger : un figeage interrompu peut avoir laissé des `verdicts_figes`
-        # sans son `analyses_figees`, et l'INSERT buterait sur la clé.
-        for cp in a_figer:
-            con.execute("DELETE FROM verdicts_figes WHERE version_referentiel = ? "
-                        "AND code_prelevement = ?", [version, cp])
 
     total = len(a_figer)
     # Un jalon tous les 5 %, borné : assez pour voir que ça avance, assez rare
@@ -643,14 +701,30 @@ def figer(con, version=None, calcule_le=None, verbeux=True, complet=False):
                   + (" — refigeage complet" if complet else ""))
         else:
             print(f"figeage   : rien à figer, les {corpus} bulletin(s) du corpus "
-                  f"sont déjà figés sous {version}")
+                  f"sont déjà figés sous {version}", flush=True)
 
     for i, cp in enumerate(a_figer, 1):
         if verbeux and total and (i % pas == 0 or i == total):
             ecoule = time.time() - t0
             reste = ecoule / i * (total - i)
+            # `flush=True` : sans lui, la progression d'un figeage redirigé vers
+            # un fichier reste dans le tampon de stdout et **disparaît si le
+            # processus meurt**. C'est arrivé le 11 août 2026 — un figeage tué
+            # en cours de route n'a laissé aucune trace de son avancement, et
+            # l'incident a dû être reconstitué en interrogeant la base. Une
+            # fonction dont la docstring dit « elle imprime sa progression, ce
+            # n'est pas du confort » doit s'assurer que cette progression
+            # survit à sa propre mort.
             print(f"  {i}/{total} bulletins figés — {ecoule/60:.1f} min écoulées, "
-                  f"~{reste/60:.1f} min restantes")
+                  f"~{reste/60:.1f} min restantes", flush=True)
+
+        # Remplacement AU FIL, et non un effacement global en amont : une
+        # interruption laisse alors un corpus mixte et détectable, jamais un
+        # corpus amputé (cf. le bloc `if complet:` plus haut).
+        con.execute("DELETE FROM analyses_figees WHERE version_referentiel = ? "
+                    "AND code_prelevement = ?", [version, cp])
+        con.execute("DELETE FROM verdicts_figes WHERE version_referentiel = ? "
+                    "AND code_prelevement = ?", [version, cp])
         s = _sommes(con, cp)
         lq = _plafond_analytique(con, cp)
         con.execute("""
@@ -690,7 +764,7 @@ def figer(con, version=None, calcule_le=None, verbeux=True, complet=False):
                    famille, mode_appariement, resultat_num, lq, est_quantifie, unite,
                    seuil_2016, seuil_2026_effectif, origine_seuil_2026,
                    seuil_strict, seuil_futur,
-                   seuil_applicable, grille_applicable,
+                   seuil_applicable, grille_applicable, attribution,
                    depasse_2016, depasse_2026, depasse_applicable,
                    depasse_strict, depasse_futur,
                    bascule_2016_2026, bascule_datee,
@@ -710,8 +784,30 @@ def figer(con, version=None, calcule_le=None, verbeux=True, complet=False):
             -- plus fréquent : la LQ courante des laboratoires est de 4 ng/L.
             -- Le compteur du bulletin annonçait deux indéterminés et le détail
             -- n'en montrait qu'un (CLAUDE.md §2.4).
-            WHERE code_prelevement = ? AND (notee OR seuil_strict IS NOT NULL
-                                        OR hors_reference)
+            --
+            -- ÉLARGI LE 12 AOÛT 2026 : plus aucun filtre. Le détail figé est
+            -- désormais la photographie ENTIÈRE du bulletin.
+            --
+            -- Le filtre précédent — `notee OR seuil_strict IS NOT NULL OR
+            -- hors_reference` — ne gardait que les mesures ayant un seuil de
+            -- comparaison. C'était cohérent tant que la sortie ne montrait que
+            -- des verdicts. Ça ne l'est plus depuis la décision du 11 août :
+            -- toute substance mesurée reçoit une attribution, y compris
+            -- « rien ne se prononce » (docs/METHODE_ATTRIBUTION.md).
+            --
+            -- Mesuré avant le changement : le moteur calculait l'attribution
+            -- « rien ne se prononce, non instruit » sur 413 050 mesures, et le
+            -- détail figé n'en conservait que 364 — soit 0,1 %. Autrement dit
+            -- la population qu'on venait de décider de rendre visible était
+            -- précisément celle que le figeage écartait. Volume ajouté : environ
+            -- 450 000 lignes sur 4,2 millions, soit +11 %.
+            --
+            -- CONSÉQUENCE À CONNAÎTRE : tout compte tiré de cette table change
+            -- de sens — il portait sur « les mesures notées », il porte
+            -- désormais sur « les mesures ». Les dossiers de faits en tirent
+            -- des chiffres : les régénérer après ce changement, sans quoi la
+            -- prose et la table parlent de périmètres différents.
+            WHERE code_prelevement = ?
         """, [version, cp])
 
     # Ces deux-là se refont TOUJOURS, même quand aucun bulletin n'a été figé :
@@ -780,7 +876,7 @@ def figer_couverture_implicite(con, version, calcule_le=None):
     """, [version]).fetchall()
     for insee, nom in contredites:
         print(f"  ! {nom or insee} était « non documentée » et a désormais un bulletin "
-              "figé — statut corrigé en « analysée »")
+              "figé — statut corrigé en « analysée »", flush=True)
         con.execute("""
             UPDATE couverture_communes SET statut = 'analysee',
                    code_prelevement = (SELECT a.code_prelevement FROM analyses_figees a
@@ -830,14 +926,14 @@ def figer_couverture_implicite(con, version, calcule_le=None):
 
     if manquantes:
         print(f"  i {len(manquantes)} commune(s) inscrite(s) d'office : elles ont un "
-              "bulletin figé sans avoir été demandées")
+              "bulletin figé sans avoir été demandées", flush=True)
         print("    (leur analyse sert de repli à une commune voisine — sans cela elles "
-              "seraient absentes de la carte)")
+              "seraient absentes de la carte)", flush=True)
     if reportes:
         print(f"  i {len(reportes)} statut(s) de couverture reporté(s) depuis la version "
-              "précédente")
+              "précédente", flush=True)
         print("    (rattachement au réseau et absence de donnée ne dépendent pas de la "
-              "grille)")
+              "grille)", flush=True)
     return len(manquantes)
 
 
@@ -880,17 +976,17 @@ def figer_commune(con, commune, statut, version, calcule_le=None,
 
 
 def statut(con):
-    print("\n=== Couverture par commune ===")
+    print("\n=== Couverture par commune ===", flush=True)
     for r in con.execute("""
         SELECT statut, COUNT(*) FROM couverture_communes GROUP BY 1 ORDER BY 2 DESC
     """).fetchall():
-        print(f"  {r[0]:<20} {r[1]}")
-    print("\n=== Analyses figées ===")
+        print(f"  {r[0]:<20} {r[1]}", flush=True)
+    print("\n=== Analyses figées ===", flush=True)
     for r in con.execute("""
         SELECT version_referentiel, calcule_le, COUNT(*)
         FROM analyses_figees GROUP BY 1,2 ORDER BY 2 DESC
     """).fetchall():
-        print(f"  {r[0]}  {r[1]}  {r[2]} bulletin(s)")
+        print(f"  {r[0]}  {r[1]}  {r[2]} bulletin(s)", flush=True)
 
     # Le plafond analytique, en clair. Ce n'est pas un défaut du bulletin :
     # c'est la part de l'analyse qui ne peut pas conclure, et elle conditionne
@@ -903,15 +999,15 @@ def statut(con):
                                      GROUP BY 1 ORDER BY MAX(calcule_le) DESC LIMIT 1)
     """).fetchone()
     if aveugles and aveugles[1]:
-        print("\n=== Plafond analytique (chantier C4) ===")
+        print("\n=== Plafond analytique (chantier C4) ===", flush=True)
         print(f"  {aveugles[1]} mesure(s) hors de portée du laboratoire sur "
-              f"{aveugles[0]} bulletin(s) — jusqu'à {aveugles[2]} pour mille")
-        print("    LQ au-dessus du seuil de comparaison : ni conforme, ni dépassement.")
+              f"{aveugles[0]} bulletin(s) — jusqu'à {aveugles[2]} pour mille", flush=True)
+        print("    LQ au-dessus du seuil de comparaison : ni conforme, ni dépassement.", flush=True)
         for r in con.execute("""
             SELECT libelle_parametre, COUNT(*), MIN(lq), MAX(lq), ANY_VALUE(unite)
             FROM verdicts_figes WHERE lq_aveugle GROUP BY 1 ORDER BY 2 DESC LIMIT 8
         """).fetchall():
-            print(f"      {r[0][:44]:<44} {r[1]:>3} mesure(s)  LQ {r[2]}–{r[3]} {r[4] or ''}")
+            print(f"      {r[0][:44]:<44} {r[1]:>3} mesure(s)  LQ {r[2]}–{r[3]} {r[4] or ''}", flush=True)
 
 
 def main():
@@ -920,7 +1016,7 @@ def main():
     a = p.parse_args()
 
     if not os.path.exists(DB_PATH):
-        print(f"base absente : {DB_PATH}\nlance d'abord : python3 src/build_db.py")
+        print(f"base absente : {DB_PATH}\nlance d'abord : python3 src/build_db.py", flush=True)
         sys.exit(1)
     con = duckdb.connect(DB_PATH)
     try:
@@ -929,7 +1025,7 @@ def main():
             statut(con)
             return
         version, n = figer(con)
-        print(f"figé : {n} bulletin(s) sous la version de référentiel {version}")
+        print(f"figé : {n} bulletin(s) sous la version de référentiel {version}", flush=True)
         statut(con)
     finally:
         con.close()
