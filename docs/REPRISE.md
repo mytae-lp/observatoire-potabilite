@@ -2275,7 +2275,15 @@ démontré, ce qui ne l'est pas est marqué comme tel.
 
 ---
 
-## 19. ÉTAT ACTUEL au 12 août 2026, 18 h 30 — clôture de session
+## 19. État au 12 août 2026, 18 h 30 — PÉRIMÉ, voir le §21
+
+> **Ne plus lire cette section comme l'état courant.** Elle a été
+> remplacée par le **§21**, écrit le 13 août au soir. Plusieurs de ses
+> affirmations sont infirmées depuis : le rattachement Sicoval (§20.2),
+> la question du point de prélèvement (§20.7), le décompte des
+> candidats à l'alerte (§20.15) et « le département le plus
+> profondément collecté » (§20.16). Elle est conservée pour l'histoire
+> du chantier, pas pour agir.
 
 **Cette section remplace le §18.11 sur l'état matériel. À lire en premier.**
 
@@ -2647,3 +2655,1001 @@ analyses depuis 2024 :
 déjà déclaré : le maillon *quel captage alimente quelle installation* n'est pas
 exposé par Hub'Eau (§8). On voit l'installation de production — usine de
 Vieille-Toulouse, usine de Calmont, SICOVAL PSSE — jamais la ressource derrière.
+
+---
+
+## 20. ÉTAT ACTUEL au 13 août 2026, matin — remplace le §19 sur ce qui suit
+
+### 20.1 CE QUI TOURNE — ingestion puis refigeage, enchaînés avec une barrière
+
+Lancé à **08 h 30** dans un script unique
+(`scratchpad/ingestion_puis_refigeage.sh`, hors dépôt) :
+
+1. `py -X utf8 src/ingerer.py --depts 83,84,99 --sans-figer`
+   → `data/journal/ingestion_paca_2026-08-13.log`
+2. **barrière** : le refigeage ne part que si l'ingestion sort en code 0 **et**
+   que `--etat` montre 0 bulletin restant sur 83 et 84 ;
+3. `py -X utf8 src/ingerer.py --tous --refiger`
+   → `data/journal/refigeage_2026-08-13.log`
+
+Motif de la barrière : un refigeage lancé sur corpus incomplet oblige à tout
+refaire (§19.11), et la barrière rend ce garde-fou mécanique au lieu de le
+laisser à la vigilance de qui relance.
+
+**Le débit réel est plus bas que celui du §19.1** : 400 bulletins en 21 minutes,
+soit **~19/min** et non 35/min. Reste ~4 100 bulletins → l'ingestion finit vers
+**12 h**, le refigeage vers **18 h**. Le chiffre de « deux heures » du §19.11 est
+optimiste d'un facteur deux.
+
+### 20.2 SICOVAL — LE §19.12 SE TROMPE, et le vrai défaut est ailleurs
+
+Instruit le 13 août sans ouvrir la base.
+Dossier : `data/etudes/sicoval_rattachement/RATTACHEMENT_2026-08-13.md`.
+
+**Le rattachement se fait par RÉSEAU** (`code_reseau`), pas par unité de
+gestion — `src/collecte.py:167`, `src/hubeau.py:666-685`, qui n'a aucun accès à
+`nom_uge`. Le faux positif redouté n'existe pas : Baziège et Escalquens
+reçoivent le bulletin d'**Odars**, qui est bien sur leur réseau (SICOVAL
+MONTAGNE NOIRE), et non celui de Ramonville. **Sur 35 communes : 32
+rattachements identiques au réseau déclaré, 3 avec leur bulletin propre, 0
+sans réseau commun.** 49 appels Hub'Eau, régulateur à 2/s.
+
+**Le défaut réel est un défaut de VOCABULAIRE, et il est massif.** La clé du
+rattachement est utilisée puis jetée — `couverture_communes` n'a pas de colonne
+de réseau (`src/figer.py:225-241`) — et l'affichage retombe sur `nom_uge`, qui
+est le **gestionnaire**. `sortie/build_fiche.py:501` écrit littéralement
+« eau du **réseau** SICOVAL AEP ». Portée mesurée sur les pages publiées :
+**2 829 fiches** portent cette phrase, **135 groupes sur 505** sont hétérogènes,
+**2 653 communes** concernées. `S.M.D.E.A` : 187 communes, 113 configurations.
+
+Cas qui le démontre : **Venerque déclare `SMEA VENERQUE`, jamais SICOVAL AEP** —
+le groupement n'est pas même fidèle à sa propre clé.
+
+Options chiffrées : corriger le vocabulaire et sortir `noms_reseaux` du repli
+(`build_fiche.py:501-504`) = une republication, pas de refigeage ; sous-grouper
+la page de département par configuration = même republication ; afficher le
+réseau **de la commune** = colonne dans `couverture_communes`, donc `figer.py`,
+donc refigeage complet + ~2 868 appels de recollecte. Tout basculer en « non
+documentée » est à déconseiller : 72 % du corpus couvert passerait au gris pour
+réparer un rattachement exact 32 fois sur 35.
+
+### 20.3 L'ALERTE « ANALYSE COMPLÈTE ANCIENNE » — conçue, non implémentée
+
+Dossier : `data/etudes/panel_reduit_alerte/CONCEPTION_ALERTE_2026-08-13.md`.
+
+**La piste du §19.4 point 1 est fausse en partie.** Le jet n'a pas lieu dans
+`selectionner_bulletins` mais à `src/collecte.py:137-138`. Et « garder la date
+la plus récente et la taille maximale » ne sert aucun des trois éléments : la
+date la plus récente est celle du dernier contrôle de routine, pas de la
+dernière analyse complète.
+
+**Économie plus grande qu'annoncé** : ajouter `code_parametre` à
+`CHAMPS_INVENTAIRE` (`src/hubeau.py:141`) n'ajoute **aucune requête** — la
+pagination porte sur les lignes — et donnerait gratuitement le nombre de
+contrôles **et** les paramètres cessés. Mesuré sur 37 réponses réelles :
+1 233 lignes/commune, donc **1 appel par commune** à `size=5000`.
+`src/etude_panel_reduit.py:139` pagine à `size=1000` et paie **76 % d'appels de
+trop** — à corriger.
+
+Seuil proposé : **24 mois → 421 communes (10,6 %)**. À 12 mois, 891, soit une
+fiche sur quatre : ce n'est plus une alerte. Les quatre chiffres du §19.3
+(18 communes, 49 paramètres, 555 contrôles, 119 mois) sont **confirmés** par
+recomptage indépendant.
+
+**Défaut d'architecture à connaître** : les bandeaux existants ont leur texte
+écrit en dur dans `site/gabarits/fiche.js:908-919`, donc **aucun contrôle de
+`tests/test_sorties.py` ne les relit**. Le texte de l'alerte doit être fabriqué
+en Python et sa clé ajoutée à la moisson, sinon c'est de la prose publiée sur
+3 955 fiches que rien ne vérifie.
+
+### 20.4 LE TABLEAU DE DÉPARTEMENT — deux colonnes de plus, et il tient enfin
+
+Demandé par Yannick le 13 août. **Écrit, non exécuté** : la base est prise, rien
+n'est republié avant ce soir.
+
+Le tableau ne débordait pas de la page — il **défilait horizontalement sans que
+rien ne l'annonce** (table 1 076 px dans une boîte de 958). Les colonnes de
+droite paraissaient absentes. Corrigé dans `site/gabarits/observatoire.css` :
+la boîte déborde la colonne de texte au-delà de 1 040 px de large
+(`.tableau-communes.large`), le nom de commune reste **collé à gauche** au
+défilement, et une **ombre portée** au bord dit qu'il reste des colonnes.
+Les intitulés se replient sur deux lignes au lieu d'étirer le tableau.
+
+**Deux colonnes ajoutées** (`site/build_site.py`) :
+
+- **« Hors de portée du laboratoire »** — `nb_aveugles` / `aveugles_pour_mille`,
+  déjà figés et déjà sur la fiche, absents de l'endroit où l'on compare les
+  communes. Coût nul ;
+- **« Statut hormonal des substances trouvées »** — trois nombres côte à côte,
+  **jamais additionnés à l'écran** (§2.6, §2.15). Le total existe comme **clé de
+  tri** seulement : c'est ce qui permet de remonter vite les communes à
+  regarder, sans écrire « 17 perturbateurs endocriniens », énoncé qui fondrait
+  un statut de droit européen, un soupçon de la littérature et une question non
+  instruite.
+
+La règle de classement était écrite dans `sortie/indicateurs.py::perturbateurs`.
+Elle est **extraite** en `statut_hormonal()` et appelée par la fiche comme par
+le tableau : une seule copie, sans quoi la même eau finirait par se lire
+différemment selon la page. Le comptage se fait en **une requête pour tout le
+corpus** (`compter_hormonal()`), pas une par commune sur 4,2 millions de lignes.
+
+**Vérifié dans le navigateur, à colonnes simulées** (valeurs fictives, base
+verrouillée) : 9 colonnes, table 1 227 px dans une boîte de 1 227, la page ne
+défile plus latéralement ; à 900 px de large, le tableau défile dans son cadre
+et le nom de commune reste visible. **Ce qui reste à vérifier ce soir** : que la
+requête sort les bons comptes, et son temps sur le corpus entier.
+
+### 20.5 TROIS DÉCISIONS DE YANNICK — 13 août 2026, matin
+
+1. **Pas de total hormonal affiché.** Trois nombres côte à côte, le total ne
+   servant que de clé de tri. Proposition retenue telle quelle.
+2. **On travaille par réseau réel.** La phrase fausse de la fiche est corrigée
+   et le regroupement de la page de département passe du gestionnaire au
+   réseau.
+3. **Seuil de l'alerte : 24 mois**, soit 421 communes.
+
+**Appliqué dans le code, pas encore visible** (base occupée jusqu'au soir) :
+
+- `sortie/build_fiche.py` — le sous-titre nomme le **réseau**
+  (`noms_reseaux`), plus le gestionnaire. Deux lignes ajoutées aux
+  métadonnées : « Réseau de distribution » et « Gestionnaire », qui étaient
+  confondus sous un seul mot ;
+- `site/build_site.py` — le bloc « Les gestionnaires déclarés » devient
+  **« Les réseaux de distribution »**, groupé sur `noms_reseaux`. Les communes
+  dont le bulletin ne déclare aucun réseau sortent du regroupement et sont
+  nommées à part : les ranger sous leur gestionnaire affirmerait un
+  rattachement que la source ne donne pas. `noms_reseaux` vient
+  d'`analyses_figees` (`figer.py:93`) — **aucun refigeage nécessaire**, la
+  donnée est déjà figée ;
+- `sortie/indicateurs.py` — `statut_hormonal()` extrait, `compter_hormonal()`
+  ajouté.
+
+**Reste à faire ce soir, dans l'ordre** : purge des générations périmées de
+`couverture_communes` (elle en porte quatre, §19.1) ; ajout des six
+départements PACA à `referentiel/departements_publies.csv` ; régénération des
+dossiers de faits ; `py -X utf8 site/build_site.py`. Puis vérifier sur une
+commune du Sicoval que le réseau affiché est bien le sien.
+
+**L'alerte des 24 mois n'est pas implémentée** — elle demande un module neuf,
+un lot de 421 appels Hub'Eau, et la correction de la pagination de
+`src/etude_panel_reduit.py:139` (size=1000 → 5000, 76 % d'appels de trop).
+Le lot d'appels ne peut pas se faire avant la republication : la liste des
+communes concernées change avec l'arrivée de PACA.
+
+### 20.6 UN CONTRÔLE QUI TENAIT LA RÈGLE D'AVANT — corrigé
+
+`tests/test_figer.py` échouait sur « une mesure sans aucun seuil n'est pas
+figée ». **Ce n'était pas une régression** : le contrôle encodait la règle
+d'avant le 12 août, et l'élargissement du filtre (§19.2) l'a laissé derrière.
+Retourné pour exiger l'inverse — le calcium, mesuré et sans seuil de
+comparaison, **doit** rester au bulletin figé. `tests/test_verdict.py` passe
+entièrement. Les deux tournent sur une base temporaire et n'ont pas approché
+`data/eau.duckdb`.
+
+### 20.7 DILUTION — la question centrale du §7.2 est TRANCHÉE
+
+Instruit le 13 août 2026 sans ouvrir la base.
+Dossier : `data/etudes/dilution_avant_apres/FAISABILITE_2026-08-13.md`.
+`docs/METHODE_DILUTION.md` §3 et §4 sont **réécrits** en conséquence.
+
+**`code_lieu_analyse` n'était pas le bon champ.** Documentation Hub'Eau : c'est
+le lieu de l'**analyse** — terrain (T) ou laboratoire (L) —, pas le lieu du
+prélèvement. Sur 25 293 bulletins et 10 111 697 lignes lues au cache :
+`L` 9 997 172, `T` 114 525, et **97,6 % des bulletins portent les deux**, parce
+que c'est un champ de maille *résultat*. Le §7.2 de `CLAUDE.md` (« vaut `L` sur
+les 45 bulletins ») lisait une valeur arbitraire.
+
+**Le champ qui répond est `code_installation_amont`, déjà collecté et déjà en
+base.** Renseigné ⇔ prélèvement fait en amont de l'unité de distribution ;
+vide ⇔ fait sur l'UDI. Deux sources officielles concordantes, contrôle interne
+parfait (aucun bulletin sans installation amont ne porte de part de débit),
+corroboré géographiquement.
+
+- **avant le mélange : 24 209 bulletins, 95,7 %** ;
+- **après le mélange : 1 084 bulletins, 4,3 %** ;
+- **62 réseaux portent les deux**, 15 départements — mais **3 seulement** avec
+  moins de 30 jours d'écart.
+
+**Le mélange lisible : 279 réseaux sur 3 487, dans 19 départements** — contre
+6 sur 42 au 8 août.
+
+**Le nouveau verrou, et il est méthodologique** : l'arithmétique ne se referme
+pas. Albi–Lescure, mélange 85/15 reconstitué, nitrates 4,5 et 3,3 mg/L en
+amont pour **9,0 mg/L** en distribution. Les trihalométhanes se forment dans le
+réseau (attendu) ; les nitrates, non. **Une comparaison brute amont/aval
+produirait des chiffres faux.** Il faut d'abord écrire le périmètre des
+**substances conservatives**, sourcé substance par substance.
+
+Les panels, eux, ne bloquent pas : Vieille-Toulouse ↔ Saubens, 367 paramètres
+identiques des deux côtés, 325 limites de quantification identiques, 83 jours
+d'écart. Lourdes a deux sources prélevées **le même jour**.
+
+**Le §8 de `CLAUDE.md` est trop pessimiste d'un cran** : le jeu data.gouv.fr
+« Résultats du contrôle sanitaire de l'eau du robinet » publie les fichiers
+**CAP (captages)** et **TTP (production)** en plus des UDI — mêmes paramètres,
+même cadre réglementaire. Ce qui manque vraiment, c'est le lien *quel captage
+alimente quelle installation* (référentiel ADES retiré de la diffusion
+publique fin 2023). Aucune des 13 API Hub'Eau ne porte d'analyse d'eau
+destinée à la consommation en amont ; `qualite_nappes` et `qualite_rivieres`
+sont des mesures environnementales, autre objet et autres seuils — **les
+rapprocher donnerait un chiffre faux déguisé en chiffre sourcé.**
+
+**File d'attente proposée** : (1) §4 de la note de dilution corrigé — *fait* ;
+(2) télécharger les tables de référence `eaurob-ref-*.zip` de data.gouv.fr,
+qui pourraient porter le lien captage → production → distribution — **1
+téléchargement, la vérification la plus rentable, en attente du feu vert de
+Yannick** ; (3) écrire le périmètre des substances conservatives ; (4)
+densifier les 3 cas à moins de 30 jours (~60 appels) ; (5) après la campagne,
+une colonne de position du prélèvement et une vue amont/aval.
+
+### 20.8 LES TABLES DE RÉFÉRENCE SISE-EAUX — téléchargées, et ce qu'elles disent
+
+Feu vert de Yannick, 13 août 2026. Fichier : `eaurob-ref-20260812.zip`,
+71 751 octets, licence ouverte v2, publié le 12 août 2026 — conservé dans
+`data/sources_externes/`.
+Source : `https://www.data.gouv.fr/datasets/resultats-du-controle-sanitaire-de-leau-du-robinet`
+
+**LE LIEN CAPTAGE → INSTALLATION N'Y EST PAS.** L'hypothèse du §20.7 point 2
+est **infirmée**. L'angle mort du §8 de `CLAUDE.md` reste entier : le
+rattachement d'une ressource à une installation n'est toujours pas public.
+
+**Mais les cinq tables portent autre chose, et c'est important.** Trois de ces
+nomenclatures décrivent des champs que **l'API Hub'Eau n'expose pas** — vérifié
+sur le cache brut, qui ne porte aucun des trois. La voie data.gouv.fr est donc
+**plus riche que l'API que le projet interroge**. À confirmer en ouvrant un
+fichier de prélèvements réel : les tables prouvent l'existence de la
+nomenclature, pas celle de la colonne.
+
+| Table | Contenu | Pourquoi ça compte |
+|---|---|---|
+| `PAR` | **2 321 paramètres** : code SISE-Eaux, code SANDRE, numéro CAS, famille, statut | notre catalogue en connaît **782**. C'est le référentiel officiel des libellés, avec les CAS — de quoi réduire les paramètres non appariés |
+| `MOP` | 12 **motifs de prélèvement** | voir ci-dessous |
+| `CPLV` | 18 **conditions de prélèvement**, dont la position par rapport au réseau public | voir ci-dessous |
+| `NAE` | 3 natures d'eau : souterraine, superficielle, **EAU MIXTE** | le mélange a un code officiel |
+| `FRT` | 202 fractions analysées | peu d'usage ici |
+
+**Les motifs de prélèvement (`MOP`) touchent la thèse de plein fouet.**
+L'administration distingue elle-même : `S2` eaux **brutes** · `S3` tendance
+**défavorable** · `S4` **dérogation** · `S6` **« paramètre sans norme avec
+danger potentiel »** · `S8` réseaux intérieurs · `CP` contrôle plomb-cuivre-
+nickel. Deux conséquences immédiates :
+
+- `S6` est la **catégorie administrative** de ce que le §19.2 a mesuré chez
+  nous — 413 050 mesures sur lesquelles rien ne se prononce. L'administration
+  a un mot pour ça, et il contient « danger potentiel ». **À instruire.**
+- `S4` **dérogation** : un dépassement autorisé, daté, motivé. C'est de la
+  matière de thèse à l'état pur, et le projet n'en a aucun corpus.
+
+**Les conditions de prélèvement (`CPLV`) ouvrent une distinction que le projet
+ne fait pas** : la position du point de prélèvement **par rapport au réseau
+public** — `P` directement sur la canalisation publique · `B` sur la partie
+publique du branchement · `C` en aval immédiat du compteur · `I` / `L` sur un
+réseau **intérieur**. Plus les conditions de purge et de préparation du
+robinet.
+
+Enjeu §2.1 : **un plomb mesuré sur le réseau intérieur d'un immeuble ne décrit
+pas l'eau distribuée** — c'est la plomberie de l'immeuble. Sans cette
+distinction, un dépassement peut être imputé au distributeur alors qu'il vient
+du bâtiment. Le projet ne peut pas faire cette distinction aujourd'hui : le
+champ n'existe pas dans ce qu'il collecte.
+
+**Ce qui en découle, et qui n'est pas décidé** : la voie data.gouv.fr n'est
+plus seulement le chemin vers le captage et l'usine, c'est peut-être une
+**source plus complète que Hub'Eau pour l'eau distribuée elle-même**. Avant
+d'ouvrir ce chantier, ouvrir un seul fichier de prélèvements et lire ses
+colonnes.
+
+### 20.9 UN DÉFAUT DE `src/md_en_pdf.py`, CORRIGÉ
+
+Le convertisseur échouait sur tout fichier, avec pour seul message « pas de PDF
+produit ». Cause : `--print-to-pdf` recevait un chemin **relatif**, et le
+navigateur sans interface n'écrit pas dans un chemin relatif — il ne partage
+pas notre répertoire courant. Il sortait en code 0 malgré tout, donc
+`subprocess.run(check=True)` ne levait rien et l'échec restait muet.
+`os.path.abspath` sur le chemin de sortie ; commentaire posé sur place.
+
+Produit : `docs/pdf/CE_QUE_FAIT_LOBSERVATOIRE.pdf`, 6 pages, 116 Ko.
+Contrôle de fidélité : 25 titres au Markdown, **25 titres** dans le HTML
+imprimé, tableau conservé.
+
+Le document source est `docs/CE_QUE_FAIT_LOBSERVATOIRE.md`, écrit le 13 août
+2026 à la demande de Yannick : ce que le projet fait, ce qu'il met en lumière
+(huit mécanismes), les enquêtes ouvertes, ce qu'il refuse de faire, l'état du
+corpus. **Le PDF est une sortie, jamais une source** — il se régénère, on ne
+le corrige pas.
+
+### 20.10 LES FICHIERS DE PRÉLÈVEMENTS data.gouv.fr — vérifiés sur mai 2026
+
+`eaurob-202605.zip`, 16,3 Mo (le plus petit mois disponible), dans
+`data/sources_externes/`. Six fichiers : prélèvements et résultats pour la
+distribution (UDI), le captage (CAP) et la production (TTP). 41 colonnes au
+prélèvement.
+
+**LE LIEN CAPTAGE → RÉSEAU N'Y EST TOUJOURS PAS, et c'est maintenant démontré.**
+Le fichier des captages porte bien une colonne `cdreseau` — mais elle contient
+le code de **l'installation elle-même**, pas celui du réseau qu'elle alimente :
+sur 1 909 codes de captage, **0 n'apparaît dans les 10 873 codes de la
+distribution**. Vérifié sur 2 019 prélèvements de captage et 16 112 de
+distribution. L'angle mort du §8 tient. **Ne pas rouvrir cette piste sans
+élément neuf.**
+
+**Ce qui EST disponible, et que Hub'Eau n'expose pas :**
+
+| Colonne | Remplissage sur mai 2026 |
+|---|---|
+| `finaliteprel` — motif du prélèvement | **16 112 / 16 112, soit 100 %** — CS 14 516, CP 776, S1 600, S3 147, CV 47, CD 22 |
+| `plvcondition` — conditions et position | 5 973 / 16 112, **37 %** — trois lettres concaténées, une par position, décodables par `CPLV` |
+| `inae` — nature de l'eau (dont EAU MIXTE) | présent |
+| `codebss` — point d'eau souterraine du captage | 1 334 / 2 019 captages |
+| `coord_x` / `coord_y` | **vides — 0 / 2 019** |
+
+Le `codebss` ouvre le raccordement aux bases d'eau souterraine, **pas** à nos
+réseaux : il documente la ressource, sans dire qui elle alimente.
+
+**Volumes** : un mois pèse 16 Mo compressés pour ~277 Mo décompressés ; une
+année pleine, ~210 Mo compressés. Le corpus Hub'Eau du projet ne serait pas
+remplacé sans une reprise complète de la collecte et du modèle.
+
+**Ce que ça ne dit pas** : ce contrôle porte sur **un seul mois**. Le taux de
+remplissage de `plvcondition` peut varier par région et par année.
+
+### 20.11 CE QUE LA JOURNÉE CHANGE DURABLEMENT — synthèse pour décision
+
+Quatre choses ne seront plus jamais comme avant dans ce projet. Elles appellent
+des révisions de `CLAUDE.md`, **non faites** — à passer quand la base sera
+rendue.
+
+**1. Le chantier dilution n'est plus bloqué — `CLAUDE.md` §7.2 est périmé.**
+Il écrit : *« La question qui commande tout n'est pas tranchée : où, dans le
+réseau, le prélèvement a-t-il été fait ? `code_lieu_analyse` vaut `L` sur les
+45 bulletins. »* Les deux phrases sont fausses. Le champ cité dit où la
+**mesure** a été faite (terrain ou laboratoire), et la question se lit dans
+`code_installation_amont`, collecté depuis le premier jour. **À réécrire.**
+
+**2. Un angle mort passe de « pas encore trouvé » à « vérifié absent ».**
+Le lien captage → réseau n'est ni dans les tables de référence, ni dans les
+fichiers de prélèvement (0 code de captage sur 1 909 retrouvé côté
+distribution). `CLAUDE.md` §8 devient plus fort : ce n'est plus une lacune de
+notre collecte, c'est une donnée non publiée. **Cesser de la chercher.**
+
+**3. Il existe une seconde source officielle, plus riche que la nôtre.**
+Même cadre réglementaire, trois informations que Hub'Eau n'expose pas — le
+motif du prélèvement (rempli à 100 %), la position par rapport au réseau
+public (37 %), la nature de l'eau dont « eau mixte » —, plus les analyses au
+captage et à l'usine. **Ce n'est pas un complément, c'est une alternative** :
+l'adopter serait reprendre la collecte et le modèle. Décision non prise.
+
+**4. Un risque d'injustice est identifié, et c'est le premier de ce genre.**
+Sans la position du prélèvement, un dépassement mesuré sur la **plomberie
+intérieure d'un immeuble** est indiscernable d'un dépassement du réseau public.
+Le projet peut donc aujourd'hui imputer à un distributeur ce qui vient du
+bâtiment. Tous les angles morts connus jusqu'ici produisaient de
+l'imprécision ; **celui-ci peut produire un faux procès** (§2.1). À porter au
+§8 comme tel, et à surveiller particulièrement sur le plomb, le cuivre et le
+nickel — que la source distingue par un motif de prélèvement dédié (`CP`).
+
+**Et un garde-fou neuf, à ajouter à la note de dilution** : avant toute
+comparaison amont/aval, écrire le périmètre des **substances conservatives**.
+Les trihalométhanes se forment dans le réseau ; les comparer amont/aval produit
+un écart qui ne doit rien à la dilution.
+
+### 20.12 LE BANC D'ESSAI DILUTION — RÈGLE ÉCRITE, TEST INEXÉCUTABLE
+
+Livré le 13 août 2026 dans `data/etudes/dilution_avant_apres/echantillon/` :
+la note de sourçage, la table `perimetre_conservatif.csv`, les trois fiches de
+cas et le protocole. **Aucune valeur de mesure n'a été regardée** — la règle a
+été fixée avant les résultats, exprès.
+
+**Résultat central, et il est méthodologique : le test ne peut être exécuté
+sur aucun des trois cas.**
+
+| réseau | écart amont/aval | parts déclarées | panel commun | substances éligibles |
+|---|---|---|---|---|
+| Sault (84) | **0 jour** | 37 % | 422 | **0** |
+| Albi–Lescure (81) | 14 jours | **100 %** | 311 | **0** |
+| Mouans-Sartoux (06) | 29 jours | **0 %** | 203 | **0** |
+
+**La cause, et elle est structurelle** : là où deux prélèvements sont assez
+rapprochés pour décrire le même instant, **ils ne cherchent pas les substances
+qui permettraient de les comparer**. Sur Albi–Lescure, le bulletin aval à
+14 jours est un panel de micropolluants sans un seul minéral ; le seul bulletin
+aval portant les treize traceurs candidats est à **160 jours**. Simultanéité et
+traceurs s'excluent.
+
+**La table** : 79 substances instruites — `conservatif` **1**,
+`non_conservatif` 30, `a_verifier` 48. 22 lignes `verifie`, 57 `a_verifier`.
+
+- **seuls les nitrates** ressortent conservatifs, sur une étude qui mesure
+  exactement notre question (sortie d'usine contre robinet). **Deux réserves
+  écrites** : corpus danois, où l'on distribue sans désinfectant ; et le seul
+  mécanisme de formation en réseau, la nitrification, est borné par l'ammonium
+  et les nitrites — à regarder avant toute conclusion ;
+- **la dureté**, qui aurait été le meilleur traceur, est disqualifiée par la
+  source : au-delà d'environ 200 mg/L une eau dure dépose du tartre ;
+- **les minéraux** (chlorures, sodium, sulfates, calcium, alcalinité,
+  conductivité, fluorures, bore) : **aucune source lue** décrivant leur
+  comportement entre production et distribution, et trois mécanismes contraires
+  identifiés — l'hypochlorite de sodium apporte sodium et chlorures, l'équilibre
+  calco-carbonique déplace calcium et alcalinité, les sulfates peuvent être
+  réduits en anaérobie. **C'est LE verrou : il vide les trois périmètres.**
+
+**Deux écarts de comptage avec le §20.7, expliqués** : 226 réseaux à deux
+sources sous 100 % (contre 215) et 66 portant l'avant et l'après (contre 62),
+parce que la faisabilité ne regardait que le **dernier** bulletin de chaque
+installation. Et « moins de 30 jours » se lit de deux façons : 3 réseaux si
+chaque amont est à moins de 30 jours de l'aval, **2 seulement** si toutes les
+sources déclarantes doivent tenir dans la même fenêtre.
+
+**Un défaut du critère de sélection, à corriger** : Mouans-Sartoux n'entre dans
+la sélection que parce que `0 % < 100 %`. Ses cinq sources déclarent toutes
+`0 %`, sa source dominante à 85 % n'a aucun bulletin dans les trois années
+encadrant la fenêtre, et sa part a varié de 85 à 100 % dans le temps. **Une
+part à 0 % ne doit pas compter comme un mélange déclaré** tant que sa
+signification n'est pas établie (547 occurrences dans le corpus, §20.7).
+
+**Le protocole** porte deux critères. Le premier — un mélange ne peut pas
+sortir de l'intervalle de ses termes — **n'a besoin d'aucun seuil**, mais
+n'est valide que si les parts somment à 100 %, ce qui n'est vrai que
+d'Albi–Lescure. Le second, quantitatif, **n'a volontairement pas de valeur de
+seuil** : l'incertitude analytique n'est pas publiée par Hub'Eau. Chemin posé
+pour la mesurer sans inventer de chiffre — relever la dispersion d'une
+substance entre deux bulletins d'un même point espacés de moins de quinze
+jours. **Faisable sur le cache, sans un appel réseau.**
+
+**File d'attente du chantier, par ordre d'utilité** : (1) lever le verrou des
+minéraux par du sourçage ; (2) passer les 66 réseaux au crible des cinq
+conditions — aucun ne l'a été ; (3) mesurer le budget d'incertitude sur le
+cache ; (4) corriger le critère de sélection sur les parts à 0 %.
+
+**Indéterminés déclarés** : le sens de `debit = 0 %` ; le rattachement
+d'Aubignosc (04) au réseau de Sault (84) ; les 63 % d'origine inconnue de
+Sault ; la part analytique du budget d'incertitude ; et l'existence même d'un
+cas exploitable.
+
+### 20.13 ÉTAT AU 13 AOÛT, 13 h — ingestion finie, refigeage en cours
+
+**Ingestion PACA terminée** : 4 503 bulletins versés, verrou tenu 176 min, base
+rendue proprement. **Corpus : 25 297 analyses complètes** (20 794 avant).
+La barrière du §20.1 a fonctionné — le refigeage est parti seul à 12 h 28.
+
+**Refigeage en cours** : 3 792 / 25 297 à 13 h 30, ~5 h 50 annoncées par le
+script lui-même. Fin attendue **vers 18 h 30**. Base prise jusque-là.
+
+**L'indice de danger est documenté.** `docs/METHODE_EFFET_COCKTAIL.md` §4 porte
+désormais « Le calcul, ligne à ligne » : formule, exemple chiffré repris du
+contrôle automatique, les quatre filtres d'entrée, le choix du dénominateur et
+son exception « dans somme », et deux propriétés à dire (grille du jour et non
+grille applicable ; substance sans famille exclue). PDF dans `docs/pdf/`.
+La page Méthode du site porte la version publique — **écrite, pas encore
+publiée**, elle sortira à la republication de ce soir.
+
+**Défaut relevé au passage, non corrigé** : la règle de publication de ce
+document exige d'afficher « la part des seuils issus du référentiel daté
+plutôt que de la limite déclarée ». **Cette part n'est pas calculée** —
+`analyses_figees` ne porte que `indice_danger` et `indice_danger_n`. Corriger
+le moteur ou retirer la règle ; ne pas laisser une obligation d'affichage que
+rien n'alimente.
+
+### 20.14 LA FILE D'ATTENTE, ORDONNÉE — décision de méthode du 13 août
+
+Yannick : *« je veux bien cumuler, mais je veux rester focus et traiter les
+sujets un par un. »* Ordre proposé, un seul sujet actif à la fois.
+
+**0 — La chaîne de republication de ce soir.** Mécanique, aucune décision :
+purge des générations périmées de `couverture_communes` (quatre, §19.1) ; ajout
+des six départements PACA à `referentiel/departements_publies.csv` ;
+régénération des dossiers de faits ; `py -X utf8 site/build_site.py` ; puis
+vérifier une commune du Sicoval et une page de département.
+
+**1 — Panel réduit / marchés ARS.** *Le sujet éditorial le plus fort, et le
+plus avancé.* Seuil de 24 mois validé (421 communes). Reste : implémenter
+l'alerte (§20.3), le lot de 421 appels — **à passer après la republication**,
+la liste changeant avec PACA —, et la recherche documentaire de Yannick sur
+les marchés d'analyses de l'ARS Centre-Val de Loire (§19.5).
+
+**2 — Dilution.** Verrou identifié et unique : le statut conservatif des
+minéraux (§20.12). Trois chantiers derrière, dont le crible des 66 réseaux.
+
+**3 — Origine des seuils pesticides.** Ouvert le 13 août : la valeur est
+sourcée, sa **justification ne l'est pas**, et notre référentiel écrit « zéro
+de substitution » comme base en citant un texte qui ne le dit pas. Un article
+scientifique sur la dérivation du 0,1 µg/L dort dans les sources
+(`MET-02_Hamilton_seuil-0.1ugL-zero-substitution_2013.pdf`) — **jamais
+exploité, texte non extractible par `pdftotext`**, encodage de polices brouillé.
+
+**4 — La source data.gouv.fr et le risque d'injustice.** Le plus lourd de
+conséquences, le moins mûr (§20.11 point 4).
+
+**5 — Sourçage réglementaire, file existante** : les deux dichloroéthylènes,
+la ligne « prête à verser » du fréon 11 **à ne pas verser en l'état**, et
+l'écart 215/240 à réconcilier avant de citer un chiffre en public (§19.8).
+
+### 20.15 ALERTE PANEL RÉDUIT — essai sur trois communes, concluant
+
+Fait le 13 août sans ouvrir la base : les exports publiés sur le disque
+(`site/public/donnees/bulletins.csv` et `verdicts_<dept>.csv.gz`) suffisent à
+désigner les candidats. Scripts au scratchpad, non versionnés.
+
+**Pagination corrigée** : `src/etude_panel_reduit.py` passe de `size=1000` à
+`size=5000`, motif et mesure dans le code. **Mesuré en réel : 1 appel par
+commune** pour 1 128 à 2 175 lignes.
+
+**Le décompte des candidats à 24 mois — 254, et non 421.**
+
+| population | à 24 mois ou plus |
+|---|---|
+| communes ayant leur propre analyse complète (1 110) | **254** |
+| communes documentées par le bulletin de leur réseau (2 868) | **159** |
+| **total** | **413** |
+
+Le chiffre de 421 du §20.3 portait sur les deux populations réunies ; l'écart
+résiduel tient à la convention de calcul des mois. **La question éditoriale est
+là, non tranchée : l'alerte s'affiche-t-elle sur une commune qui n'a pas
+d'analyse à elle ?** Si oui, le texte doit dire que l'analyse est celle du
+réseau, pas de la commune.
+
+Parmi les 254 : **39 portaient au moins un dépassement** à leur dernière
+analyse complète, 215 aucun. Le 39 recoupe exactement le comptage du §20.3.
+
+**MON ERREUR, ATTRAPÉE ET CORRIGÉE — c'est celle du §19.10.** Le premier essai
+testait « ce paramètre a-t-il été mesuré depuis ? », test binaire déjà écarté
+par le projet le 12 août. Réclainville en est la démonstration : le binaire dit
+« rien d'abandonné », l'ancienneté dit que trois paramètres s'arrêtent au
+**11 septembre 2020, soit 71 mois**. Et ce 71 recoupe exactement le chiffre du
+§20.3 pour cette commune. **Toujours l'ancienneté de la dernière mesure,
+jamais un booléen.**
+
+**Les trois cas d'essai**, un appel chacun :
+
+- **Oinville-Saint-Liphard (28)** — dernière complète 09/09/2016, 651
+  paramètres, 119 mois. **34 contrôles depuis**, médiane 18 paramètres.
+  Atrazine, atrazine déséthyl et total des pesticides **jamais remesurés** ;
+  les nitrates le sont encore (04/2026) ;
+- **Réclainville (28)** — 29/09/2016, 651 paramètres, 118 mois. **41 contrôles
+  depuis**. Les trois mêmes s'arrêtent au 11/09/2020 (71 mois) ; nitrates
+  mesurés en 05/2026 ;
+- **Génat (09)** — 18/07/2016, 323 paramètres, 120 mois. **41 contrôles
+  depuis**. Le seul dépassement d'alors était bactériologique et **reste
+  mesuré** (02/2026) : aucun abandon. Cas témoin — l'alerte d'ancienneté doit
+  s'y afficher sans le complément sur les substances.
+
+**Coût du lot complet mesuré : 254 appels, ~2 minutes.** Les six départements
+PACA feront un second lot après la republication.
+
+### 20.16 LOT COMPLET DES 413 — et le constat change de nature
+
+Lot passé le 13 août : **413 communes, un appel chacune, 7 incidents réseau
+tous repris**. Décision de Yannick : les communes rattachées sont incluses,
+avec un texte qui nomme le réseau et le lieu du prélèvement. Sortie au
+scratchpad, `alerte_panel_reduit.csv`.
+
+**LA CHAÎNE COMPLÈTE, ET ELLE SE RESSERRE VITE**
+
+| étape | communes |
+|---|---|
+| analyse complète de 24 mois ou plus | **413** (254 propres + 159 rattachées) |
+| …qui portaient un dépassement à cette analyse | **40** |
+| …dont au moins une substance n'est plus mesurée depuis 24 mois | **23** |
+
+**23 communes sur 413, soit 5,6 %.** 22 avec analyse propre, **1 seule
+rattachée** — la décision d'inclure les 159 ajoute donc beaucoup d'alertes
+d'ancienneté et **un seul** cas de substance abandonnée. À savoir avant de
+présenter l'effet de cette décision.
+
+**LE PHÉNOMÈNE N'EST PAS GÉOGRAPHIQUE, IL EST CHIMIQUE — et cela remplace la
+précaution du §19.3.**
+
+| dept | candidats | avec un dépassement | avec abandon |
+|---|---|---|---|
+| 65 Hautes-Pyrénées | **136** | 1 | 0 |
+| 09 Ariège | **110** | 5 | 0 |
+| 31 Haute-Garonne | 46 | 3 | 0 |
+| **28 Eure-et-Loir** | **41** | **25** | **21** |
+| 12, 81, 71, autres | 80 | 6 | 2 |
+
+**L'Eure-et-Loir n'est pas le département le plus fourni en candidats — il est
+quatrième.** Les Hautes-Pyrénées en comptent trois fois plus et ne produisent
+aucun cas. L'explication « un territoire mieux documenté produit plus de cas »
+**ne tient pas ici** et ne doit plus être écrite telle quelle.
+
+**La cause est la nature de la substance dépassée** :
+
+- **en Eure-et-Loir** : atrazine déséthyl (15), total des pesticides (14),
+  nitrates (13), atrazine déséthyl déisopropyl (6), chlorothalonil R471811 (6) ;
+- **ailleurs, 17 des 20 dépassements sont bactériologiques** — coliformes (12),
+  entérocoques (3), *E. coli* (2).
+
+**Un dépassement bactériologique ne peut structurellement pas être abandonné :
+la bactériologie est dans TOUS les contrôles de routine.** Un dépassement de
+pesticide, lui, n'est mesuré que dans les analyses complètes — donc il
+disparaît avec elles. Sur les **trois** seuls dépassements de pesticides hors
+Eure-et-Loir, **deux** ont produit un abandon.
+
+**Formulation à tenir** : le phénomène suit la substance, pas le territoire. La
+Beauce ressort parce que c'est là que les dépassements de pesticides se
+produisent — pas parce qu'on y surveillerait moins.
+
+**LES CONTRÔLES CONTINUENT, ET C'EST MESURÉ** : **10 368 contrôles** sur les
+413 communes depuis leur dernière analyse complète, de 1 à 188, médiane 15.
+**Aucune commune n'est à zéro.** Taille médiane d'un contrôle : **18
+paramètres**, contre 651 pour une analyse complète de 2016.
+
+**55 abandons, 12 substances distinctes** : atrazine déséthyl (15), total des
+pesticides (14), atrazine déséthyl déisopropyl (6), atrazine (4), ESA
+métolachlore (4), chlorothalonil R471811 (4), puis la queue.
+
+**Les dix plus anciennes**, toutes en Eure-et-Loir : Oinville-Saint-Liphard
+(119 mois, 34 contrôles, 3 abandons), Réclainville (118, 41, 3), Dambron (109,
+36, 1), Gas (102, 70, 4), Nottonville (101, 30, 5), Villars (101, 34, 2),
+Varize (99, 28, 4), Louville-la-Chenard (95, 31, 3), Neuville-Saint-Denis (93,
+70, 2), Poinville (93, 25, 1).
+
+**Reste à faire** : le second lot pour les six départements PACA après la
+republication ; promouvoir les scripts du scratchpad dans `src/` ; écrire
+l'alerte elle-même.
+
+---
+
+## 21. Mise à jour du 13 août 2026, après-midi — audit de forme externe, phases A et B
+
+**Périmètre : la FORME, jamais le fond.** Ni les seuils, ni les dates
+d'applicabilité, ni l'angle éditorial, ni les choix de méthode réglementaire.
+Consigne appliquée : `docs/CONSIGNE_AUDIT_FORME.md`. Rapport rendu :
+`docs/AUDIT_FORME_2026-08-13.md`.
+
+**L'audit a été coupé en deux, et il faut savoir pourquoi.** `eau.duckdb` était
+tenue en écriture exclusive par `py -X utf8 src/ingerer.py --tous --refiger`,
+lancé à 11 h 26. DuckDB n'a qu'un seul écrivain : la base ne pouvait être
+ouverte par personne, pas même en lecture seule. L'auditeur a donc reçu
+l'interdiction nommée de toute commande touchant la base ou l'API Hub'Eau —
+motif : lancer `figer.py` ou `build_db.py` pendant un refigeage aurait détruit
+le travail en cours, exactement l'incident du §17.
+
+- **Menées** : phase A (lecture froide, sans aucune documentation), phase B
+  (écart annoncé / réel), axe 1 en lecture, axe 3 en entier sur le site déjà
+  servi en local, plus `tests/test_verdict.py` et `tests/test_figer.py` — lancés
+  après lecture de leur code confirmant qu'ils fabriquent une base temporaire.
+  L'auditeur rapporte 21 s cumulées ; **cette durée n'a pas été remesurée en
+  session principale.**
+- **Reportées, à mener quand la base sera rendue** : `tests/test_sorties.py`, le
+  build du site, le `diff` de deux builds successifs, la mesure du goulot sur une
+  unité réelle, l'épreuve du facteur 100. **Rien n'est armé pour les lancer** :
+  une surveillance de la libération de la base avait été posée, elle a été
+  annulée le 13 août 2026 à 15 h 20 sur décision de Yannick, qui a d'autres
+  travaux à mener d'abord. La phase C attend donc un feu vert explicite — elle
+  ne repartira pas d'elle-même, et l'audit reste incomplet sur l'axe 2, la
+  chaîne de production.
+
+### Ce qui a été revérifié en session principale, avec les chiffres mesurés
+
+**Le livrable ne tient pas ses propres invariants, et le contrôle qui l'attrape
+existe déjà.** Mesuré sur `site/public/donnees/index_communes.json` :
+
+```
+Entrees dans l'index      : 4144
+Entrees pointant une page : 3978
+LIENS MORTS (404)         : 23     → 100 % en dept 47
+```
+
+Les 23 portent toutes le statut affiché **« rattachée au réseau »** : elles sont
+donc annoncées au lecteur comme documentées, et rendent 404. Le contrôle qui
+couvre exactement ce cas est écrit — `tests/test_sorties.py:254-259` — et la
+publication ne l'exécute pas.
+
+**Aucune valeur mesurée n'atteint un lecteur sans JavaScript.** Mesuré sur les
+pages produites :
+
+```
+pages commune          : 3960
+pages avec <noscript>  : 0
+page témoin commune/28001.html : 397 Ko
+décimales hors <script> : 0,01 | 1.0 | 2.0
+```
+
+Les données sont bien dans le HTML, mais enfermées dans un `<script>`. Le seul
+`0,01` visible sans JS appartient à un paragraphe de garde-fou. La page de
+département, elle, écrit déjà son bloc de tête en dur.
+
+### Ce qui vient de l'auditeur et n'a PAS été revérifié
+
+La documentation décrirait un dépôt d'il y a quatre jours — 17 des 35 fichiers
+Python de production absents de l'arborescence du README, dont `site/publier.py`
+— et quatre implémentations du formatage de nombre coexisteraient avec trois
+précisions par défaut différentes. **À confirmer avant d'agir dessus.**
+
+### Les trois chantiers proposés, dans l'ordre, avec le premier geste
+
+- **A — refermer la boucle publication → contrôle.** Appeler
+  `tests/test_sorties.py` en tête de `site/publier.py:main()` et sortir en
+  erreur si le code de retour n'est pas 0.
+- **B — rendre la page de commune lisible sans JavaScript.** Écrire en dur le
+  bloc de tête (commune, date, trois verdicts, « n notés sur m », version) depuis
+  `d0`, `site/build_site.py:2123`.
+- **C — une seule commande pour ajouter un département.** Créer
+  `src/publier_departement.py` : refuser de continuer si `--termine` ne rend
+  pas 0, écrire la ligne dans `referentiel/departements_publies.csv`, puis
+  enchaîner figeage, build et contrôle. Cette étape n'est aujourd'hui écrite que
+  dans l'en-tête de ce CSV.
+
+**Aucun de ces constats n'est une décision prise** : l'auditeur diagnostique,
+l'arbitrage revient à Yannick.
+
+### 20.17 REPUBLICATION FAITE ET VÉRIFIÉE — 13 août, 19 h
+
+Chaîne automatique déclenchée seule à 18 h 17, une minute après la libération
+de la base. Journal : `data/journal/apres_refigeage_2026-08-13.log`.
+
+| étape | durée |
+|---|---|
+| refigeage complet | **396 min** — 25 297/25 297, aucune erreur |
+| dossiers de faits | **1 min** |
+| reconstruction du site | **42 min** (18 h 18 → 19 h 00) |
+
+**Débit mesuré de la reconstruction : 112 fiches/minute.** 4 924 fiches de
+commune, 1,2 Go. À reprendre pour toute estimation future.
+
+**Le corpus publié**, mesuré sur la page d'accueil reconstruite :
+
+| | 12 août | 13 août |
+|---|---|---|
+| communes documentées | 3 978 | **4 919** (dont 3 041 par leur réseau) |
+| analyses complètes | 12 644 | **25 284** |
+| bascules | 1 138 | **1 151** |
+| dépassements à la date | 454 | **572** |
+
+25 284 publiées contre 25 297 figées : les 13 manquantes sont les bulletins
+d'essai des départements non publiés. Cohérent.
+
+**LES QUATRE CHANGEMENTS DU JOUR, VÉRIFIÉS SUR LES PAGES RÉELLES**
+
+1. **Le tableau de département porte 9 colonnes** avec de vraies valeurs, et la
+   page **ne défile plus latéralement** — le tableau défile dans son cadre, nom
+   de commune collé à gauche. Vérifié sur l'Aveyron, 286 lignes.
+2. **Les deux nouvelles colonnes sont alimentées** : « hors de portée du
+   laboratoire » (compte + taux sur une seconde ligne grise, `display:block`
+   vérifié) et « statut hormonal » en trois nombres non additionnés.
+3. **Sicoval réparé.** Baziège porte désormais en sous-titre *« 31 · réseau
+   SICOVAL MONTAGNE NOIRE, analyse prélevée à Odars »*, et dans ses
+   métadonnées : réseau **SICOVAL MONTAGNE NOIRE**, gestionnaire **SICOVAL
+   AEP**, distributeur **SICOVAL**. Les trois sont enfin distingués.
+   La page de la Haute-Garonne titre **« Les réseaux de distribution — 143 »**
+   (l'ancien « Les gestionnaires déclarés » a disparu), chaque entrée nommant
+   son gestionnaire — 143 mentions.
+4. **La page Méthode porte le calcul de l'indice de danger**, exemple chiffré
+   compris (3,4667 sur trois substances).
+
+**DÉFAUT TROUVÉ À LA VÉRIFICATION — le site ne nettoie jamais son dossier de
+sortie.** Dix fichiers du 11 août survivent : les pages de département **01,
+15, 17, 22, 46** et les cinq fiches de commune qui les citent (01027, 15003,
+17415, 22266, 46040). Ces départements **ne sont pas publiés** ; ces pages
+portent une version de référentiel périmée et un corpus d'il y a deux jours.
+
+Elles ne sont **atteignables par aucun lien du site actuel** — chaque page de
+département périmée n'est citée que par sa fiche périmée, l'îlot est clos —
+mais elles restent servies à qui a l'URL. **Sévérité faible aujourd'hui,
+croissante à chaque campagne**, et une page qui affiche un estampillage périmé
+est exactement ce que la traçabilité du §8bis existe pour empêcher. À traiter :
+soit `build_site.py` nettoie, soit une purge du dossier avant reconstruction.
+
+**RESTE À FAIRE**, dans l'ordre : la purge des générations périmées (base
+libre, à faire maintenant que le site est vérifié) ; le second lot d'appels
+pour les communes PACA ; l'écriture de l'alerte.
+
+### 20.18 PURGE — la purge elle-même était aveugle, corrigée puis exécutée
+
+**`src/purger_versions.py` répondait « rien à purger » alors que quatre
+générations cohabitaient.** Cause : il énumérait les versions sur la seule
+`analyses_figees`. Or un refigeage complet réécrit cette table sous la version
+courante et y **fait disparaître les anciennes** — pendant que
+`couverture_communes` et `lq_corpus` gardent les leurs, orphelines et
+invisibles. C'est le point aveugle annoncé au §19.1, et il rendait l'outil
+inopérant exactement quand il servait.
+
+État constaté avant correction :
+
+| table | versions |
+|---|---|
+| `analyses_figees` | 1 |
+| `verdicts_figes` | 1 (10 097 257 lignes) |
+| `couverture_communes` | **4** |
+| `lq_corpus` | **3** |
+
+**Corrigé** : l'énumération porte sur **toutes** les tables estampillées, la
+date se prend là où elle existe (`verdicts_figes` n'a pas `calcule_le`), et
+l'affichage distingue une génération **orpheline** — plus aucun bulletin, mais
+des lignes ailleurs. Deux défauts de ma correction attrapés à l'exécution : la
+requête de date sur une table qui n'a pas la colonne, et un dépaquetage resté à
+trois valeurs dans le récapitulatif final. **Les suppressions, elles, avaient
+abouti** — c'est l'affichage de fin qui a échoué.
+
+**Exécuté** avec la règle du 10 août (`--garder 2`) : `435b9a089f1d` et
+`a74139a57d87` supprimées, **1 625 lignes**. Base 1 837 Mo avant et après : ces
+générations ne pesaient rien. **La place n'était pas l'enjeu — la cohérence
+l'était.**
+
+**Reste une anomalie, non traitée, décision de Yannick** : la génération
+conservée `f3e1d448101f` est **orpheline** — 3 983 lignes dans
+`couverture_communes` et `lq_corpus`, **aucun bulletin**. Elle ne peut donc
+servir de filet de sécurité, ce qui était la raison d'être de la règle « on
+garde une antérieure ». La règle a été écrite quand les générations
+antérieures étaient complètes ; elle ne décrit plus la situation. À trancher :
+`--garder 1` la supprimerait.
+
+**Suite, décision de Yannick du 13 août au soir : `--garder 1`.** La génération
+orpheline `f3e1d448101f` est supprimée à son tour (3 983 lignes).
+
+**La base ne porte plus qu'UNE génération, et elle est complète** — vérifié
+table par table après coup :
+
+| table | versions | lignes |
+|---|---|---|
+| `analyses_figees` | 1 | 25 297 |
+| `verdicts_figes` | 1 | 10 097 257 |
+| `couverture_communes` | 1 | 5 102 |
+| `lq_corpus` | 1 | 1 060 |
+
+**La règle « on garde la publiée et une antérieure » est donc suspendue de
+fait**, faute d'antérieure qui vaille. À réécrire quand une génération
+complète coexistera de nouveau : ce qui mérite d'être gardé, c'est une
+génération **avec ses bulletins**, pas une version au sens du numéro.
+
+### 20.19 L'ALERTE EST ÉCRITE ET CÂBLÉE — 13 août, 19 h 30
+
+**Le relevé** : `data/suivi_panel/alerte_panel_reduit.csv`, **559 communes**
+(398 avec analyse propre, 161 rattachées), un appel Hub'Eau chacune, deux lots.
+Incidents réseau repris automatiquement.
+
+**PACA n'apporte aucun cas d'abandon.** 146 candidats à 24 mois — 04 (55),
+05 (54), 06 (25), 83 (6), 84 (5), 13 (1) — et **zéro** substance abandonnée.
+Le total reste **23 communes sur 559** : 21 en Eure-et-Loir, 1 dans le Gers,
+1 en Tarn-et-Garonne. **Cela renforce le §20.16** : le phénomène suit la
+substance dépassée, pas le territoire ni la profondeur de collecte.
+
+**Le module** : `src/suivi_panel.py`. Il compose **le texte en Python**, pas
+dans le navigateur — les deux bandeaux voisins ont leur prose en dur dans
+`site/gabarits/fiche.js` et **aucun contrôle de sortie ne les relit**. La clé
+`alerte_panel` descend dans le JSON de la fiche via `sortie/build_fiche.py`.
+
+**Trois règles inscrites dans le code, pas seulement dans la note :**
+
+1. **sans le nombre de contrôles, aucune alerte** — l'ancienneté seule se lit
+   comme un abandon de surveillance, et ce serait faux ;
+2. **le bandeau est GRIS, jamais ambre** — l'ambre est la couleur d'un verdict
+   ici, et cette alerte n'en est pas un ;
+3. **le troisième paragraphe n'existe que s'il y a matière** — inventer un
+   manque serait un faux positif. 536 communes sur 559 reçoivent l'alerte
+   d'ancienneté sans liste de substances.
+
+**Vérifié dans le navigateur** sur une page réellement construite
+(Oinville-Saint-Liphard) : bandeau gris présent, cinq paragraphes, gras rendu,
+aucun marqueur `**` résiduel. Essai construit dans `site/public/_essai`, puis
+supprimé.
+
+**Reste ouvert** : ajouter la clé `alerte_panel` à la moisson de
+`tests/test_sorties.py`, sans quoi ce texte reste non contrôlé comme ses deux
+voisins — c'est le défaut qu'on vient d'éviter, il faut refermer la porte.
+Et les dix pages périmées du 11 août que le site ne nettoie pas (§20.17).
+
+### 20.20 REPUBLIÉ AVEC L'ALERTE — 13 août, 20 h 10, vérifié
+
+Reconstruction complète relancée à 19 h 27, terminée à 20 h 09 — **42 minutes**,
+exactement le même temps que la précédente. 6 pages, **17 pages de
+département**, **4 919 fiches**, 21 exports, **1 151 Mo**.
+Journal : `data/journal/republication_alerte_2026-08-13.log`.
+
+**558 fiches portent l'alerte** (559 au relevé ; l'écart est une commune sans
+page). Vérifié dans le navigateur sur deux cas réels :
+
+- **Oinville-Saint-Liphard** — analyse propre, 119 mois, trois substances
+  nommées, l'encart sur la somme des pesticides ;
+- **Les Autels-Villevillon** — commune **rattachée**, 35 mois : les deux
+  bandeaux cohabitent proprement, celui du réseau (« analyse empruntée ») puis
+  celui de l'ancienneté (« du réseau qui alimente cette commune »), et ils ne
+  se répètent pas.
+
+Fond gris confirmé (`rgb(232,236,239)`), aucun marqueur `**` résiduel.
+Une commune de PACA porte bien l'alerte d'ancienneté seule — 04009, 107 mois,
+sans liste de substances, ce qui est le comportement voulu.
+
+**LES DIX PAGES PÉRIMÉES DU 11 AOÛT SONT TOUJOURS LÀ** — deux reconstructions
+complètes n'y ont rien changé, ce qui confirme que le site n'efface jamais son
+dossier de sortie. Départements 01, 15, 17, 22, 46 et les cinq fiches qui les
+citent. **À traiter au prochain passage.**
+
+**ÉTAT DE LA JOURNÉE — tout ce qui était prévu est fait et vérifié** : PACA
+versé (25 297 bulletins), refigé, publié ; tableau de département réparé et
+enrichi de deux colonnes ; Sicoval corrigé sur 2 829 fiches et sur les pages de
+département ; calcul de l'indice de danger publié ; base purgée et ramenée à
+une seule génération complète ; alerte « analyse complète ancienne » conçue,
+sourcée, écrite, câblée et publiée sur 558 fiches.
+
+**FILE D'ATTENTE À LA REPRISE**, par ordre :
+
+1. **ajouter `alerte_panel` à la moisson de `tests/test_sorties.py`** — ce
+   texte est publié sur 558 fiches et rien ne le relit encore ; c'est le
+   défaut qu'on a voulu éviter, il reste ouvert d'un cran ;
+2. **le nettoyage du dossier de sortie** (les dix pages périmées) ;
+3. **la recherche documentaire sur les marchés d'analyses de l'ARS
+   Centre-Val de Loire** — le maillon qui transformerait l'hypothèse en fait,
+   et il n'est pas informatique ;
+4. la dilution, bloquée sur le sourçage des minéraux (§20.12) ;
+5. l'origine des seuils pesticides (§20.14 point 3) ;
+6. la source data.gouv.fr et le risque d'injustice sur le plomb (§20.11).
+
+---
+
+## 21. ÉTAT ACTUEL au 13 août 2026, 20 h 30 — À LIRE EN PREMIER
+
+**Cette section remplace le §19 en entier.** Le §20 raconte la journée du
+13 août dans le détail ; celle-ci porte l'état et la file d'attente.
+
+### 21.1 RIEN NE TOURNE — la base est libre, le site est à jour
+
+Aucun processus en cours. Aucune décision en attente de Yannick.
+
+- **Corpus : 25 297 analyses complètes**, 17 départements publiés
+  (28, 81, 69, 09, 31, 12, 32, 47, 65, 71, 82 + **04, 05, 06, 13, 83, 84**) ;
+- **Site republié et vérifié** à 20 h 09 : 4 919 fiches, 17 pages de
+  département, 1 151 Mo, version `d0fb678dcbe2` ;
+- **Base ramenée à UNE seule génération complète**, purgée dans les quatre
+  tables estampillées ;
+- **Le dépôt est désormais versionné** (branche `chantier-interface`) — ce
+  n'était pas le cas le 12 août. **Aucun dépôt distant** : `git push` est
+  impossible, la sauvegarde reste locale.
+
+### 21.2 LES COMMANDES QUI SERVENT
+
+```
+py -X utf8 src/moisson.py --depts 04,05 --tous      # réseau, base LIBRE
+py -X utf8 src/ingerer.py --depts 04,05 --sans-figer
+py -X utf8 src/ingerer.py --tous --refiger          # ~6 h 30 sur 25 000
+py -X utf8 src/purger_versions.py --garder 1 --faire
+py -X utf8 sortie/rediger_lot.py --dossiers
+py -X utf8 site/build_site.py                       # 42 min mesurées
+py -X utf8 src/relever_suivi_panel.py               # relevé de l'alerte
+py -X utf8 src/md_en_pdf.py <fichier.md> --sortie docs/pdf
+```
+
+**Durées mesurées le 13 août, à réutiliser** : ingestion **19 bulletins/min** ;
+refigeage **63 bulletins/min** (396 min sur 25 297) ; construction du site
+**112 fiches/min** (42 min) ; dossiers de faits **1 min** ; relevé de l'alerte
+**1 appel Hub'Eau par commune**, ~1,5 s.
+
+### 21.3 LA FILE D'ATTENTE — un sujet à la fois, décision de Yannick
+
+1. **Ajouter `alerte_panel` à la moisson de `tests/test_sorties.py`.** 558
+   fiches portent un texte que rien ne relit. Le texte est déjà en Python pour
+   ça (`src/suivi_panel.py`) — il ne manque que la moisson. **Petit, et c'est
+   la dette la plus fraîche.**
+2. **Le site n'efface jamais son dossier de sortie.** Dix pages du 11 août
+   survivent à deux reconstructions : départements 01, 15, 17, 22, 46 et les
+   cinq fiches qui les citent. Non publiés, estampillage périmé, inatteignables
+   par un lien mais servis à qui a l'URL.
+3. **La recherche documentaire de Yannick** — marchés d'analyses de l'ARS
+   Centre-Val de Loire (§19.5). **Le maillon qui transformerait l'hypothèse en
+   fait, et il n'est pas informatique.**
+4. **Dilution** — verrou unique et identifié : le statut conservatif des
+   minéraux (§20.12). Puis le crible des 66 réseaux portant l'amont et l'aval.
+5. **Origine des seuils pesticides** (§20.14 point 3) — la valeur est sourcée,
+   sa justification ne l'est pas, et notre référentiel écrit « zéro de
+   substitution » en citant un texte qui ne le dit pas.
+6. **La source data.gouv.fr** et le risque d'injustice sur le plomb (§20.11
+   point 4) — le plus lourd de conséquences, le moins mûr.
+
+### 21.4 CE QUI N'EST PAS À MOI, ET QUE JE N'AI PAS COMMITÉ
+
+`docs/AUDIT_FORME_2026-08-13.md` et `docs/CONSIGNE_AUDIT_FORME.md`, écrits par
+une autre session le 13 août à 14 h 38. **Laissés non suivis par git**
+volontairement : je ne les ai ni lus ni vérifiés. À intégrer par qui les a
+écrits, ou après relecture.
+
+### 21.5 LES TROIS PIÈGES DE LA JOURNÉE — à ne pas refaire
+
+- **Le test binaire « a-t-il été mesuré depuis »** rate les abandons. C'est
+  l'ancienneté de la dernière mesure qui fait foi. Réclainville ressortait
+  « rien d'abandonné » alors que trois substances s'arrêtent en 2020 ;
+- **un outil qui répond « rien à faire » se vérifie.** La purge disait « rien à
+  purger » avec quatre générations en base : elle ne regardait qu'une table ;
+- **un superlatif non compté est un faux.** « Le département le plus
+  profondément collecté » a circulé de note en note sans que personne ne le
+  compte — et il était faux.

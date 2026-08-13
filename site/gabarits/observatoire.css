@@ -102,6 +102,13 @@ a{color:var(--eau)} a:hover{color:var(--eau-deep)}
 .bandeau.reseau{background:#E9F1F5;border:1px solid #BCD3DF;color:#204a63}
 .bandeau.incomplet{background:var(--ambre-bg);border:1px solid #EAD9AE;color:#7a5209}
 .bandeau.nonredige{background:var(--gris-bg);border:1px solid #c8d2d8;color:#43535e}
+/* L'analyse complète est ancienne : GRIS, jamais ambre. L'ambre est la couleur
+   d'un verdict dans ce projet, et cette alerte n'en est pas un — elle dit
+   l'âge de ce qu'on sait, pas l'état de l'eau. Lui donner la couleur d'un
+   dépassement serait exactement le faux positif qu'on refuse. */
+.bandeau.panel{background:var(--gris-bg);border:1px solid #c8d2d8;color:#3a4a54}
+.bandeau.panel p{margin:6px 0 0}
+.bandeau.panel p:last-child{margin-bottom:0;font-size:12px;color:var(--ink-soft)}
 .bandeau b{font-weight:700}
 
 /* --- Sections ------------------------------------------------------------ */
@@ -591,7 +598,12 @@ tr.hors-recherche{display:none}
 /* En-têtes triables. La flèche indique le sens EN COURS, pas celui qu'on
    obtiendrait en cliquant — c'est l'état de la liste qu'on lit, pas une
    promesse. */
-.tableau-communes th.triable{cursor:pointer;user-select:none;white-space:nowrap}
+/* Les intitulés se replient sur deux lignes plutôt que d'étirer le tableau :
+   un titre de colonne écrit en clair est plus long qu'un mot de jargon, et
+   c'est le prix à payer pour qu'il se lise sans glossaire. La flèche de tri
+   reste collée au dernier mot. */
+.tableau-communes th.triable{cursor:pointer;user-select:none;
+  white-space:normal;max-width:11em;vertical-align:bottom}
 .tableau-communes th.triable:hover{color:var(--eau);text-decoration:underline}
 .tableau-communes th.triable::after{content:"↕";margin-left:6px;opacity:.4;font-weight:400}
 .tableau-communes th.triable[aria-sort="ascending"]::after{content:"↑";opacity:1;color:var(--eau)}
@@ -617,8 +629,47 @@ tr.hors-recherche{display:none}
    dépassements, bascules — sont celles qui portent l'information, et elles
    étaient purement et simplement coupées sur un écran étroit. */
 .tableau-communes{background:var(--card);border:1px solid var(--line);border-radius:12px;
-  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  /* L'ombre portée au bord droit dit qu'il reste des colonnes à voir. Sans
+     elle, le défilement horizontal existe mais rien ne l'annonce : le tableau
+     paraît simplement coupé, et les colonnes de droite — celles qui portent
+     l'information — passent pour absentes. Le dégradé s'efface de lui-même en
+     fin de course, sans une ligne de JavaScript. */
+  background-image:linear-gradient(to right, var(--card) 30%, rgba(255,255,255,0)),
+    linear-gradient(to left, var(--card) 30%, rgba(255,255,255,0)),
+    linear-gradient(to right, rgba(15,60,80,.16), rgba(15,60,80,0)),
+    linear-gradient(to left, rgba(15,60,80,.16), rgba(15,60,80,0));
+  background-position:left center, right center, left center, right center;
+  background-repeat:no-repeat;
+  background-size:40px 100%, 40px 100%, 14px 100%, 14px 100%;
+  background-attachment:local, local, scroll, scroll}
+
+/* Le tableau des communes déborde la colonne de texte, et il le doit : à neuf
+   colonnes il ne tient pas dans 960 px, alors que l'écran, lui, est plus
+   large. Il reste centré sur la même colonne — c'est la boîte qui s'élargit,
+   pas la page. */
+@media (min-width:1040px){
+  .tableau-communes.large{width:min(96vw, 1560px);
+    margin-left:calc(50% - min(48vw, 780px))}
+}
 .tableau-communes table{font-size:13px;min-width:760px}
+
+/* Le nom de la commune reste visible quand on fait défiler vers les colonnes
+   de droite : sans lui, on lit une ligne de chiffres sans savoir de qui elle
+   parle. */
+.tableau-communes.large th:first-child,
+.tableau-communes.large td:first-child{position:sticky;left:0;z-index:2;
+  background:var(--card)}
+.tableau-communes.large tr:target td:first-child{background:var(--ambre-bg)}
+
+/* Les trois registres hormonaux, côte à côte et lisibles d'un coup d'œil. Ils
+   ne sont jamais additionnés à l'écran (CLAUDE.md §2.6 et §2.15) : trois
+   nombres, trois registres, et le séparateur dit qu'ils ne se somment pas. */
+.hormo{white-space:nowrap}
+.hormo .h-sep{color:var(--line);margin:0 4px;font-weight:400}
+.hormo .h-av{color:var(--rouge)}
+.hormo .h-su{color:var(--ambre)}
+.hormo .h-nd{color:var(--gris)}
 .tableau-communes td a{font-weight:600;text-decoration:none}
 .tableau-communes .st{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
   padding:2px 8px;border-radius:999px;white-space:nowrap}

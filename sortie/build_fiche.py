@@ -46,6 +46,7 @@ sys.path.insert(0, ICI)
 from common import DB_PATH  # noqa: E402
 import indicateurs as IND  # noqa: E402
 import rediger  # noqa: E402
+import suivi_panel as SP  # noqa: E402
 
 def version_a_publier(con):
     """
@@ -498,13 +499,22 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
     return {
         "name": a["commune"],
         "insee": a["code_insee"],
-        "sub": ((f"{a['dept']} · eau du réseau {a['nom_uge'] or ''}, "
+        # Le sous-titre nomme le RÉSEAU, pas le gestionnaire. Corrigé le 13 août
+        # 2026, sur décision de Yannick : il écrivait « eau du réseau
+        # <nom_uge> », or `nom_uge` est l'exploitant. Un habitant de Baziège
+        # lisait « eau du réseau SICOVAL AEP » alors qu'il est sur SICOVAL
+        # MONTAGNE NOIRE, et rien sur la fiche ne le lui apprenait. La phrase
+        # était sur 2 829 fiches. Le gestionnaire n'est pas perdu — il descend
+        # dans les métadonnées, à sa place et sous son vrai nom.
+        "sub": ((f"{a['dept']} · réseau {a['noms_reseaux'] or a['nom_uge'] or ''}, "
                  f"analyse prélevée à {emprunt}") if emprunt
                 else (r.get("sous_titre")
-                      or f"{a['dept']} · {a['nom_uge'] or a['noms_reseaux'] or ''}")),
+                      or f"{a['dept']} · {a['noms_reseaux'] or a['nom_uge'] or ''}")),
         "dot": niv,
         "kpi": kpi,
         "meta": [
+            ["Réseau de distribution", a["noms_reseaux"] or "—"],
+            ["Gestionnaire", a["nom_uge"] or "—"],
             ["Distributeur", a["nom_distributeur"] or "—"],
             ["Ressource", a["nom_installation_amont"] or "—"],
             ["Prélèvement", _date_fr(a["date_prelevement"])
@@ -556,6 +566,12 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
         # le bloc le dit ; le sens « en dessous » est celui de l'eau agressive.
         "references": IND.hors_references(con, a, version),
         "pe": IND.perturbateurs(con, a, version),
+        # L'alerte « analyse complète ancienne » — texte composé en Python et
+        # non dans le navigateur, pour qu'il soit relisible par le contrôle des
+        # sorties. Absente quand la dernière analyse complète a moins de deux
+        # ans, ou quand on ne sait pas combien de contrôles ont eu lieu depuis :
+        # l'ancienneté seule se lirait comme un abandon de surveillance.
+        "alerte_panel": SP.alerte(a["code_insee"]),
         # Ce que le laboratoire ne pouvait pas voir : la mention au paramètre,
         # le taux au bulletin, et le barème qui situe cette LQ dans le corpus
         # (chantier C4). Absent quand le bulletin n'a aucun paramètre aveugle.

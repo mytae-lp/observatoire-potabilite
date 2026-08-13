@@ -911,6 +911,23 @@ function render(k){
       + " sur le réseau qui alimente les deux communes."));
     bx.appendChild(b);
   }
+  /* L'analyse complète est ancienne. Le texte vient TOUT FAIT de Python
+     (src/suivi_panel.py) : rien n'est rédigé ici. C'est délibéré — les deux
+     bandeaux voisins ont leur prose en dur dans ce fichier, donc aucun
+     contrôle de sortie ne les relit, et on ne recommence pas. Le gras est
+     porté par **…**, seule mise en forme admise dans ce texte. */
+  if(d.alerte_panel){
+    const a2 = d.alerte_panel;
+    const b = el("div", "bandeau panel");
+    b.appendChild(txt("span", "ic", "◷"));
+    const corps = el("div", null, "<b>" + a2.titre + "</b>");
+    (a2.paragraphes || []).forEach(function(p){
+      corps.appendChild(el("p", null,
+        p.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")));
+    });
+    b.appendChild(corps);
+    bx.appendChild(b);
+  }
   if(!d.complet){
     const b = el("div", "bandeau incomplet");
     b.appendChild(txt("span", "ic", "⚠"));

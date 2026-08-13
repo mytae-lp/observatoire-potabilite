@@ -135,8 +135,14 @@ def resultats(insee, depuis):
 
     lignes, url, page = [], None, 1
     while True:
+        # `size=5000`, et non 1000 : mesuré le 13 août 2026 sur 37 réponses
+        # réelles, une commune rend 1 233 lignes en moyenne — donc UNE page à
+        # 5 000, contre deux à quatre à 1 000. La pagination à 1 000 demandait
+        # 76 % d'appels de trop à un service public gratuit, ce qui est notre
+        # propre règle d'étiquette non respectée (CLAUDE.md §3.2 : pagination
+        # maximale). La documentation Hub'Eau annonce 20 000 en maximum.
         u = url or (f"{API}?code_commune={insee}"
-                    f"&date_min_prelevement={depuis}&size=1000&page={page}")
+                    f"&date_min_prelevement={depuis}&size=5000&page={page}")
         d = appel(u)
         lignes += d.get("data") or []
         if not d.get("next"):

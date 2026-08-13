@@ -154,33 +154,107 @@ réseaux seulement portent un mélange dont toutes les parts sont connues *et*
 dont plusieurs sources sont analysées. À cette échelle, aucun motif ne se lit ;
 c'est le chantier C6 qui donnera le volume.
 
+### Recompté le 13 août 2026 — le terrain n'est plus petit
+
+Le corpus a été multiplié par plus de cinq depuis. Sur le cache brut entier
+(25 293 bulletins), même logique de décomposition, reproduite hors base :
+
+| Statut | Réseaux |
+|---|---|
+| `source_unique_declaree` | 3 099 |
+| `melange_reconstitue` | 186 |
+| `non_declare` | 75 |
+| `incoherent` | 69 |
+| `melange_partiel` | 58 |
+| **total** | **3 487** |
+
+**279 réseaux portent un mélange lisible, dans 19 départements** — contre 6 sur
+42 au 8 août. Le tableau des six réseaux ci-dessus reste exact pour son
+échantillon ; il ne décrit plus le corpus.
+
+À vérifier, relevé au passage : la valeur `debit = "0 %"` apparaît **547 fois**
+et n'est documentée nulle part. Ce n'est ni une part connue ni une part
+absente — troisième cas, `a_verifier`.
+
 ---
 
-## 4. La question non tranchée, et elle est centrale
+## 4. TRANCHÉ le 13 août 2026 — et pas par le champ qu'on regardait
 
 **Où, dans le réseau, le prélèvement a-t-il été fait ?**
 
-Toute la portée de ce chantier en dépend, et la donnée ne le dit pas.
-`code_lieu_analyse` vaut `L` sur les 45 bulletins du corpus — une seule valeur,
-donc aucune information. L'endpoint est celui de l'eau **distribuée**.
+Toute la portée de ce chantier en dépendait. **La question est résolue par la
+documentation officielle**, et la section qui suit remplace entièrement la
+précédente. Détail, comptages et scripts :
+`data/etudes/dilution_avant_apres/FAISABILITE_2026-08-13.md`.
 
-Deux lectures possibles, et elles ne mènent pas au même endroit :
+### Ce qui était faux : `code_lieu_analyse` ne dit pas où l'eau a été prise
 
-- si le prélèvement est fait **après** le point de mélange, alors un bulletin
-  d'un réseau mélangé décrit **déjà la moyenne**. On ne verra jamais le captage
-  dégradé, seulement son effet dilué — et l'hypothèse de Yannick est exactement
-  celle-là, mais elle devient **indémontrable avec ces seules données** ;
-- si le prélèvement est rattaché à son installation amont parce qu'il est fait
-  **en amont du mélange**, alors deux bulletins d'un même réseau décrivent deux
-  eaux différentes, et la comparaison a un sens.
+Ce document affirmait que ce champ vaut `L` partout, donc qu'il ne porte
+aucune information. **La conclusion était juste pour la mauvaise raison, et la
+prémisse était fausse.** La documentation Hub'Eau, verbatim :
 
-Le fait que l'ARS attache chaque prélèvement à **une** installation amont
-plaide pour la seconde lecture ; ce n'est pas une preuve. **Tant que ce point
-n'est pas tranché, aucune conclusion de dilution ne doit être publiée** — la
-comparaison entre sources reste un matériau d'étude.
+> « Code SISE-Eaux du lieu de l'**analyse** : terrain (T) ou laboratoire (L) »
 
-Ce qu'il faudrait pour trancher : la nomenclature SISE-Eaux du lieu d'analyse,
-ou une réponse de l'ARS. Aucune des deux n'est dans le dépôt.
+C'est **où la mesure a été faite**, pas où l'eau a été prélevée. Sur les 25 293
+bulletins du cache et leurs 10 111 697 lignes : `L` 9 997 172, `T` 114 525,
+aucune autre valeur — et **97,6 % des bulletins portent les deux à la fois**,
+parce que c'est un champ de maille *résultat*, pas *prélèvement*. Les 21
+paramètres en `T` sont exactement ceux qu'on mesure sur place : température,
+pH, chlore, conductivité.
+
+**Conséquence pratique** : `prelevements.code_lieu_analyse` (`src/hubeau.py`)
+enregistre la valeur de la **première ligne** du bulletin, donc une valeur
+arbitraire pour 97,6 % d'entre eux. Inoffensif aujourd'hui — aucune vue ne la
+lit — mais à ne pas exploiter en l'état.
+
+### Ce qui répond : `code_installation_amont`, déjà collecté et déjà en base
+
+Deux sources officielles, qui se recoupent dans les deux sens :
+
+- Hub'Eau : *« Renseigné lorsque le prélèvement a été réalisé sur une
+  installation en amont de l'unité de distribution »* ;
+- data.gouv.fr : *« Lorsque les prélèvements ont été effectivement réalisés sur
+  l'UDI concernée, ces champs sont vides. »*
+
+Contrôle interne **parfait** sur le corpus : sur 25 293 bulletins, **aucun**
+bulletin dépourvu d'installation amont ne porte de part de débit. Corroboré par
+la géographie : 97,9 % des installations ayant au moins 5 bulletins les ont
+tous prélevés dans une seule commune.
+
+**Donc : un bulletin porte une installation amont = il est pris AVANT le
+mélange. Il n'en porte pas = il est pris sur l'unité de distribution, APRÈS.**
+
+### Ce que le corpus contient réellement
+
+| | bulletins | part |
+|---|---|---|
+| en amont du mélange | 24 209 | 95,7 % |
+| en aval, sur l'unité de distribution | 1 084 | 4,3 % |
+
+**62 réseaux portent les deux**, dans 15 départements. Mais **3 seulement** ont
+un amont et un aval séparés de moins de 30 jours.
+
+Réserve à conserver : « amont » couvre le captage **et** l'usine de production
+sans les distinguer. Un mélange interne à l'usine reste invisible.
+
+### Le verrou a bougé, il n'a pas disparu
+
+**L'arithmétique du mélange ne se referme pas.** Albi–Lescure, mélange 85/15
+entièrement reconstitué : nitrates à 4,5 et 3,3 mg/L en amont, **9,0 mg/L** sur
+l'unité de distribution. Aucun mélange observé ne dépasse son terme le plus
+chargé.
+
+Deux causes de statut très inégal : les trihalométhanes **se forment dans le
+réseau**, c'est attendu et documenté ; les nitrates, non — il manque donc une
+entrée au bilan, ou les 160 jours d'écart séparent deux régimes
+d'exploitation.
+
+**C'est un résultat de méthode, et il est contraignant : une comparaison brute
+amont/aval produirait des chiffres faux.** Avant toute conclusion il faut
+écrire le périmètre des **substances conservatives** — celles qui ne se forment
+ni ne se dégradent dans le réseau — sourcé substance par substance (§2.7).
+Tant que ce périmètre n'est pas écrit, **aucune conclusion de dilution ne se
+publie** : la comparaison entre sources reste un matériau d'étude.
 
 ---
 

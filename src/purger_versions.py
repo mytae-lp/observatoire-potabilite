@@ -40,11 +40,43 @@ TABLES = ("verdicts_figes", "analyses_figees", "couverture_communes", "lq_corpus
 
 
 def etat(con):
-    """[(version, date de calcul, bulletins)] — la plus récente d'abord."""
-    return con.execute("""
-        SELECT version_referentiel, MAX(calcule_le), COUNT(*)
-        FROM analyses_figees GROUP BY 1 ORDER BY MAX(calcule_le) DESC, 1
-    """).fetchall()
+    """
+    [(version, date de calcul, bulletins, lignes ailleurs)] — la plus récente
+    d'abord.
+
+    **Les versions s'énumèrent sur TOUTES les tables estampillées, pas sur la
+    seule `analyses_figees`.** Corrigé le 13 août 2026, après que la purge eut
+    répondu « rien à purger » alors que `couverture_communes` portait quatre
+    générations et `lq_corpus` trois. La cause : un refigeage complet réécrit
+    `analyses_figees` sous la version courante et fait disparaître les
+    anciennes de CETTE table — mais les autres gardent les leurs, orphelines et
+    invisibles à qui ne regarde que la première. C'est le point aveugle relevé
+    au §19.1 de `docs/REPRISE.md`, et il rendait la purge inopérante
+    précisément quand elle servait.
+    """
+    vues = {}
+    for t in TABLES:
+        try:
+            # Toutes ne portent pas `calcule_le` — `verdicts_figes` ne l'a pas,
+            # la date vient alors d'une autre table de la même version.
+            cols = {r[0] for r in con.execute(f"DESCRIBE {t}").fetchall()}
+            quand = "MAX(calcule_le)" if "calcule_le" in cols else "NULL"
+            for v, d, n in con.execute(f"""
+                SELECT version_referentiel, {quand}, COUNT(*)
+                FROM {t} GROUP BY 1
+            """).fetchall():
+                e = vues.setdefault(v, {"date": d, "bulletins": 0, "ailleurs": 0})
+                if d and (not e["date"] or d > e["date"]):
+                    e["date"] = d
+                if t == "analyses_figees":
+                    e["bulletins"] = n
+                else:
+                    e["ailleurs"] += n
+        except duckdb.CatalogException:
+            pass              # une table peut ne pas exister sur un corpus ancien
+    return sorted(((v, e["date"], e["bulletins"], e["ailleurs"])
+                   for v, e in vues.items()),
+                  key=lambda r: (r[1] or "", r[0]), reverse=True)
 
 
 def main():
@@ -72,10 +104,15 @@ def main():
 
         taille = os.path.getsize(DB_PATH) / 1024 / 1024
         print(f"base : {taille:.0f} Mo · {len(versions)} version(s) figée(s)\n")
-        for v, d, n in lignes:
+        for v, d, n, ailleurs in lignes:
             marque = ("PUBLIÉE" if v == courante else
                       "conservée" if v in garder else "à supprimer")
-            print(f"  {v}  {d}  {n:>5} bulletin(s)  — {marque}")
+            # Une génération orpheline n'a plus de bulletin mais garde des
+            # lignes ailleurs : c'est exactement ce que l'ancienne énumération
+            # ne voyait pas. La distinguer à l'affichage.
+            quoi = (f"{n:>5} bulletin(s)" if n else "    — orpheline")
+            print(f"  {v}  {d}  {quoi} + {ailleurs:>5} ligne(s) "
+                  f"ailleurs  — {marque}")
 
         if not jeter:
             print("\nrien à purger.")
@@ -102,8 +139,8 @@ def main():
         apres = os.path.getsize(DB_PATH) / 1024 / 1024
         print(f"\nbase : {taille:.0f} Mo -> {apres:.0f} Mo")
         print("versions restantes :")
-        for v, d, n in etat(con):
-            print(f"  {v}  {d}  {n} bulletin(s)")
+        for v, d, n, ailleurs in etat(con):
+            print(f"  {v}  {d}  {n} bulletin(s) + {ailleurs} ligne(s) ailleurs")
     finally:
         con.close()
 

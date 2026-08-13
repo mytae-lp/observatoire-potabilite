@@ -63,7 +63,12 @@ def navigateur():
 
 def convertir(md, sortie, nav):
     base = os.path.splitext(os.path.basename(md))[0]
-    pdf = os.path.join(sortie, base + ".pdf")
+    # Chemin ABSOLU, et ce n'est pas cosmétique : le navigateur sans interface
+    # n'écrit pas dans un chemin relatif — il ne partage pas notre répertoire
+    # courant et échoue avec « le chemin d'accès spécifié est introuvable »,
+    # sans lever d'erreur au retour. Le script rapportait alors « pas de PDF
+    # produit » sans dire pourquoi. Trouvé le 13 août 2026.
+    pdf = os.path.abspath(os.path.join(sortie, base + ".pdf"))
     with tempfile.TemporaryDirectory() as tmp:
         css = os.path.join(tmp, "s.css")
         with open(css, "w", encoding="utf-8") as f:

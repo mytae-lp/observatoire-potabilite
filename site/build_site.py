@@ -57,6 +57,7 @@ sys.path.insert(0, os.path.join(RACINE, "sortie"))
 from common import DB_PATH, SEUIL_COMPLET, departements_publies  # noqa: E402
 import build_fiche as BF  # noqa: E402
 import dossier_page as DP  # noqa: E402
+import indicateurs as IND  # noqa: E402
 
 GEOJSON = os.path.join(RACINE, "referentiel", "geo", "departements-simplifie.geojson")
 REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
@@ -290,7 +291,22 @@ def corpus(con, version):
                a.classe_effort, a.depassements_pour_mille,
                a.nb_synthese_quantifiees, a.charge_synthese_ug_l,
                a.indice_danger, a.indice_danger_n, a.est_complet,
-               a.nb_mesures_notees, a.nb_mesures_lues, a.nom_uge
+               a.nb_mesures_notees, a.nb_mesures_lues, a.nom_uge,
+               -- Le réseau réellement déclaré avec le bulletin. `nom_uge` est le
+               -- GESTIONNAIRE : deux communes qui le partagent ne boivent pas
+               -- forcément la même eau, et le rattachement, lui, s'est fait par
+               -- réseau (`collecte.py`). Grouper sur le gestionnaire faisait
+               -- donc afficher un regroupement que la donnée ne dit pas.
+               a.noms_reseaux,
+               -- Le plafond analytique du bulletin (§8bis obligation 11) : ce
+               -- que le laboratoire ne pouvait pas voir. Il était calculé,
+               -- figé, affiché sur la fiche — et absent de la liste, c'est-à-
+               -- dire de l'endroit où l'on compare les communes entre elles.
+               a.nb_aveugles, a.aveugles_pour_mille,
+               -- La clé du bulletin retenu : elle sert à rattacher les comptes
+               -- par registre hormonal, calculés en une requête pour tout le
+               -- corpus plutôt qu'une par commune.
+               cc.code_prelevement
         FROM couverture_communes cc
         LEFT JOIN analyses_figees a
                ON a.code_prelevement = cc.code_prelevement
@@ -850,6 +866,33 @@ def _initiale(nom):
     return n[0] if n and n[0].isalpha() else "#"
 
 
+def _cellule_hormonale(g):
+    """
+    Les trois registres hormonaux d'une commune, côte à côte et **jamais
+    additionnés à l'écran** (§2.6, §2.15).
+
+    Le total existe comme clé de tri — c'est ce qui permet de remonter en
+    quelques secondes les communes les plus chargées — mais il ne s'affiche
+    pas comme un fait : « 17 perturbateurs endocriniens » réunirait sous un
+    même mot une substance reconnue par le droit européen, une substance que
+    la littérature soupçonne, et une substance dont la question n'a jamais été
+    instruite. Les deux dernières ne sont pas des perturbateurs avérés ; la
+    troisième n'est même pas un « non ». Les fondre en un chiffre serait le
+    faux positif que le troisième état sert précisément à éviter.
+    """
+    if not g:
+        return "<td class='num hormo'>—</td>"
+    return (f"<td class='num hormo'>"
+            f"<b class='h-av' title=\"statut avéré au sens du droit européen\">"
+            f"{g['avere']}</b>"
+            f"<span class='h-sep'>·</span>"
+            f"<b class='h-su' title=\"suspecté par la littérature scientifique, "
+            f"sans statut réglementaire\">{g['suspecte']}</b>"
+            f"<span class='h-sep'>·</span>"
+            f"<b class='h-nd' title=\"question non instruite au référentiel — "
+            f"ce n'est pas un « non »\">{g['non_documente']}</b></td>")
+
+
 def _ligne_commune(c, prefixe="", avec_dept=True, ancre=None):
     """Une ligne de commune, la même partout — liste nationale, page de
     département, résultat de recherche. Elle porte toujours son effort de
@@ -860,7 +903,7 @@ def _ligne_commune(c, prefixe="", avec_dept=True, ancre=None):
     nom = (f"<a href='{url}'>{h(c['commune'])}</a>"
            if c["statut"] != "non_documentee" else h(c["commune"]))
     if c["statut"] == "non_documentee":
-        detail = ("<td colspan='5' style='color:var(--gris)'>aucun bulletin complet, "
+        detail = ("<td colspan='7' style='color:var(--gris)'>aucun bulletin complet, "
                   "ni pour la commune ni pour son réseau</td>")
     else:
         emprunt = (f"<span class='grille'>prélevé à {h(c['commune_prelevement'])}</span>"
@@ -872,7 +915,14 @@ def _ligne_commune(c, prefixe="", avec_dept=True, ancre=None):
             f"<span class='grille'>{BF._nb(c['pct_couverture'])} % de couverture</span></td>"
             f"<td class='num'>{c['nb_depasse_applicable'] if c['nb_depasse_applicable'] is not None else '—'}"
             f"<span class='grille'>{BF._nb(c['depassements_pour_mille'])} ‰</span></td>"
-            f"<td class='num'><b style='color:var(--bascule)'>{c['nb_bascules'] if c['nb_bascules'] is not None else '—'}</b></td>")
+            f"<td class='num'><b style='color:var(--bascule)'>{c['nb_bascules'] if c['nb_bascules'] is not None else '—'}</b></td>"
+            # Ce que le laboratoire ne pouvait pas voir (§8bis obligation 11).
+            # Le taux accompagne le compte : un bulletin qui cherche 700
+            # paramètres en aura mécaniquement plus qu'un qui en cherche 200,
+            # et le compte brut ne se compare pas d'une commune à l'autre.
+            f"<td class='num'>{c['nb_aveugles'] if c.get('nb_aveugles') is not None else '—'}"
+            f"<span class='grille'>{BF._nb(c.get('aveugles_pour_mille'))} ‰</span></td>"
+            f"{_cellule_hormonale(c.get('hormonal'))}")
     col_dept = (f"<td><a href='{prefixe}departement/{h(c['dept'])}.html'>{h(c['dept'])}</a></td>"
                 if avec_dept else "")
 
@@ -894,6 +944,12 @@ def _ligne_commune(c, prefixe="", avec_dept=True, ancre=None):
             f"data-depassements='{cle(c['nb_depasse_applicable'])}' "
             f"data-taux='{cle(c['depassements_pour_mille'])}' "
             f"data-bascules='{cle(c['nb_bascules'])}' "
+            f"data-aveugles='{cle(c.get('nb_aveugles'))}' "
+            # La somme des trois registres : clé de tri, jamais énoncé. Voir
+            # `_cellule_hormonale`. Sans bulletin, -1 et non 0 — « aucune
+            # substance trouvée » et « on n'a pas cherché » ne se rangent pas
+            # ensemble.
+            f"data-hormonal='{-1 if not c.get('hormonal') else sum(c['hormonal'].values())}' "
             f"data-date='{h(c['date_prelevement'] or '')}'>"
             f"<td>{nom}<span class='grille'>INSEE {h(c['code_insee'])}</span></td>"
             f"{col_dept}"
@@ -1125,32 +1181,65 @@ def page_departement(dept, communes, version, calcule_le):
     svg = carte_svg(communes, largeur=1200, depts={dept}, prefixe="../", rayon=4)
     n = {k: sum(1 for c in communes if c["niveau"] == k) for k in DOT}
 
-    # Les gestionnaires déclarés par la source. `nom_uge` est le nom du
-    # gestionnaire, pas celui de l'unité de distribution : deux communes qui
-    # partagent un gestionnaire ne boivent pas nécessairement la même eau. Le
-    # bloc le dit plutôt que de laisser le regroupement le suggérer.
-    uge = {}
+    # Le regroupement se fait par RÉSEAU RÉEL, décision de Yannick du 13 août
+    # 2026. Il se faisait sur `nom_uge`, qui est le GESTIONNAIRE — et le
+    # regroupement affiché n'était alors pas celui qui avait servi à rattacher
+    # la commune à son bulletin (`collecte.py` retient un `code_reseau`).
+    # Mesuré le 13 août : 135 groupes sur 505 réunissaient des communes qui ne
+    # sont pas sur le même réseau, soit 2 653 communes. Le cas qui l'a montré :
+    # « SICOVAL AEP — 35 communes » recouvrait quatre configurations de réseau,
+    # et Venerque, qui ne déclare jamais ce gestionnaire, y figurait quand même.
+    reseaux, sans_reseau = {}, []
     for c in communes:
-        if c["statut"] == "non_documentee" or not c["nom_uge"]:
+        if c["statut"] == "non_documentee":
             continue
-        uge.setdefault(c["nom_uge"], []).append(c)
+        nom = (c.get("noms_reseaux") or "").strip()
+        if not nom:
+            # Troisième état : le bulletin ne déclare aucun réseau. Le ranger
+            # sous son gestionnaire serait affirmer un rattachement que la
+            # source ne donne pas.
+            if c["nom_uge"]:
+                sans_reseau.append(c)
+            continue
+        reseaux.setdefault(nom, []).append(c)
+
+    def _item(nom, cs):
+        # Les gestionnaires déclarés pour ce réseau : le plus souvent un seul.
+        # Il est nommé, mais il ne commande plus le regroupement.
+        gest = sorted({c["nom_uge"] for c in cs if c["nom_uge"]})
+        mention = (f" <span class='grille'>gestionnaire : {h(', '.join(gest))}</span>"
+                   if gest else "")
+        return (f"<li><b>{h(nom)}</b> — {len(cs)} commune(s) : "
+                + ", ".join(f"<a href='../commune/{h(c['code_insee'])}.html'>{h(c['commune'])}</a>"
+                            for c in sorted(cs, key=lambda x: x["commune"]))
+                + mention
+                + f"<span class='grille'>effort de recherche : {h(_etendue_effort(cs))} paramètres</span></li>")
+
     bloc_uge = ""
-    if uge:
-        items = "".join(
-            f"<li><b>{h(nom)}</b> — {len(cs)} commune(s) : "
-            + ", ".join(f"<a href='../commune/{h(c['code_insee'])}.html'>{h(c['commune'])}</a>"
-                        for c in sorted(cs, key=lambda x: x["commune"]))
-            + f"<span class='grille'>effort de recherche : {h(_etendue_effort(cs))} paramètres</span></li>"
-            for nom, cs in sorted(uge.items()))
+    if reseaux:
+        items = "".join(_item(nom, cs) for nom, cs in sorted(reseaux.items()))
+        reste = ""
+        if sans_reseau:
+            noms = ", ".join(
+                f"<a href='../commune/{h(c['code_insee'])}.html'>{h(c['commune'])}</a>"
+                for c in sorted(sans_reseau, key=lambda x: x["commune"]))
+            reste = f"""
+    <div class="rappel"><b>{len(sans_reseau)} commune(s) sans réseau déclaré</b> :
+      {noms}. Le bulletin qui les documente ne nomme aucun réseau de distribution.
+      Elles ne sont rangées sous aucun groupe plutôt que sous celui de leur
+      gestionnaire : ce serait affirmer un rattachement que la source ne donne pas.</div>"""
         bloc_uge = f"""
-  <section><h3 class="sec">Les gestionnaires déclarés — {len(uge)}</h3>
+  <section><h3 class="sec">Les réseaux de distribution — {len(reseaux)}</h3>
     <div class="prose"><ul>{items}</ul></div>
-    <div class="rappel"><b>Ce regroupement est celui du gestionnaire, pas celui de
-      l'eau.</b> Le champ utilisé est le nom d'exploitant déclaré avec le bulletin par
-      la source : deux communes qui y figurent ensemble sont gérées par la même entité,
-      ce qui ne veut pas dire qu'elles sont alimentées par le même captage ni par la
-      même usine. Le lien entre un captage et une commune n'est pas exposé par les
-      données publiques — il figure parmi ce que l'outil ne sait pas encore faire.</div>
+    <div class="rappel"><b>Ce regroupement est celui du réseau, pas celui du
+      gestionnaire.</b> C'est le réseau qui a servi à rattacher chaque commune au
+      bulletin qui la documente, et c'est donc lui qui dit quelles communes reçoivent
+      la même eau. Un même gestionnaire exploite souvent plusieurs réseaux
+      distincts : les réunir sous son nom laissait croire à une eau commune que la
+      donnée ne dit pas.</div>
+    <div class="rappel"><b>Un réseau commun n'est pas un captage commun.</b> Le lien
+      entre un captage et une commune n'est pas exposé par les données publiques — il
+      figure parmi ce que l'outil ne sait pas encore faire.</div>{reste}
   </section>
 """
 
@@ -1214,7 +1303,7 @@ def page_departement(dept, communes, version, calcule_le):
 
   <section><h3 class="sec">Les {len(communes)} communes, par ordre alphabétique</h3>
     <nav class="index-alpha" id="index-alpha" aria-label="Aller à une lettre">{index}</nav>
-    <div class="tableau-communes">
+    <div class="tableau-communes large">
       <table id="tbl-communes">
         <thead><tr>
           <th aria-sort="ascending" data-tri="nom" data-type="texte">Commune</th>
@@ -1224,6 +1313,9 @@ def page_departement(dept, communes, version, calcule_le):
           <th data-tri="couverture" data-type="nombre">Paramètres notés</th>
           <th data-tri="depassements" data-type="nombre">Dépassements à la date</th>
           <th data-tri="bascules" data-type="nombre">Bascules</th>
+          <th data-tri="aveugles" data-type="nombre">Hors de portée du laboratoire</th>
+          <th data-tri="hormonal" data-type="nombre">Statut hormonal des substances trouvées
+            <span class="grille">avéré · suspecté · non documenté</span></th>
         </tr></thead>
         <tbody>{"".join(lig)}</tbody>
       </table>
@@ -1235,6 +1327,25 @@ def page_departement(dept, communes, version, calcule_le):
       627 paramètres a mécaniquement plus d'occasions d'en voir un dépasser qu'une
       commune qui en a cherché 234. C'est pourquoi la colonne de l'effort de recherche
       reste à côté, et pourquoi le taux (‰) accompagne le compte.</div>
+    <div class="rappel"><b>« Hors de portée du laboratoire »</b> : le nombre de
+      substances cherchées que l'analyse ne pouvait pas voir — le laboratoire ne
+      sait les détecter qu'au-dessus d'une valeur elle-même supérieure à la limite
+      à laquelle on les compare. Sous cette valeur, on ne peut pas dire que la
+      limite est respectée : on peut seulement dire qu'on ne sait pas. <b>Ce n'est
+      pas une négligence</b> — c'est ce que l'instrument du jour savait faire, et
+      c'est pourquoi le taux (‰) accompagne le compte.</div>
+    <div class="rappel"><b>« Statut hormonal des substances trouvées »</b> : trois
+      nombres, jamais un seul, et jamais additionnés. Le premier compte les
+      substances <b>avérées</b> perturbatrices au sens du droit européen ; le
+      deuxième celles que la <b>littérature scientifique soupçonne</b>, sans statut
+      réglementaire ; le troisième celles dont la question <b>n'a pas été
+      instruite</b> — et « non documenté » n'est pas « non ». Ces trois-là ne
+      disent pas la même chose et ne se remplacent pas : les réunir sous un même
+      mot ferait passer une question ouverte pour une réponse. Le tri, lui, se fait
+      sur les trois réunis, pour trouver vite les communes à regarder de près.
+      <b>Un nombre élevé n'est pas un verdict sanitaire</b> : une commune qui fait
+      chercher 700 substances en trouvera mécaniquement plus qu'une qui en cherche
+      200 — la colonne de l'effort de recherche reste à côté pour cette raison.</div>
     <div class="rappel"><b>Les communes non documentées se rangent à part, jamais en
       tête d'un tri.</b> Elles n'ont pas « zéro dépassement » : elles n'ont pas de
       valeur du tout, et les faire passer pour les plus sûres du département serait
@@ -1400,6 +1511,61 @@ def page_methode(con, version, calcule_le):
       de substances qui le composent, et n'est jamais présenté comme un verdict de
       potabilité. Tant que les cadres de référence internationaux ne sont pas implémentés,
       il sert à classer des bulletins entre eux, pas à estimer un risque sanitaire.</p>
+
+    <h4>Comment cet indice est calculé, exactement</h4>
+    <p>Publier un chiffre sans sa formule, c'est demander qu'on le croie. Voici donc
+      le calcul entier, tel que le programme l'exécute.</p>
+    <p><b>Pour chaque substance retenue, on divise la valeur mesurée par la limite qui
+      lui est applicable, et on additionne ces fractions.</b> Une substance à la moitié
+      de sa limite apporte 0,5. Deux substances chacune à la moitié de la leur
+      apportent 1,0 — l'équivalent d'une limite entière occupée, alors qu'aucune des
+      deux n'a franchi la sienne. C'est tout le propos.</p>
+    <table><thead><tr><th>Substance</th><th>Mesurée</th><th>Limite</th>
+      <th class="num">Fraction</th></tr></thead><tbody>
+      <tr><td>ESA métolachlore</td><td>0,42 µg/L</td><td>0,9 µg/L</td>
+        <td class="num">0,4667</td></tr>
+      <tr><td>Boscalid</td><td>0,05 µg/L</td><td>0,1 µg/L</td>
+        <td class="num">0,5</td></tr>
+      <tr><td>Quinmérac</td><td>0,25 µg/L</td><td>0,1 µg/L</td>
+        <td class="num">2,5</td></tr>
+      <tr><td colspan="3"><b>Indice, sur 3 substances</b></td>
+        <td class="num"><b>3,4667</b></td></tr>
+    </tbody></table>
+    <p class="bnote">Cet exemple n'est pas une commune réelle : c'est le bulletin de
+      contrôle du programme, revérifié à chaque exécution des tests.</p>
+    <p><b>Quatre règles décident de ce qui entre dans la somme :</b></p>
+    <ul>
+      <li><b>seulement les substances effectivement quantifiées.</b> Une substance
+        cherchée et non trouvée n'apporte rien — et surtout pas zéro, puisqu'un
+        laboratoire qui ne trouve rien ne mesure pas zéro. L'indice est donc un
+        <b>plancher</b> ;</li>
+      <li><b>jamais les lignes de somme</b>, sans quoi le « total des pesticides »
+        serait compté en même temps que les substances qui le composent ;</li>
+      <li><b>seulement les substances de synthèse</b> — pesticides, métabolites,
+        PFAS, composés organiques ;</li>
+      <li><b>seulement quand une limite existe.</b> Sans limite au dénominateur, il
+        n'y a pas de fraction à calculer.</li>
+    </ul>
+    <p><b>Pourquoi les minéraux sont écartés, et ce n'est pas un choix de confort.</b>
+      Un premier calcul incluant tous les paramètres notés a été fait, puis abandonné :
+      sur un bulletin réel, le potassium, les chlorures, les sulfates et le sodium
+      pesaient plus lourd que tous les micropolluants réunis et portaient le total
+      au-dessus de 1 — sans qu'aucune substance de synthèse n'y soit pour rien.
+      Additionner une fraction de la référence en sodium à une fraction de la limite
+      d'un pesticide n'a pas de sens : ce ne sont pas les mêmes objets, et ces limites
+      n'ont pas la même nature.</p>
+    <p><b>Conséquence, et c'est pourquoi le nombre de substances est toujours
+      affiché :</b> une substance dont la famille chimique n'est pas connue n'entre pas
+      dans l'indice, même mesurée, même au-dessus de sa limite. Sans le nombre qui
+      l'accompagne, un indice n'est pas interprétable.</p>
+    <p class="bnote"><b>Deux limites que nous devons dire.</b> Le dénominateur est une
+      limite réglementaire, pas une dose de référence toxicologique : une limite de
+      qualité intègre aussi de la faisabilité analytique et de l'histoire. Diviser une
+      mesure par elle donne « quelle part de la limite est occupée », et non « quelle
+      part d'une dose sans effet est atteinte ». Et l'indice est calculé contre la
+      grille en vigueur aujourd'hui, non contre celle applicable le jour du
+      prélèvement : c'est une lecture contrefactuelle, pas le verdict rendu à
+      l'époque.</p>
 
     <h4>Ce que l'outil ne sait pas encore faire</h4>
     <ul>
@@ -1659,10 +1825,14 @@ def construire(destination=None, db=DB_PATH, depts=None):
                 "nb_indetermines", "classe_effort", "depassements_pour_mille",
                 "nb_synthese_quantifiees", "charge_synthese_ug_l", "indice_danger",
                 "indice_danger_n", "est_complet", "nb_mesures_notees",
-                "nb_mesures_lues", "nom_uge"]
+                "nb_mesures_lues", "nom_uge", "noms_reseaux", "nb_aveugles",
+                "aveugles_pour_mille", "code_prelevement"]
+        # Les trois registres hormonaux, en UNE requête pour tout le corpus.
+        hormonal = IND.compter_hormonal(con, version)
         lignes = []
         for r in corpus(con, version):
             c = dict(zip(cols, r))
+            c["hormonal"] = hormonal.get(c["code_prelevement"])
             c["niveau"] = niveau_commune(c["statut"], c["nb_depasse_applicable"],
                                          c["nb_bascules"], c["nb_indetermines"])
             c["teinte"] = teinte_commune(c["statut"], c["nb_depasse_applicable"],

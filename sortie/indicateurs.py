@@ -495,6 +495,73 @@ def hors_references(con, a, version):
     } if out else None
 
 
+def statut_hormonal(reg, sci):
+    """
+    Le registre d'une substance quantifiée : ('avere'|'suspecte'|'non_documente',
+    mention) — ou (None, None) quand le statut est instruit et négatif.
+
+    **Une seule copie de cette règle dans tout le dépôt.** Elle sert à la fiche
+    de commune (`perturbateurs`) et au tableau de département
+    (`compter_hormonal`). Deux copies d'une règle divergent à la première
+    retouche, et celle-ci décide de ce qui est montré au lecteur comme
+    « avéré » : la divergence y serait un faux positif ou un faux négatif selon
+    la page consultée, pour la même eau.
+    """
+    r, s = (reg or "").strip().lower(), (sci or "").strip().lower()
+    if r.startswith("pe avere"):
+        return "avere", reg
+    if s.startswith("pe avere") or s.startswith("suspecte"):
+        return "suspecte", sci
+    if s.startswith("a_documenter") or not s:
+        return "non_documente", None
+    if s == "non":
+        return None, None                  # statut instruit, et négatif
+    # Mention circonstanciée — atrazine, atrazine déséthyl. Elle nuance plus
+    # qu'elle n'affirme : elle est citée telle quelle.
+    return "suspecte", sci
+
+
+def compter_hormonal(con, version, codes=None):
+    """
+    Par bulletin, le compte de substances quantifiées dans chacun des trois
+    registres : {code_prelevement: {'avere': n, 'suspecte': n,
+    'non_documente': n}}.
+
+    Une seule requête pour tout le corpus — la page de département en affiche
+    plusieurs centaines de lignes, et une requête par commune sur une table de
+    plusieurs millions de lignes serait payée à chaque construction du site.
+
+    Les trois comptes ne sont **jamais additionnés ici** (§2.6, §2.15) : ce sont
+    trois registres distincts, et le total « perturbateurs endocriniens
+    trouvés » n'existe pas comme fait. La somme sert de clé de tri, pas
+    d'énoncé — cette décision-là appartient à l'affichage, pas au calcul.
+    """
+    sql = """
+        SELECT code_prelevement, pe_reglementaire, pe_scientifique
+        FROM verdicts_figes
+        WHERE version_referentiel = ? AND est_quantifie
+          -- Mêmes exclusions que `perturbateurs`, pour les mêmes raisons : une
+          -- somme n'est pas une substance, et une ligne appariée à aucune
+          -- entrée du référentiel n'a aucun statut à afficher, pas même
+          -- « non documenté ».
+          AND NOT COALESCE(est_agregat, FALSE)
+          AND famille IS NOT NULL
+    """
+    p = [version]
+    if codes:
+        sql += f" AND code_prelevement IN ({','.join('?' * len(codes))})"
+        p += list(codes)
+
+    out = {}
+    for cp, reg, sci in con.execute(sql, p).fetchall():
+        cle, _ = statut_hormonal(reg, sci)
+        if cle is None:
+            continue
+        d = out.setdefault(cp, {"avere": 0, "suspecte": 0, "non_documente": 0})
+        d[cle] += 1
+    return out
+
+
 def perturbateurs(con, a, version):
     """
     Les perturbateurs endocriniens quantifiés, dans TROIS registres distincts.
@@ -538,19 +605,9 @@ def perturbateurs(con, a, version):
     groupes = {"avere": [], "suspecte": [], "non_documente": [],
                "hors_referentiel": hors_referentiel}
     for lib, val, lq, quant, unite, seuil, famille, reg, sci in rows:
-        r, s = (reg or "").strip().lower(), (sci or "").strip().lower()
-        if r.startswith("pe avere"):
-            cle, mention = "avere", reg
-        elif s.startswith("pe avere") or s.startswith("suspecte"):
-            cle, mention = "suspecte", sci
-        elif s.startswith("a_documenter") or not s:
-            cle, mention = "non_documente", None
-        elif s == "non":
-            continue                       # statut instruit, et négatif
-        else:
-            # Mention circonstanciée — atrazine, atrazine déséthyl. Elle nuance
-            # plus qu'elle n'affirme : elle est citée telle quelle.
-            cle, mention = "suspecte", sci
+        cle, mention = statut_hormonal(reg, sci)
+        if cle is None:
+            continue
         groupes[cle].append({
             "libelle": lib, "texte": _texte_valeur(quant, val, lq, unite),
             "famille": famille, "seuil": _nb(seuil) if seuil is not None else None,

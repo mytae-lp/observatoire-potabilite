@@ -59,3 +59,11 @@ venv/
 .DS_Store
 Thumbs.db
 *~
+
+# Les sources externes téléchargées (data.gouv.fr) : publiques, re-téléchargeables,
+# et volumineuses — un mois de prélèvements pèse 16 Mo compressés. Les URL et
+# les empreintes sont consignées dans docs/REPRISE.md §20.8 et §20.10.
+data/sources_externes/
+
+# Les PDF se régénèrent depuis le Markdown (src/md_en_pdf.py).
+docs/pdf/

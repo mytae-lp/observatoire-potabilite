@@ -93,14 +93,26 @@ def main():
         verifie(implicite and implicite[1] == code_prel,
                 "avec le prélèvement qui la documente")
 
-        print("\n3. ce qui est figé : les mesures notées, plus celles qui ont un repère strict")
+        print("\n3. ce qui est figé : la photographie ENTIÈRE du bulletin")
         nfig = con.execute("SELECT COUNT(*) FROM verdicts_figes").fetchone()[0]
         verifie(nfig >= ligne[4],
                 f"{nfig} verdicts figés pour {ligne[4]} mesures notées")
+        # Mis à jour le 13 août 2026. Ce contrôle exigeait l'inverse — qu'une
+        # mesure sans seuil de comparaison NE SOIT PAS figée — et il tenait la
+        # règle d'avant le 12 août. Le filtre a été élargi ce jour-là
+        # (REPRISE §19.2) : le moteur calculait l'attribution « rien ne se
+        # prononce, non instruit » sur 413 050 mesures, et le figeage n'en
+        # gardait que 364, soit 0,1 %. La population qu'on venait de décider de
+        # rendre visible était exactement celle que le figeage écartait. Le
+        # calcium est ce cas : mesuré, sans aucun seuil auquel le comparer, et
+        # il doit rester au bulletin — l'y faire disparaître ferait passer une
+        # question non instruite pour une mesure qui n'existe pas (§2.4).
         calcium = con.execute("""
             SELECT COUNT(*) FROM verdicts_figes WHERE libelle_parametre = 'Calcium'
         """).fetchone()[0]
-        verifie(calcium == 0, "une mesure sans aucun seuil n'est pas figée")
+        verifie(calcium == 1,
+                "une mesure sans aucun seuil est figée quand même — le détail "
+                "est la photographie entière du bulletin")
 
         # Une mesure qui n'a QU'UN seuil strict doit être figée quand même :
         # c'est là que naît l'indéterminé (LQ du laboratoire au-dessus du

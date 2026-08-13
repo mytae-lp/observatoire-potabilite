@@ -92,6 +92,74 @@ publié.
 **Statut : raisonnement, pas mesure.** C'est l'indicateur le plus contestable
 du projet et il doit être le plus encadré.
 
+### Le calcul, ligne à ligne
+
+*Relevé dans le code le 13 août 2026 — `src/figer.py`, fonction `_sommes`,
+lignes 461 à 480. Cette section décrit ce que la machine fait réellement, pas
+ce qu'on voudrait qu'elle fasse.*
+
+**La formule**
+
+> indice = somme, sur les substances retenues, de (valeur mesurée ÷ seuil)
+> n = le nombre de substances retenues
+
+Les deux sortent ensemble et **ne se séparent jamais**.
+
+**Exemple complet, tiré du bulletin fictif du contrôle automatique**
+(`tests/test_figer.py` — ces chiffres sont revérifiés à chaque exécution) :
+
+| substance | mesurée | seuil | fraction |
+|---|---|---|---|
+| ESA métolachlore | 0,42 µg/L | 0,9 | 0,4667 |
+| Boscalid | 0,05 µg/L | 0,1 | 0,5 |
+| Quinmérac | 0,25 µg/L | 0,1 | 2,5 |
+
+**indice = 3,4667 · n = 3**
+
+**Les quatre filtres d'entrée**
+
+1. **`est_quantifie` seulement.** Une substance cherchée et non quantifiée
+   n'apporte rien — et surtout pas zéro (§2.4 : zéro n'est pas zéro). L'indice
+   est donc un **plancher**, jamais une estimation centrale.
+2. **`NOT est_agregat`.** Les lignes de somme sont exclues, sinon le « total
+   des pesticides » serait compté en même temps que ses composants.
+3. **`famille IN ('pesticide', 'metabolite', 'PFAS', 'organique')`** —
+   `FAMILLES_SYNTHESE`, les mêmes familles que les indicateurs A et B.
+4. **un seuil existe et est strictement positif.** Sans dénominateur, pas de
+   fraction.
+
+**Le dénominateur : `seuil_2026_effectif`** (`src/build_db.py:277`)
+
+C'est, dans l'ordre : la valeur du référentiel daté convertie dans l'unité de
+la mesure ; à défaut, la limite déclarée par la source avec le bulletin.
+
+**Avec une exception qui compte** : quand le référentiel porte
+`statut_2026 = 'dans somme'`, la limite déclarée est **écartée** — le texte ne
+fixe aucune valeur individuelle pour cette substance, et une ligne « dans
+somme » est une réponse, pas un vide. Sans ce garde-fou, les quatre HAP de la
+somme réglementée entraient dans l'indice contre 0,10 µg/L chacun, valeur que
+la directive ne fixe que pour leur total.
+
+**Deux propriétés à connaître, et à dire**
+
+- **l'indice est calculé contre la grille EN VIGUEUR, pas contre celle
+  applicable à la date du prélèvement.** C'est une lecture contrefactuelle,
+  cohérente avec le reste du projet, mais ce n'est pas le verdict rendu à
+  l'époque (§2.10) ;
+- **une substance sans famille connue n'entre pas dans l'indice**, même
+  quantifiée et même au-dessus de sa limite. C'est ce qui rend `n`
+  indispensable.
+
+**Un écart entre la règle de publication et ce que le moteur produit**
+
+La règle ci-dessous exige que l'indice soit accompagné de « la part des seuils
+issus du référentiel daté plutôt que de la limite déclarée ». **Cette part
+n'est pas calculée** : `analyses_figees` ne porte que `indice_danger` et
+`indice_danger_n`. L'obligation ne peut donc pas être honorée aujourd'hui.
+Relevé le 13 août 2026 ; à corriger, ou à retirer de la règle — mais pas à
+laisser dans cet état, une obligation d'affichage que rien n'alimente finit par
+être ignorée partout.
+
 ### Ce que cet indice suppose, et qui n'est pas démontré ici
 
 1. **Additivité des doses.** Le HI suppose que les effets s'additionnent
