@@ -4045,6 +4045,51 @@ compterait comme des angles morts.
 
 ---
 
+### C11.12 L'ALUMINIUM ROUVERT — mais sur un autre versant (15 août 2026)
+
+Source archivée : **CIV-06**, réponse de la secrétaire d'État à la santé au
+Sénat, 15 février 2011 (question orale n° 1056S, JO du 14/10/2010).
+
+**Le versant sanitaire reste clos.** L'angle Alzheimer et perturbation
+endocrinienne avait été écarté le 9 août 2026, et cet abandon est confirmé par
+le ministère lui-même — *« les données épidémiologiques et physiologiques dont
+on dispose ne permettent pas d attribuer un rôle étiologique à l aluminium dans
+la maladie d Alzheimer »*. Réserve : la position date de 2011 et s appuie sur
+une expertise de 2003 confirmée en 2008. **Ce n est pas l état de la science**,
+c est la position de l administration à cette date (§2.5).
+
+**Ce que la phrase du ministère rouvre**, et c est la décision de Yannick :
+
+> *« Ce paramètre est un indicateur de fonctionnement des INSTALLATIONS DE
+> TRAITEMENT et non pas un paramètre de santé. »*
+
+Si les 200 µg/L mesurent le fonctionnement d une installation, **l aluminium n
+est pas un polluant de la ressource : c est un résidu de traitement.** Il rejoint
+exactement la famille instruite en C11.10.
+
+| ce que le traitement laisse | paramètres | nature de la valeur |
+|---|---|---|
+| **coagulant résiduel** | aluminium total, aluminium dissous | référence 200 µg/L, « indicateur de fonctionnement » |
+| **désinfectant résiduel** | chlore libre, total, combiné, ClO2, ozone | **aucune valeur** (C11.10.2) |
+| **sous-produits de désinfection** | THM, chlorites, chlorates, bromates, AHA | **limites de qualité** |
+
+**Trois natures de valeur pour une même question — et c est ce qui fait le
+sujet.** Il ne demande aucune affirmation sanitaire : *que reste-t-il dans l eau
+de ce qu on y a mis pour la traiter ?*
+
+**Ce que le corpus porte déjà** : aluminium total, 37 279 mesures, 13 499
+quantifiées, **120 dépassements**, maximum à **2 000 µg/L** — dix fois la
+référence. Ces 120 s affichent en ambre et non en rouge (§11.3), et **CIV-06 est
+désormais la citation qui le justifie**, à la place d une déduction.
+
+**À instruire** : le sulfate d aluminium comme coagulant ; ce que le résidu dit
+du réglage de l installation ; et surtout **si un texte relie le coagulant à son
+résidu** comme l article R. 1321-23 du CSP relie la désinfection à ses
+sous-produits (C11.10.1). Si un tel texte existe, le dossier a le même socle
+réglementaire que la chloration.
+
+---
+
 ## C12 — LA CHAÎNE NORMATIVE : comment se fabrique la notion de potabilité
 
 **Ouvert le 15 août 2026. Dossier ÉDITORIAL, à traiter plus tard.**
