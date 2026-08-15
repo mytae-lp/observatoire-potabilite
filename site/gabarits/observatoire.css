@@ -16,10 +16,25 @@
    et il doit être aussi lisible que les deux autres (CLAUDE.md §2.4).
    =========================================================================== */
 
+/* Trois jetons portés depuis la charte v2 le 14 août 2026 (décision D4).
+   Rôles inchangés — le vert reste le conforme, l'ambre l'attention : seule la
+   luminosité descend, à teinte et saturation constantes.
+
+   Motif : mesurés sur les 43 règles de cette feuille qui fixent à la fois une
+   couleur et un fond, sept couples tombaient sous 4,5:1, et les sept venaient
+   de --vert et --ambre seuls (constat 11 de docs/AUDIT_FORME_2026-08-13.md).
+   Appliqué ici, sur la forme actuelle, plutôt que d'attendre le portage
+   complet de la v2 : le défaut est d'accessibilité, il n'avait pas à attendre
+   un chantier de balisage.
+
+   Note : une quinzaine de couleurs de la famille ambre/vert restent écrites en
+   dur ailleurs dans cette feuille (--flag-a-verifier à #7a5209, par exemple).
+   Elles passent déjà le seuil et n'ont pas été touchées ; leur remontée en
+   jetons est la décision D1, qui viendra avec la v2. */
 :root{
   --ink:#12263A;--ink-soft:#41566B;--paper:#EEF2F5;--card:#FFFFFF;--line:#D7DEE4;
-  --eau:#0E7C86;--eau-deep:#0B3B57;
-  --vert:#2F8F5B;--vert-bg:#E7F3EC;--ambre:#B9770E;--ambre-bg:#FBF0DC;
+  --eau:#0B6A73;--eau-deep:#0B3B57;
+  --vert:#24734A;--vert-bg:#E7F3EC;--ambre:#8E5A0B;--ambre-bg:#FBF0DC;
   --rouge:#B23A2E;--rouge-bg:#F7E4E1;--gris:#5C6B78;--gris-bg:#E8ECEF;
   --bascule:#6B4E9E;--bascule-bg:#EFEAF7;
   --mono:"SFMono-Regular",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
@@ -247,6 +262,15 @@ h3.sec::after{content:"";flex:1;height:1px;background:var(--line)}
 .tab-lecture{font-size:13px}
 .tab-lecture thead th{background:#F4F7F8;border-bottom:1px solid var(--line)}
 .tab-lecture tr.au-dessus td{background:var(--bascule-bg)}
+
+/* Ce tableau ne se comprime pas en dessous d'environ 480 px : ses colonnes
+   portent une valeur, un seuil et une unité, qu'on ne peut pas tronquer sans
+   rendre la ligne fausse. Il défile donc DANS son bloc, au lieu d'élargir la
+   page — mesuré sur mobile 375 px : le document partait à 519 px et défilait
+   latéralement, ce qui rend la lecture pénible sur téléphone.
+   Le défilement est porté par le bloc, pas par le corps du document. */
+.bloc-lecture{overflow-x:auto}
+.tab-lecture{min-width:480px}
 
 /* L'eau agressive — sous la borne basse d'une référence. Un liseré, pas une
    couleur d'alerte : ce n'est pas une non-conformité, et le §2.1 dit qu'on
@@ -681,14 +705,27 @@ tr.hors-recherche{display:none}
   border-radius:10px;padding:12px 15px;margin-top:14px}
 .rappel b{color:var(--eau-deep)}
 
+/* Les deux règles ci-dessous répètent les sélecteurs `.grp-eau .grp-grille`
+   et `.grp-lecture .grp-grille` de la ligne 198. Ce n'est pas une redondance :
+   une media query n'ajoute AUCUNE spécificité, si bien qu'un `.grp-grille` nu
+   (0,1,0) ne peut pas l'emporter sur `.grp-eau .grp-grille` (0,2,0). Sans ce
+   rappel, deux grilles sur trois restaient à trois colonnes sur téléphone —
+   mesuré : 410 px de contenu dans une boîte de 335, page qui défile
+   latéralement.
+   `minmax(0,1fr)` et non `1fr` : par défaut un élément de grille ne descend
+   pas sous sa largeur min-content, et les tracks s'élargissaient malgré tout. */
 @media (max-width:820px){
   .chiffres{grid-template-columns:repeat(2,1fr)}
-  .grp-grille{grid-template-columns:repeat(2,1fr)}
+  .grp-grille,
+  .grp-eau .grp-grille,
+  .grp-lecture .grp-grille{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pe-cols{grid-template-columns:1fr}
 }
 @media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:640px){
-  .grp-grille{grid-template-columns:1fr}
+  .grp-grille,
+  .grp-eau .grp-grille,
+  .grp-lecture .grp-grille{grid-template-columns:minmax(0,1fr)}
   .hero h3{font-size:21px}
   .jauge .repere span{font-size:9px}
   .pfas-cols{grid-template-columns:1fr}
