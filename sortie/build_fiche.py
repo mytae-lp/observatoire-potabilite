@@ -34,6 +34,7 @@ Garde-fous applicables (CLAUDE.md §2) :
 import argparse
 import json
 import os
+import re
 import sys
 
 import duckdb
@@ -795,6 +796,44 @@ def encoder_arbre(v, dico, formes, rangs_formes):
     if isinstance(v, list):
         return [encoder_arbre(x, dico, formes, rangs_formes) for x in v]
     return dico.idx(v)
+
+
+def decoder_arbre(v, dico, formes):
+    """Inverse exact d'`encoder_arbre`. Rend la structure d'origine.
+
+    Existe pour que ce qui RELIT une page publiée — `tests/test_sorties.py` en
+    premier — n'ait pas à connaître le format d'encodage. Une seconde
+    implémentation du décodage divergerait à la première retouche, et le
+    contrôle qui s'appuierait dessus deviendrait muet sans le dire. C'est
+    exactement ce qui est arrivé le 13 août 2026 : l'encodage a supprimé
+    `const C={…}` des pages, le motif du test ne correspondait plus, et les
+    contrôles de prescription (§2.2) et de comparaison anonyme (§2.11) ont
+    passé au vert sur zéro texte pendant une journée.
+    """
+    if isinstance(v, list):
+        if v and isinstance(v[0], int) and v[0] < 0:
+            noms = formes[-v[0] - 1]
+            return {n: decoder_arbre(v[i + 1], dico, formes)
+                    for i, n in enumerate(noms)}
+        return [decoder_arbre(x, dico, formes) for x in v]
+    return None if v == 0 else dico[v - 1]
+
+
+def lire_commune_dans_page(html):
+    """Le bloc C d'une page publiée, quel que soit son format.
+
+    Rend `None` — et non un dictionnaire vide — si la page ne porte aucun bloc
+    reconnaissable : l'appelant doit pouvoir distinguer « pas de prose » de
+    « format non reconnu ».
+    """
+    m = re.search(r"const CENC=(.*?);\nconst PCOLS", html, re.S)
+    if m:
+        dico = json.loads(re.search(r"const DICT=(\[.*?\]);\n", html, re.S).group(1))
+        formes = json.loads(re.search(r"const CFORM=(\[.*?\]);\n", html, re.S).group(1))
+        return decoder_arbre(json.loads(m.group(1)), dico, formes)
+    # Format antérieur au 13 août 2026, conservé pour relire une page ancienne.
+    m = re.search(r"const C=(\{.*?\});\nconst PARAMS", html, re.S)
+    return json.loads(m.group(1)) if m else None
 
 
 def js_donnees(commune_par_cle, params_par_cle):

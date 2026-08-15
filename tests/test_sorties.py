@@ -52,6 +52,7 @@ sys.path.insert(0, os.path.join(RACINE, "src"))
 sys.path.insert(0, os.path.join(RACINE, "sortie"))
 
 import figer  # noqa: E402
+import build_fiche as BF  # noqa: E402
 from common import DB_PATH  # noqa: E402
 
 PUBLIC = os.path.join(RACINE, "site", "public")
@@ -177,16 +178,31 @@ def comparaison_anonyme(texte):
 
 
 def prose_des_pages():
-    """(commune, champ, origine, texte) pour toute la prose des pages."""
+    """(commune, champ, origine, texte) pour toute la prose des pages.
+
+    La lecture du bloc est déléguée à `build_fiche.lire_commune_dans_page` :
+    ce module connaît le format parce qu'il l'écrit. Un motif recopié ici
+    cesserait de correspondre au premier changement d'encodage, et ce test
+    passerait au vert sur zéro texte — c'est arrivé le 13 août 2026, pendant
+    une journée, sur les contrôles n° 7 et n° 8.
+
+    D'où aussi le compteur `prose_des_pages.pages_illisibles`, que `main()`
+    contrôle : une page qu'on ne sait pas relire est un échec, jamais un saut
+    silencieux.
+    """
+    prose_des_pages.pages_lues = 0
+    prose_des_pages.pages_illisibles = 0
     dossier = os.path.join(PUBLIC, "commune")
     if not os.path.isdir(dossier):
         return
     for f in sorted(os.listdir(dossier)):
         contenu = open(os.path.join(dossier, f), encoding="utf-8").read()
-        m = re.search(r"const C=(\{.*?\});\nconst PARAMS", contenu, re.S)
-        if not m:
+        bloc = BF.lire_commune_dans_page(contenu)
+        if bloc is None:
+            prose_des_pages.pages_illisibles += 1
             continue
-        for cle, d in json.loads(m.group(1)).items():
+        prose_des_pages.pages_lues += 1
+        for cle, d in bloc.items():
             org = d.get("origines", {})
             for champ in ("sous_titre", "delta", "verdict"):
                 v = d.get(champ)
@@ -287,10 +303,29 @@ def main():
 
         print("\n6. §2.2 — aucune prescription")
         machine, auteur = [], []
+        n_prose = 0
         for commune, champ, origine, texte in prose_des_pages():
+            n_prose += 1
             for mot, extrait in prescrit(texte):
                 (auteur if origine == "auteur" else machine).append(
                     (commune, champ, origine, mot, extrait))
+
+        # AVANT de conclure quoi que ce soit sur la prose : s'est-on donné les
+        # moyens de la lire ? Un contrôle qui inspecte zéro texte passe au vert
+        # et ne prouve rien — c'est le mode de panne le plus coûteux du dépôt,
+        # parce qu'il est silencieux. (13 août 2026, une journée durant.)
+        n_fiches = len([f for f in os.listdir(os.path.join(PUBLIC, "commune"))
+                        if f.endswith(".html")]) \
+            if os.path.isdir(os.path.join(PUBLIC, "commune")) else 0
+        illisibles = getattr(prose_des_pages, "pages_illisibles", 0)
+        lues = getattr(prose_des_pages, "pages_lues", 0)
+        ok(n_fiches == 0 or lues > 0,
+           f"les fiches sont relisibles : {lues} lue(s) sur {n_fiches}, "
+           f"{illisibles} illisible(s)")
+        ok(illisibles == 0,
+           f"aucune fiche au format non reconnu ({illisibles})")
+        ok(n_fiches == 0 or n_prose > 0,
+           f"le contrôle porte sur du texte réel ({n_prose} élément(s) de prose)")
         ok(not machine,
            f"la prose générée ne prescrit rien ({len(machine)} cas)")
         for c, champ, o, mot, extrait in machine:
