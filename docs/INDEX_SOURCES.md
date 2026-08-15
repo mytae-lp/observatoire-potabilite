@@ -9,6 +9,14 @@
 > **Conséquence : REG-06 est lisible**, et la ligne turbidité laissée en `a_verifier` depuis le
 > 10 août (`docs/REPRISE.md` §12.3) peut sans doute être tranchée. Une impossibilité constatée
 > sur un canal avait été généralisée en impossibilité tout court — le §2.7 appliqué à nous-mêmes.
+>
+> **CE QUI RESTE FERMÉ, relevé le 15 août 2026.** `sante.gouv.fr` oppose un
+> **captcha** à l'outil web ; `metiers.sante.gouv.fr` présente un **certificat
+> invalide** (le nom n'est pas dans le certificat servi). Le catalogue
+> ministériel des produits et procédés de traitement de l'eau est donc
+> **inaccessible par ce canal** — c'est lui qui listerait les arrêtés pris par
+> famille au titre de R. 1321-50 [REG-11]. À obtenir autrement avant de conclure
+> quoi que ce soit sur les coagulants.
 
 ## Nomenclature (à utiliser partout)
 
