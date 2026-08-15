@@ -1500,9 +1500,64 @@ def renormaliser_unites(con):
     return touchees, exemples
 
 
+def controler_codes_uniques(chemin):
+    """
+    Refuse un référentiel où un `code_parametre` ou un `code_cas` apparaît deux
+    fois. **Un code en double casse le figeage, pas le chargement.**
+
+    Défaut réel, 15 août 2026. Le chantier C11 a ajouté 363 lignes en reprenant
+    le `code_parametre` et le `code_cas` observés dans le corpus. Or un même code
+    SANDRE porte souvent PLUSIEURS libellés — « Colonies de cyanobactéries » et
+    « % de colonies de cyanobactéries » partagent le 2855, « Anhydride carbonique
+    libre » et « CO2 libre calculé » le 1344, « Salmonelles /1l » et « /5l » le
+    1451. Résultat : 17 `code_parametre` et 2 `code_cas` en double.
+
+    Le chargement, lui, passait sans rien dire : la clé primaire est
+    `libelle_norm`, et elle restait unique. **C'est la jointure de
+    `v_mesures_ref` qui explosait** — un code partagé par deux lignes apparie
+    chaque mesure DEUX fois, ce qui a produit 62 073 couples (bulletin,
+    paramètre) dupliqués et violé la clé primaire de `verdicts_figes` dès le
+    premier bulletin figé. Le figeage devenait impossible, en aval, sans qu'aucun
+    signal ne soit venu du référentiel.
+
+    LA RÈGLE, et elle évite tout arbitrage arbitraire : **le code appartient à la
+    ligne qui juge.** Un code n'a qu'un rôle, permettre à une mesure de trouver
+    son seuil. Une ligne sans aucun seuil n'a pas besoin d'être trouvée par
+    code — `libelle_norm` l'apparie exactement. Donc : si une seule ligne du
+    groupe porte un seuil, elle garde le code ; si aucune n'en porte, toutes le
+    perdent.
+
+    Même esprit que `controler_forme` : le chargement échoue ici plutôt que de
+    laisser un défaut se manifester treize heures plus tard, dans un figeage.
+    """
+    par_code = {"code_parametre": {}, "code_cas": {}}
+    with open(chemin, encoding="utf-8") as fh:
+        for ligne in csv.DictReader(_sans_commentaires(fh), delimiter=";"):
+            for col in par_code:
+                v = s(ligne.get(col))
+                if v:
+                    par_code[col].setdefault(v, []).append(s(ligne.get("libelle")))
+    fautifs = []
+    for col, index in par_code.items():
+        for code, libelles in index.items():
+            if len(libelles) > 1:
+                fautifs.append((col, code, libelles))
+    if fautifs:
+        lignes = ["%d code(s) en double dans %s — le figeage serait impossible :"
+                  % (len(fautifs), os.path.basename(chemin))]
+        for col, code, libelles in sorted(fautifs):
+            lignes.append("  %s = %s porté par %d libellés :" % (col, code, len(libelles)))
+            for lib in libelles:
+                lignes.append("      %s" % lib)
+        lignes.append("Règle : le code appartient à la ligne qui JUGE. Une ligne")
+        lignes.append("sans seuil n'a pas besoin de code — elle s'apparie par libellé.")
+        raise ValueError("\n".join(lignes))
+
+
 def charger_referentiel(con, chemin=REF_CSV):
     """Charge referentiel_seuils.csv. Remplace intégralement la table."""
     controler_forme(chemin)
+    controler_codes_uniques(chemin)
     con.execute("DELETE FROM referentiel_seuils")
     n, doublons = 0, []
     vus = set()
