@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Observatoire de la potabilité réglementaire">
+  <!-- La goutte : l'eau, qui ne change pas.
+       Les deux traits : la limite, qui se déplace. Le trait haut est celui
+       de 2016, le trait bas celui d'aujourd'hui — la même eau, deux règles. -->
+  <path d="M16 2.5C16 2.5 5.5 14.2 5.5 20.2a10.5 10.5 0 0 0 21 0C26.5 14.2 16 2.5 16 2.5Z" fill="#0B6A73"/>
+  <rect x="8.4"  y="17.1" width="15.2" height="2.1" rx="1.05" fill="#F2F5F7" opacity=".95"/>
+  <rect x="11.6" y="22.3" width="12"   height="2.1" rx="1.05" fill="#7FD4DA"/>
+</svg>

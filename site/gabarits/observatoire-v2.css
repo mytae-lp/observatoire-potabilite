@@ -1,0 +1,969 @@
+/* ===========================================================================
+   Observatoire de la potabilité réglementaire — système de forme v2
+   Proposition du 14 août 2026. Registre : presse de données.
+
+   Trois règles ont commandé chaque valeur ci-dessous :
+   1. les cinq couleurs de sens gardent leur rôle — on ne change que la clarté,
+      et jamais ce que la couleur dit ;
+   2. rien n'est écrit en dur : toute valeur employée deux fois est un jeton ;
+   3. chaque paire texte/fond est mesurée. Aucune ne descend sous 4,5:1.
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. JETONS — thème clair (défaut)
+   -------------------------------------------------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  /* -- surfaces et encre ------------------------------------------------- */
+  --paper:        #F2F5F7;   /* fond de page                                */
+  --card:         #FFFFFF;   /* fond de bloc                                */
+  --card-alt:     #FAFBFC;   /* bloc secondaire, lignes alternées           */
+  --ink:          #0F1E2E;   /* texte courant           15,4:1 sur paper     */
+  --ink-soft:     #4C5F71;   /* texte secondaire         6,0:1 sur paper     */
+  --ink-faint:    #5A6E80;   /* mentions                 4,8:1 sur paper     */
+  --line:         #D5DEE5;   /* filets                                       */
+  --line-soft:    #E6ECF0;   /* filets internes                              */
+
+  /* -- eau : la couleur de la marque et des liens ------------------------ */
+  --eau:          #0B6A73;   /* liens, boutons           5,8:1 sur paper     */
+  --eau-deep:     #08344C;   /* bandeaux                12,0:1 sur paper     */
+  --eau-clair:    #7FD4DA;   /* accent sur fond sombre, focus                */
+  --eau-bg:       #E2F0F1;
+
+  /* -- LES CINQ COULEURS DE SENS. Rôles fixes, jamais fusionnés. --------- */
+  --vert:         #24734A;  --vert-bg:    #E9F4EE;  /* conforme        5,1:1 */
+  --rouge:        #B23A2E;  --rouge-bg:   #F8E7E4;  /* dépassement     5,0:1 */
+  --bascule:      #63469B;  --bascule-bg: #EEE9F7;  /* bascule         6,1:1 */
+  --gris:         #55636F;  --gris-bg:    #E7EBEF;  /* indéterminé     5,2:1 */
+  --ambre:        #8E5A0B;  --ambre-bg:   #FAEFD9;  /* attention       5,1:1 */
+
+  /* -- polices ------------------------------------------------------------ */
+  --f-titre: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --f-texte: "Inter", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --f-mono:  "SFMono-Regular", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+
+  /* -- ÉCHELLE TYPOGRAPHIQUE (D2) — 7 crans + 2 d'affichage -------------- */
+  --t-xs:      13px;   /* unités, mentions légales — plancher absolu        */
+  --t-sm:      15px;   /* méta, légendes, en-têtes de tableau               */
+  --t-base:    17px;   /* corps de texte                                    */
+  --t-md:      19px;   /* chapô, texte de mise en avant                     */
+  --t-lg:      23px;   /* titre de bloc                                     */
+  --t-xl:      30px;   /* titre de section                                  */
+  --t-2xl:     40px;   /* titre de page                                     */
+  --t-display: clamp(38px, 6.2vw, 66px);   /* accroche d'accueil            */
+  --t-chiffre: clamp(38px, 5.4vw, 58px);   /* grand nombre                  */
+
+  --lh-serre:  1.15;
+  --lh-titre:  1.25;
+  --lh-texte:  1.62;
+
+  /* -- ESPACEMENT (D3) — base 4, 9 crans --------------------------------- */
+  --e-1:  4px;   --e-2:  8px;   --e-3: 12px;   --e-4: 16px;   --e-5: 24px;
+  --e-6: 32px;   --e-7: 48px;   --e-8: 64px;   --e-9: 96px;
+
+  /* -- FORMES (D8) — 4 rayons, une seule pastille ------------------------ */
+  --r-sm: 6px;  --r-md: 10px;  --r-lg: 16px;  --r-pastille: 999px;
+  --ombre:      0 1px 2px rgba(8,52,76,.05), 0 6px 22px rgba(8,52,76,.06);
+  --ombre-haut: 0 2px 6px rgba(8,52,76,.08), 0 18px 44px rgba(8,52,76,.10);
+
+  /* -- LARGEURS (D5, D6) — une par usage, plus cinq pour la même chose --- */
+  --mesure:     66ch;    /* longueur de ligne confortable                   */
+  --l-prose:    760px;   /* page de texte                                   */
+  --l-standard: 1100px;  /* page composite                                  */
+  --l-large:    1440px;  /* tableaux, carte                                 */
+
+  --duree: 160ms;
+}
+
+/* --------------------------------------------------------------------------
+   2. JETONS — thème sombre
+   Les cinq rôles sont conservés ; seules les clartés sont inversées.
+   Toutes les paires mesurées ici sont au-dessus de 6,5:1.
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="clair"]) { color-scheme: dark; }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="clair"]) {
+    --paper: #0C1620; --card: #141F2B; --card-alt: #1B2836;
+    --ink: #E9EFF4; --ink-soft: #A3B5C4; --ink-faint: #8496A5;
+    --line: #253544; --line-soft: #1D2A37;
+    --eau: #4FC3CC; --eau-deep: #0A1B27; --eau-clair: #7FD4DA; --eau-bg: #0E2A31;
+    --vert: #6FCB96; --vert-bg: #16301F;
+    --rouge: #F0897A; --rouge-bg: #33191A;
+    --bascule: #BCA4F0; --bascule-bg: #241C3A;
+    --gris: #A6B8C6; --gris-bg: #1E2A35;
+    --ambre: #E9A93E; --ambre-bg: #33260F;
+    --ombre: 0 1px 2px rgba(0,0,0,.4), 0 6px 22px rgba(0,0,0,.35);
+    --ombre-haut: 0 2px 6px rgba(0,0,0,.5), 0 18px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="sombre"] {
+  --paper: #0C1620; --card: #141F2B; --card-alt: #1B2836;
+  --ink: #E9EFF4; --ink-soft: #A3B5C4; --ink-faint: #8496A5;
+  --line: #253544; --line-soft: #1D2A37;
+  --eau: #4FC3CC; --eau-deep: #0A1B27; --eau-clair: #7FD4DA; --eau-bg: #0E2A31;
+  --vert: #6FCB96; --vert-bg: #16301F;
+  --rouge: #F0897A; --rouge-bg: #33191A;
+  --bascule: #BCA4F0; --bascule-bg: #241C3A;
+  --gris: #A6B8C6; --gris-bg: #1E2A35;
+  --ambre: #E9A93E; --ambre-bg: #33260F;
+  --ombre: 0 1px 2px rgba(0,0,0,.4), 0 6px 22px rgba(0,0,0,.35);
+  --ombre-haut: 0 2px 6px rgba(0,0,0,.5), 0 18px 44px rgba(0,0,0,.45);
+}
+
+/* --------------------------------------------------------------------------
+   3. BASE
+   -------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-texte);
+  font-size: var(--t-base);
+  line-height: var(--lh-texte);
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { font-family: var(--f-titre); font-weight: 600; line-height: var(--lh-titre); margin: 0; letter-spacing: -.011em; text-wrap: balance; }
+h1 { font-size: var(--t-2xl); }
+h2 { font-size: var(--t-xl); }
+h3 { font-size: var(--t-lg); }
+h4 { font-size: var(--t-md); font-family: var(--f-texte); font-weight: 650; letter-spacing: 0; }
+p  { margin: 0 0 var(--e-4); max-width: var(--mesure); }
+
+a { color: var(--eau); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible { outline: 3px solid var(--eau-clair); outline-offset: 2px; border-radius: var(--r-sm); }
+
+::selection { background: var(--eau-bg); color: var(--ink); }
+
+/* Tout nombre est tabulaire : les colonnes s'alignent, l'œil compare. */
+.n, table, .chiffre-val, .val, time, .mono { font-variant-numeric: tabular-nums; }
+/* Le monospace garde la taille de son cran : une échelle qui admet
+   des exceptions n'est plus une échelle. */
+.mono, code { font-family: var(--f-mono); }
+small { font-size: var(--t-xs); }
+
+/* --------------------------------------------------------------------------
+   4. GABARIT
+   -------------------------------------------------------------------------- */
+.zone       { width: 100%; margin-inline: auto; padding-inline: var(--e-5); }
+.zone-prose { max-width: calc(var(--l-prose)    + 2 * var(--e-5)); }
+.zone-std   { max-width: calc(var(--l-standard) + 2 * var(--e-5)); }
+.zone-large { max-width: calc(var(--l-large)    + 2 * var(--e-5)); }
+
+.section { padding-block: var(--e-8); }
+.section + .section { border-top: 1px solid var(--line); }
+
+.surtitre {
+  font-family: var(--f-texte);
+  font-size: var(--t-xs); font-weight: 650;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--e-3);
+}
+
+.chapo { font-size: var(--t-md); color: var(--ink-soft); max-width: var(--mesure); }
+
+/* --------------------------------------------------------------------------
+   5. EN-TÊTE — barre fine, collante
+   -------------------------------------------------------------------------- */
+.barre {
+  position: sticky; top: 0; z-index: 40;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: saturate(1.6) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.barre-i { display: flex; align-items: center; gap: var(--e-5); min-height: 60px; }
+.marque { display: flex; align-items: center; gap: var(--e-3); text-decoration: none; color: var(--ink); flex: 0 0 auto; }
+.marque svg { width: 28px; height: 28px; display: block; }
+.marque b { font-family: var(--f-titre); font-size: var(--t-md); font-weight: 600; letter-spacing: -.01em; }
+.marque-txt span { display: block; font-size: var(--t-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+
+.menu { display: flex; gap: var(--e-1); margin-left: auto; list-style: none; padding: 0; margin-block: 0; }
+.menu a {
+  display: block; padding: var(--e-2) var(--e-3); border-radius: var(--r-sm);
+  font-size: var(--t-sm); font-weight: 550; color: var(--ink-soft); text-decoration: none;
+}
+.menu a:hover { background: var(--line-soft); color: var(--ink); }
+.menu a[aria-current] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--eau); border-radius: 0; }
+
+.bouton-theme {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border: 1px solid var(--line); border-radius: var(--r-pastille);
+  background: var(--card); color: var(--ink-soft); cursor: pointer;
+}
+.bouton-theme:hover { color: var(--ink); border-color: var(--ink-faint); }
+.bouton-theme svg { width: 17px; height: 17px; }
+
+.burger { display: none; }
+
+/* --------------------------------------------------------------------------
+   6. ACCROCHE
+   -------------------------------------------------------------------------- */
+.accroche { padding-block: var(--e-9) var(--e-8); }
+.accroche h1 {
+  font-size: var(--t-display); line-height: var(--lh-serre);
+  letter-spacing: -.022em; max-width: 15ch; margin-bottom: var(--e-5);
+}
+.formule {
+  font-family: var(--f-titre); font-style: italic;
+  font-size: clamp(21px, 2.5vw, 29px); line-height: 1.35;
+  color: var(--eau); max-width: 26ch; text-wrap: pretty;
+  border-left: 3px solid var(--eau); padding-left: var(--e-5);
+  margin: 0 0 var(--e-6);
+}
+.accroche .chapo { margin-bottom: var(--e-6); }
+.accroche-grille { display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--e-8); align-items: start; }
+
+/* -- champ de recherche : l'action première ----------------------------- */
+.cherche { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--e-6); box-shadow: var(--ombre); }
+.cherche h2 { font-size: var(--t-lg); margin-bottom: var(--e-2); }
+.cherche p  { font-size: var(--t-sm); color: var(--ink-soft); margin-bottom: var(--e-4); }
+.champ { position: relative; }
+.champ svg { position: absolute; left: var(--e-4); top: 50%; transform: translateY(-50%); width: 19px; height: 19px; color: var(--ink-faint); pointer-events: none; }
+.champ input {
+  width: 100%; font: inherit; font-size: var(--t-md);
+  padding: var(--e-4) var(--e-4) var(--e-4) 46px;
+  border: 1.5px solid var(--line); border-radius: var(--r-md);
+  background: var(--paper); color: var(--ink);
+}
+.champ input::placeholder { color: var(--ink-faint); }
+.champ input:focus { border-color: var(--eau); background: var(--card); }
+.aide { font-size: var(--t-sm); color: var(--ink-soft); margin: var(--e-4) 0 0; border-left: 2px solid var(--line); padding-left: var(--e-3); }
+
+/* --------------------------------------------------------------------------
+   7. LES NOMBRES — hiérarchisés : la démonstration devant, le socle derrière
+   -------------------------------------------------------------------------- */
+.nombres { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--e-4); }
+.nombres-socle { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--e-4); margin-top: var(--e-4); }
+
+.stat {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: var(--e-6); position: relative; overflow: hidden;
+}
+.stat::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--ink-faint); }
+.stat--bascule::before { background: var(--bascule); }
+.stat--rouge::before   { background: var(--rouge); }
+.stat .lib { font-size: var(--t-xs); font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); }
+.stat .val { font-family: var(--f-titre); font-size: var(--t-chiffre); line-height: 1; font-weight: 600; letter-spacing: -.02em; margin: var(--e-3) 0 var(--e-2); display: block; }
+.stat--bascule .val { color: var(--bascule); }
+.stat--rouge .val   { color: var(--rouge); }
+.stat p { font-size: var(--t-sm); color: var(--ink-soft); margin: 0; }
+
+.stat-petit { background: var(--card-alt); border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: var(--e-4) var(--e-5); display: flex; align-items: baseline; gap: var(--e-3); flex-wrap: wrap; }
+.stat-petit .val { font-family: var(--f-titre); font-size: var(--t-xl); font-weight: 600; line-height: 1; }
+.stat-petit .lib { font-size: var(--t-sm); color: var(--ink-soft); }
+
+/* --------------------------------------------------------------------------
+   8. AVERTISSEMENTS ET NOTES — l'honnêteté a une forme
+   -------------------------------------------------------------------------- */
+.note {
+  border-left: 3px solid var(--line); padding: var(--e-4) 0 var(--e-4) var(--e-5);
+  font-size: var(--t-base); color: var(--ink-soft); max-width: var(--mesure);
+}
+.note strong { color: var(--ink); }
+.note--attention { border-color: var(--ambre); }
+.note--gris { border-color: var(--gris); }
+
+.gardefou {
+  background: var(--ambre-bg); border: 1px solid color-mix(in srgb, var(--ambre) 28%, transparent);
+  border-radius: var(--r-md); padding: var(--e-5); font-size: var(--t-base); color: var(--ink);
+}
+.gardefou b { color: var(--ambre); }
+
+/* --------------------------------------------------------------------------
+   9. FIGURE — un tableau est une figure d'article, pas un déversement
+   -------------------------------------------------------------------------- */
+figure.figure { margin: 0; }
+.figure-tete { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--e-4); flex-wrap: wrap; margin-bottom: var(--e-4); }
+.filtres { display: flex; gap: var(--e-2); flex-wrap: wrap; }
+.filtre {
+  font: inherit; font-size: var(--t-sm); font-weight: 550;
+  padding: var(--e-2) var(--e-4); border-radius: var(--r-pastille);
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); cursor: pointer;
+}
+.filtre:hover { border-color: var(--ink-faint); color: var(--ink); }
+.filtre[aria-pressed="true"] { background: var(--eau); border-color: var(--eau); color: var(--card); }
+
+.tableau { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.tableau-defile { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+thead th {
+  text-align: left; font-size: var(--t-xs); font-weight: 650;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint);
+  padding: var(--e-3) var(--e-4); border-bottom: 1px solid var(--line); white-space: nowrap;
+  background: var(--card-alt);
+}
+tbody td { padding: var(--e-3) var(--e-4); border-bottom: 1px solid var(--line-soft); vertical-align: baseline; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--card-alt); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td .commune { font-weight: 600; }
+figcaption { font-size: var(--t-base); color: var(--ink-soft); margin-top: var(--e-4); max-width: var(--mesure); }
+
+.compteur-bascules { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 24px; padding: 0 var(--e-2); border-radius: var(--r-pastille); background: var(--bascule-bg); color: var(--bascule); font-weight: 650; font-size: var(--t-sm); }
+
+.voir-tout { display: block; width: 100%; text-align: center; padding: var(--e-4); border: 0; border-top: 1px solid var(--line); background: var(--card-alt); color: var(--eau); font: inherit; font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
+.voir-tout:hover { background: var(--eau-bg); }
+
+/* --------------------------------------------------------------------------
+   10. ÉTATS ET VERDICTS — les cinq couleurs, une seule mécanique
+   -------------------------------------------------------------------------- */
+.etat {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  padding: var(--e-1) var(--e-3); border-radius: var(--r-pastille);
+  font-size: var(--t-xs); font-weight: 650; letter-spacing: .02em;
+  background: var(--gris-bg); color: var(--gris);
+}
+.etat::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+.etat--conforme    { background: var(--vert-bg);    color: var(--vert); }
+.etat--depassement { background: var(--rouge-bg);   color: var(--rouge); }
+.etat--bascule     { background: var(--bascule-bg); color: var(--bascule); }
+.etat--indetermine { background: var(--gris-bg);    color: var(--gris); }
+.etat--attention   { background: var(--ambre-bg);   color: var(--ambre); }
+.etat--gris        { background: var(--gris-bg);    color: var(--gris); }
+/* « non documentée » : ni verte ni rouge, et jamais un vide */
+.etat--nondoc { background: transparent; color: var(--gris); border: 1px dashed var(--gris); }
+.etat--averifier::after { content: "à vérifier"; font-weight: 600; opacity: .85; }
+
+/* --------------------------------------------------------------------------
+   11. INDICATEURS — carte de mesure
+   -------------------------------------------------------------------------- */
+.indicateurs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-4); }
+.ind {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--e-5); display: flex; flex-direction: column; gap: var(--e-3);
+  border-top: 3px solid var(--line);
+}
+.ind--conforme { border-top-color: var(--vert); }
+.ind--depassement { border-top-color: var(--rouge); }
+.ind--bascule { border-top-color: var(--bascule); }
+.ind--indetermine { border-top-color: var(--gris); }
+.ind--attention { border-top-color: var(--ambre); }
+.ind h4 { font-size: var(--t-xs); font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); }
+.ind .val { font-family: var(--f-titre); font-size: var(--t-xl); font-weight: 600; line-height: 1; letter-spacing: -.02em; }
+.ind .val small { font-family: var(--f-texte); font-size: var(--t-sm); font-weight: 500; color: var(--ink-soft); letter-spacing: 0; }
+.ind .denominateur { font-size: var(--t-xs); color: var(--ink-faint); font-weight: 600; }
+.ind p { font-size: var(--t-sm); color: var(--ink-soft); margin: 0; max-width: none; }
+.ind .etat, .lecture .etat, .note .etat { align-self: flex-start; }
+.ind--vide .val { font-family: var(--f-texte); font-size: var(--t-md); font-style: italic; color: var(--gris); }
+
+/* --------------------------------------------------------------------------
+   12. DOUBLE LECTURE — la pièce centrale d'une fiche
+   -------------------------------------------------------------------------- */
+.lectures { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--e-4); }
+.lecture { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--e-6); }
+.lecture .surtitre { color: var(--ink-faint); }
+.lecture h3 { font-size: var(--t-lg); margin-bottom: var(--e-3); }
+.lecture p { font-size: var(--t-base); color: var(--ink-soft); margin: 0; }
+.lecture .etat { margin-bottom: var(--e-4); font-size: var(--t-sm); padding: var(--e-2) var(--e-4); }
+
+/* --------------------------------------------------------------------------
+   12 bis. DOSSIERS — une entrée de lecture, pas une vignette décorative.
+   Chaque carte porte son chiffre : c'est le chiffre qui fait cliquer.
+   -------------------------------------------------------------------------- */
+.dossiers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-4); }
+.dossier {
+  position: relative; display: flex; flex-direction: column; gap: var(--e-2);
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: var(--e-6) var(--e-5) var(--e-5);
+  text-decoration: none; color: var(--ink);
+  transition: border-color var(--duree), transform var(--duree), box-shadow var(--duree);
+}
+.dossier:hover { border-color: var(--ink-faint); transform: translateY(-2px); box-shadow: var(--ombre); }
+.dossier-num {
+  position: absolute; top: var(--e-4); right: var(--e-5);
+  font-size: var(--t-xs); font-weight: 700; letter-spacing: .1em; color: var(--ink-faint);
+}
+.dossier:hover .dossier-num { color: var(--ink-faint); }
+.dossier-chiffre {
+  font-family: var(--f-titre); font-size: var(--t-xl); font-weight: 600;
+  line-height: 1; letter-spacing: -.02em; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums; margin-bottom: var(--e-1);
+}
+.dossier-chiffre span { font-family: var(--f-texte); font-size: var(--t-sm); font-weight: 500; color: var(--ink-faint); letter-spacing: 0; }
+.dossier h3 { font-size: var(--t-md); font-family: var(--f-titre); font-weight: 600; }
+.dossier p { font-size: var(--t-sm); color: var(--ink-soft); margin: 0; max-width: none; }
+.dossier-pied {
+  margin-top: auto; padding-top: var(--e-4);
+  font-size: var(--t-xs); font-weight: 650; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink-faint); display: flex; justify-content: space-between; gap: var(--e-2);
+}
+.dossier:hover .dossier-pied { color: var(--eau); }
+.dossier--bascule .dossier-chiffre { color: var(--bascule); }
+.dossier--rouge   .dossier-chiffre { color: var(--rouge); }
+.dossier--ambre   .dossier-chiffre { color: var(--ambre); }
+.dossier--gris    .dossier-chiffre { color: var(--gris); }
+.dossier--eau     .dossier-chiffre { color: var(--eau); }
+
+/* --------------------------------------------------------------------------
+   12 ter. SURFACE SOMBRE INTERNE — pour les blocs de doctrine
+   -------------------------------------------------------------------------- */
+.section--sombre { background: var(--eau-deep); color: #E9EFF4; border-top: 0; }
+:root[data-theme="sombre"] .section--sombre { background: #08131C; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .section--sombre { background: #08131C; } }
+.section--sombre .surtitre { color: var(--eau-clair); }
+.section--sombre .surtitre::before { background: var(--eau-clair); }
+.hors-observatoire .surtitre { color: var(--eau); }
+.hors-observatoire .surtitre::before { background: var(--eau); }
+.section--sombre h2 { color: #FFFFFF; }
+.section--sombre .chapo { color: #BCCCD8; }
+
+.refus { list-style: none; counter-reset: r; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--e-5) var(--e-7); }
+.refus li {
+  counter-increment: r; position: relative; padding-left: var(--e-7);
+  font-size: var(--t-base); color: #C3D2DD; line-height: 1.6;
+}
+.refus li::before {
+  content: counter(r, decimal-leading-zero);
+  position: absolute; left: 0; top: 1px;
+  font-family: var(--f-titre); font-size: var(--t-md); font-weight: 600; color: var(--eau-clair);
+  font-variant-numeric: tabular-nums;
+}
+.refus b { color: #FFFFFF; font-weight: 650; }
+
+/* --------------------------------------------------------------------------
+   13. ZONE ÉDITIONS MYTAE — hors Observatoire, et cela doit se voir
+   Fond, largeur et police différents : personne ne doit confondre une
+   proposition éditoriale avec une donnée publique.
+   -------------------------------------------------------------------------- */
+.hors-observatoire {
+  /* Surface CHAUDE, à l'inverse du bleu froid de l'Observatoire.
+     C'est la seule zone du site où le fond n'est pas neutre : le lecteur
+     doit voir qu'il change de monde avant d'avoir lu une ligne. */
+  --sable:      #F4EFE4;
+  --sable-card: #FBF8F2;
+  --ink-faint:  #4C5F71;          /* le gris de mention ne tient pas AA sur le sable */
+  background: var(--sable); color: var(--ink);
+  border-top: 3px solid var(--eau);
+}
+:root[data-theme="sombre"] .hors-observatoire { --sable: #191712; --sable-card: #221E17; --ink-faint: #A3B5C4; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .hors-observatoire { --sable: #191712; --sable-card: #221E17; --ink-faint: #A3B5C4; } }
+.hors-observatoire p { color: var(--ink-soft); }
+.bandeau-separation {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  border: 1px solid var(--eau); color: var(--eau);
+  border-radius: var(--r-pastille); padding: var(--e-1) var(--e-3);
+  font-size: var(--t-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: var(--e-5);
+}
+.offres { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--e-5); margin-top: var(--e-6); }
+.offre { background: var(--sable-card); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); border-radius: var(--r-lg); padding: var(--e-6); }
+.offre h3 { font-size: var(--t-lg); margin-bottom: var(--e-2); }
+.offre p  { font-size: var(--t-sm); margin-bottom: var(--e-5); }
+.hors-observatoire .lien-fort {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  background: var(--eau); color: #FFFFFF; text-decoration: none;
+  padding: var(--e-3) var(--e-5); border-radius: var(--r-pastille);
+  font-size: var(--t-sm); font-weight: 650;
+}
+.hors-observatoire .lien-fort:hover { background: var(--eau-deep); }
+:root[data-theme="sombre"] .hors-observatoire .lien-fort { color: #0C1620; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .hors-observatoire .lien-fort { color: #0C1620; } }
+
+/* --------------------------------------------------------------------------
+   14. PIED — la traçabilité est un élément de forme, pas une mention légale
+   -------------------------------------------------------------------------- */
+.pied { border-top: 1px solid var(--line); padding-block: var(--e-7) var(--e-8); font-size: var(--t-base); color: var(--ink-soft); }
+.pied p { max-width: var(--mesure); }
+.tracab { display: flex; flex-wrap: wrap; gap: var(--e-2) var(--e-5); margin-top: var(--e-5); padding-top: var(--e-4); border-top: 1px solid var(--line-soft); font-size: var(--t-xs); }
+.tracab b { color: var(--ink-faint); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+.tracab code { font-family: var(--f-mono); color: var(--ink); }
+
+/* --------------------------------------------------------------------------
+   15. FIL D'ARIANE ET EN-TÊTE DE FICHE
+   -------------------------------------------------------------------------- */
+.fil { font-size: var(--t-sm); color: var(--ink-soft); padding-block: var(--e-4); }
+.fil a { color: var(--ink-soft); }
+.fil span { color: var(--ink-faint); margin-inline: var(--e-2); }
+
+.fiche-tete { display: grid; grid-template-columns: 1.3fr .7fr; gap: var(--e-7); align-items: start; padding-block: var(--e-6) var(--e-7); }
+.fiche-tete h1 { font-size: var(--t-2xl); letter-spacing: -.02em; margin-bottom: var(--e-2); }
+.identite { display: flex; flex-wrap: wrap; gap: var(--e-5); margin-top: var(--e-5); }
+.identite div { min-width: 130px; }
+.identite dt { font-size: var(--t-xs); font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.identite dd { margin: var(--e-1) 0 0; font-size: var(--t-sm); font-weight: 600; }
+
+.verdict-bloc { border-radius: var(--r-lg); padding: var(--e-6); border: 1px solid; }
+.verdict-bloc--conforme    { background: var(--vert-bg);  border-color: color-mix(in srgb, var(--vert) 30%, transparent); }
+.verdict-bloc--depassement { background: var(--rouge-bg); border-color: color-mix(in srgb, var(--rouge) 30%, transparent); }
+.verdict-bloc--bascule     { background: var(--bascule-bg); border-color: color-mix(in srgb, var(--bascule) 30%, transparent); }
+.verdict-bloc--indetermine { background: var(--gris-bg);  border-color: color-mix(in srgb, var(--gris) 30%, transparent); }
+.verdict-bloc h2 { font-size: var(--t-lg); margin-bottom: var(--e-3); }
+.verdict-bloc--conforme    h2 { color: var(--vert); }
+.verdict-bloc--depassement h2 { color: var(--rouge); }
+.verdict-bloc--bascule     h2 { color: var(--bascule); }
+.verdict-bloc--indetermine h2 { color: var(--gris); }
+.verdict-bloc p { font-size: var(--t-sm); color: var(--ink); margin: 0; }
+
+details.bulletin { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); }
+details.bulletin summary { padding: var(--e-5); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; gap: var(--e-4); align-items: center; }
+details.bulletin summary::-webkit-details-marker { display: none; }
+details.bulletin summary span { font-size: var(--t-sm); color: var(--ink-faint); font-weight: 500; }
+details.bulletin summary::before { content: "\25B8"; color: var(--eau); margin-right: var(--e-3); display: inline-block; transition: transform var(--duree); }
+details.bulletin[open] summary::before { transform: rotate(90deg); }
+details.bulletin summary > :first-child { flex: 1; }
+details.bulletin[open] summary { border-bottom: 1px solid var(--line); }
+
+/* --------------------------------------------------------------------------
+   16. ADAPTATIONS — 2 points de rupture au lieu de 4
+   -------------------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .dossiers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Le menu se replie AVANT de déborder, pas quand la page devient étroite :
+   déployé, il réclame 1 049 px de barre. Mesuré, pas supposé. */
+@media (max-width: 1080px) {
+  .menu { display: none; }
+  .menu.ouvert {
+    display: flex; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--card); border-bottom: 1px solid var(--line); padding: var(--e-3); gap: var(--e-1);
+    box-shadow: var(--ombre-haut);
+  }
+  .menu.ouvert a { font-size: var(--t-base); padding: var(--e-3) var(--e-4); }
+  .menu.ouvert a[aria-current] { box-shadow: inset 3px 0 0 var(--eau); border-radius: 0; }
+  .burger { display: inline-flex; margin-left: auto; }
+}
+@media (max-width: 900px) {
+  :root { --t-display: clamp(32px, 8vw, 44px); --t-2xl: 31px; --t-xl: 25px; --t-lg: 20px; }
+  .accroche-grille, .fiche-tete { grid-template-columns: minmax(0, 1fr); gap: var(--e-6); }
+  .indicateurs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lectures, .offres, .refus, .deux-notes { grid-template-columns: minmax(0, 1fr) !important; }
+  .accroche { padding-block: var(--e-7) var(--e-6); }
+  .section { padding-block: var(--e-7); }
+}
+@media (max-width: 620px) {
+  .zone { padding-inline: var(--e-4); }
+  .nombres, .nombres-socle, .indicateurs, .dossiers { grid-template-columns: minmax(0, 1fr); }
+  .marque-txt span { display: none; }   /* la ligne de sous-titre tombe, la marque reste */
+  /* Un tableau ne déborde jamais la page : il défile dans son propre cadre. */
+  .tableau-defile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tableau-defile table { min-width: 620px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  .barre, .bouton-theme, .filtres, .voir-tout, .hors-observatoire { display: none !important; }
+  body { background: #fff; font-size: 11pt; }
+  .stat, .ind, .tableau, .lecture { break-inside: avoid; box-shadow: none; }
+}
+
+/* ===========================================================================
+   17. COMPOSANTS D'UNE FICHE EN DÉPASSEMENT
+   Ajoutés le 14 août 2026 pour Thiville (28389). Aucun jeton nouveau : tout
+   sort de l'échelle et des cinq couleurs déjà déclarées.
+   =========================================================================== */
+
+/* -- Choix du prélèvement : trois dates, jamais une moyenne ---------------- */
+.prelevements { display: flex; gap: var(--e-2); flex-wrap: wrap; align-items: center; padding-block: var(--e-3) 0; }
+.prelevements .lib { font-size: var(--t-xs); font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); margin-right: var(--e-2); }
+.prelevements a {
+  font-size: var(--t-sm); font-weight: 600; text-decoration: none;
+  padding: var(--e-2) var(--e-4); border-radius: var(--r-pastille);
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.prelevements a:hover { border-color: var(--ink-faint); color: var(--ink); }
+.prelevements a[aria-current] { background: var(--eau); border-color: var(--eau); color: var(--card); }
+
+/* -- Alerte de méthode : le fait le plus fort de la page ------------------- */
+.alerte {
+  background: var(--ambre-bg); border: 1px solid color-mix(in srgb, var(--ambre) 30%, transparent);
+  border-left: 4px solid var(--ambre); border-radius: var(--r-lg);
+  padding: var(--e-6); margin-block: var(--e-6);
+}
+.alerte-grille { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--e-7); align-items: start; }
+.alerte h3 { font-size: var(--t-lg); margin-bottom: var(--e-3); }
+.alerte-liste { background: var(--card); border: 1px solid color-mix(in srgb, var(--ambre) 30%, transparent); border-radius: var(--r-md); padding: var(--e-5); }
+.alerte-liste h4 { font-size: var(--t-sm); font-weight: 650; margin-bottom: var(--e-3); }
+.alerte-liste ol { list-style: none; margin: 0; padding: 0; font-size: var(--t-sm); font-weight: 600; }
+.alerte-liste li { padding-block: var(--e-2); border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; gap: var(--e-3); }
+.alerte-liste li:last-child { border-bottom: 0; }
+.alerte-liste li::before { content: ""; width: 14px; height: 2px; background: var(--ambre); flex: 0 0 auto; }
+.alerte-liste p { font-size: var(--t-sm); color: var(--ink-soft); margin: var(--e-4) 0 0; }
+.alerte p  { font-size: var(--t-base); color: var(--ink); max-width: var(--mesure); }
+.alerte p:last-child { margin-bottom: 0; }
+.alerte .compteur { font-family: var(--f-titre); font-size: var(--t-2xl); font-weight: 600; line-height: 1; color: var(--ambre); font-variant-numeric: tabular-nums; }
+.alerte ul { margin: 0 0 var(--e-4); padding-left: var(--e-5); font-size: var(--t-base); }
+.alerte li { margin-bottom: var(--e-1); }
+
+/* -- Un dépassement, avec sa jauge ---------------------------------------- */
+.depassements { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-4); }
+.dep {
+  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--rouge);
+  border-radius: var(--r-md); padding: var(--e-5);
+}
+.dep--vigilance { border-left-color: var(--ambre); }
+.dep-tete { display: flex; justify-content: space-between; align-items: baseline; gap: var(--e-4); margin-bottom: var(--e-3); }
+.dep-nom { font-weight: 650; font-size: var(--t-base); }
+.dep-val { font-family: var(--f-titre); font-size: var(--t-lg); font-weight: 600; color: var(--rouge); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dep--vigilance .dep-val { color: var(--ambre); }
+.dep p { font-size: var(--t-sm); color: var(--ink-soft); margin: var(--e-3) 0 0; max-width: none; }
+
+/* La jauge place le seuil au tiers de la piste : on voit d'un coup d'œil
+   la différence entre « à peine au-dessus » et « cinq fois au-dessus ». */
+.jauge { position: relative; height: 10px; border-radius: var(--r-pastille); background: var(--line-soft); overflow: hidden; }
+.jauge i { position: absolute; inset: 0 auto 0 0; background: var(--rouge); border-radius: var(--r-pastille); display: block; }
+.dep--vigilance .jauge i { background: var(--ambre); }
+.jauge b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); left: 33.3%; }
+.jauge-lg { display: flex; justify-content: space-between; font-size: var(--t-xs); color: var(--ink-faint); margin-top: var(--e-2); font-variant-numeric: tabular-nums; }
+.jauge-lg b { color: var(--ink-soft); font-weight: 650; }
+
+/* -- Trois registres qui ne se mélangent jamais ---------------------------- */
+.registres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-4); }
+.registre { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--e-5); }
+.registre-tete { display: flex; align-items: center; gap: var(--e-3); margin-bottom: var(--e-3); }
+.registre-n {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: var(--t-sm); font-variant-numeric: tabular-nums;
+}
+.registre--avere  .registre-n { background: var(--rouge-bg);   color: var(--rouge); }
+.registre--suspect .registre-n { background: var(--bascule-bg); color: var(--bascule); }
+.registre--nondoc .registre-n { background: var(--gris-bg);    color: var(--gris); }
+.registre h4 { font-size: var(--t-sm); font-weight: 650; }
+.registre > p { font-size: var(--t-sm); color: var(--ink-soft); max-width: none; }
+.substances { list-style: none; margin: var(--e-4) 0 0; padding: var(--e-4) 0 0; border-top: 1px solid var(--line-soft); font-size: var(--t-sm); }
+.substances li { display: flex; justify-content: space-between; gap: var(--e-3); padding-block: var(--e-2); border-bottom: 1px solid var(--line-soft); }
+.substances li:last-child { border-bottom: 0; }
+.substances .v { font-variant-numeric: tabular-nums; color: var(--ink-soft); white-space: nowrap; }
+.substances .denominateur { display: block; font-weight: 500; }
+.substances .vide { color: var(--ink-faint); font-style: italic; justify-content: flex-start; }
+
+/* -- Barres de composition (indice de danger) ----------------------------- */
+.barres { list-style: none; margin: 0; padding: 0; }
+.barres li { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: var(--e-4); align-items: center; padding-block: var(--e-3); border-bottom: 1px solid var(--line-soft); }
+.barres li:last-child { border-bottom: 0; }
+.barres .nom { font-size: var(--t-sm); font-weight: 600; }
+.barres .det { font-size: var(--t-xs); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.barres .mult { text-align: right; font-family: var(--f-titre); font-size: var(--t-md); font-weight: 600; font-variant-numeric: tabular-nums; }
+.barres .sup { color: var(--rouge); }
+.barres .inf { color: var(--vert); }
+
+/* -- Table de repères ------------------------------------------------------ */
+.tab-simple { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+
+/* -- Emplacement de carte (inchangé dans cette maquette) ------------------- */
+.carte-bloc {
+  background: var(--card); border: 1px dashed var(--line); border-radius: var(--r-lg);
+  padding: var(--e-8) var(--e-6); text-align: center; color: var(--ink-faint); font-size: var(--t-sm);
+}
+
+@media (max-width: 900px) {
+  .depassements, .registres, .alerte-grille { grid-template-columns: minmax(0, 1fr); gap: var(--e-5); }
+}
+
+/* ===========================================================================
+   18. COMPLÉMENTS DU 14 AOÛT 2026 (soir)
+   Un registre ne tronque plus sa liste : ce qui n'est pas montré est
+   simplement replié, et le repli annonce combien il cache.
+   =========================================================================== */
+
+details.plus { margin-top: var(--e-2); }
+details.plus > summary {
+  cursor: pointer; list-style: none;
+  font-size: var(--t-sm); font-weight: 650; color: var(--eau);
+  padding: var(--e-2) 0; display: flex; align-items: center; gap: var(--e-2);
+}
+details.plus > summary::-webkit-details-marker { display: none; }
+details.plus > summary::before { content: "\25B8"; transition: transform var(--duree); }
+details.plus[open] > summary::before { transform: rotate(90deg); }
+details.plus > summary:hover { text-decoration: underline; }
+details.plus .substances { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* -- PFAS : deux familles, et ce que la norme regarde ---------------------- */
+.pfas-familles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-4); }
+.pfas-fam { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--e-5); }
+.pfas-fam--vise { border-top: 3px solid var(--eau); }
+.pfas-fam--hors { border-top: 3px solid var(--gris); }
+.pfas-fam h4 { font-size: var(--t-md); font-family: var(--f-titre); font-weight: 600; }
+.pfas-fam > p { font-size: var(--t-sm); color: var(--ink-soft); margin: var(--e-1) 0 var(--e-4); }
+.pf-liste { display: flex; flex-wrap: wrap; gap: var(--e-2); margin: 0 0 var(--e-4); padding: 0; list-style: none; }
+.pf {
+  display: inline-flex; flex-direction: column; gap: 1px;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: var(--e-2) var(--e-3); background: var(--card-alt);
+}
+.pf b { font-size: var(--t-sm); font-weight: 650; }
+.pf--quant { border-color: var(--eau); background: var(--eau-bg); }
+.pf--quant b { color: var(--eau); }
+.pf--quant span { color: var(--ink-soft); }
+.pf span { font-size: var(--t-xs); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+/* -- Ce que le laboratoire ne pouvait pas voir ----------------------------- */
+.lq { background: var(--gris-bg); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--e-6); }
+.lq-tete { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e-4); flex-wrap: wrap; margin-bottom: var(--e-4); }
+.lq-tete b { font-size: var(--t-lg); font-family: var(--f-titre); font-weight: 600; }
+.lq-mult { font-family: var(--f-titre); font-size: var(--t-xl); font-weight: 600; color: var(--gris); font-variant-numeric: tabular-nums; }
+.echelle { position: relative; height: 42px; margin: var(--e-5) 0 var(--e-3); }
+.echelle-piste { position: absolute; left: 0; right: 0; top: 19px; height: 4px; border-radius: var(--r-pastille); background: linear-gradient(90deg, var(--vert), var(--ambre) 55%, var(--gris)); }
+.echelle-pt { position: absolute; top: 8px; width: 2px; height: 26px; }
+.echelle-pt::before { content: ""; position: absolute; inset: 0; background: var(--ink); }
+.echelle-pt span {
+  position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+  font-size: var(--t-xs); white-space: nowrap; color: var(--ink-soft); font-variant-numeric: tabular-nums;
+}
+/* Aux extrémités, l'étiquette s'aligne au bord au lieu d'être centrée :
+   sinon la moitié du texte sort du cadre. */
+.echelle-pt--debut span { left: 0; transform: none; }
+.echelle-pt--fin   span { left: auto; right: 0; transform: none; }
+.echelle-pt--ici { width: 3px; height: 34px; top: 4px; }
+.echelle-pt--ici::before { background: var(--rouge); }
+.echelle-pt--ici span { color: var(--rouge); font-weight: 700; top: 34px; }
+
+@media (max-width: 900px) { .pfas-familles { grid-template-columns: minmax(0, 1fr); } }
+
+/* ===========================================================================
+   19. LA BASCULE, MONTRÉE PLUTÔT QU'ÉCRITE
+   Une piste graduée où l'on voit d'un coup la mesure, la limite d'hier et
+   celle d'aujourd'hui : c'est la thèse du projet en une image.
+   =========================================================================== */
+.bascules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-5); }
+.basc {
+  background: var(--card); border: 1px solid var(--line);
+  border-top: 3px solid var(--bascule); border-radius: var(--r-lg); padding: var(--e-6);
+}
+.basc-tete { display: flex; justify-content: space-between; align-items: baseline; gap: var(--e-4); flex-wrap: wrap; }
+.basc-nom { font-family: var(--f-titre); font-size: var(--t-lg); font-weight: 600; }
+.basc-val { font-family: var(--f-titre); font-size: var(--t-xl); font-weight: 600; color: var(--bascule); font-variant-numeric: tabular-nums; }
+.piste { position: relative; height: 76px; margin: var(--e-6) 0 var(--e-3); }
+.piste-rail { position: absolute; left: 0; right: 0; top: 34px; height: 6px; border-radius: var(--r-pastille); background: var(--line-soft); }
+.piste-zone { position: absolute; top: 34px; height: 6px; border-radius: var(--r-pastille); }
+/* Trois zones, et c'est la zone du milieu qui est le sujet :
+   celle où une mesure a changé de statut sans changer de valeur. */
+.piste-zone--deux    { background: var(--vert); }
+.piste-zone--bascule { background: var(--bascule); }
+.piste-zone--hors    { background: var(--rouge); }
+.piste-lim { position: absolute; top: 22px; width: 2px; height: 30px; background: none; }
+.piste-lim::before { content: ""; position: absolute; inset: 0; background: var(--ink); }
+.piste-lim em { position: absolute; left: 50%; transform: translateX(-50%); bottom: 32px; white-space: nowrap; font-style: normal; font-size: var(--t-xs); font-weight: 650; letter-spacing: .02em; }
+.piste-lim em { color: var(--ink-soft); }
+.piste-lg { display: flex; flex-wrap: wrap; gap: var(--e-2) var(--e-4); font-size: var(--t-xs); color: var(--ink-soft); }
+.piste-lg span { display: inline-flex; align-items: center; gap: var(--e-2); }
+.piste-lg i { width: 12px; height: 6px; border-radius: var(--r-pastille); display: inline-block; }
+.piste-mes { position: absolute; top: 28px; width: 14px; height: 14px; margin-left: -7px; }
+.piste-mes::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--bascule); border: 3px solid var(--card); box-shadow: 0 0 0 2px var(--bascule); }
+.piste-mes em { position: absolute; left: 50%; transform: translateX(-50%); top: 20px; white-space: nowrap; font-style: normal; font-size: var(--t-xs); font-weight: 700; color: var(--bascule); }
+.basc p { font-size: var(--t-sm); color: var(--ink-soft); margin: var(--e-5) 0 0; max-width: none; }
+.basc-date {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  background: var(--bascule-bg); color: var(--bascule); border-radius: var(--r-pastille);
+  padding: var(--e-1) var(--e-3); font-size: var(--t-xs); font-weight: 650; margin-top: var(--e-3);
+}
+
+/* -- Série longue de prélèvements : elle défile, elle ne s'empile pas ------ */
+.prelevements--serie { flex-wrap: nowrap; overflow-x: auto; padding-bottom: var(--e-2); }
+.prelevements--serie a { flex: 0 0 auto; }
+
+@media (max-width: 900px) { .bascules { grid-template-columns: minmax(0, 1fr); } }
+
+/* ===========================================================================
+   20. LA JAUGE DE SEUIL — retour de la barre de remplissage, avec une zone
+   d'approche.
+   Décidé le 14 août 2026 : une eau à 99 % de la limite est conforme, mais
+   entre la limite de quantification du laboratoire et le reste, 1 % ne veut
+   rien dire. La barre passe donc du vert à l'ambre AVANT la limite, et non
+   au moment où elle est franchie.
+      0 → 78 %   vert     : franchement en dessous
+      78 → 88 %  transition
+      88 → 100 % ambre    : on s'approche de la limite
+      > 100 %    rouge    : dépassement, la barre est pleine et le multiple
+                            est écrit en toutes lettres
+   Le trait clair sur la piste marque les 85 %.
+   =========================================================================== */
+.jauges { display: flex; flex-direction: column; gap: var(--e-4); }
+.jg { display: block; }
+.jg-lg {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--e-3);
+  font-size: var(--t-xs); color: var(--ink-soft); margin-bottom: var(--e-2);
+}
+.jg-lg span { font-weight: 500; }
+.jg-lg span b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.jg-lg > b { font-size: var(--t-sm); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.jg-piste { position: relative; height: 10px; border-radius: var(--r-pastille); background: var(--line-soft); overflow: hidden; }
+.jg-piste::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, var(--vert) 0 78%, var(--ambre) 88% 100%);
+  clip-path: inset(0 calc(100% - var(--pct, 0%)) 0 0);
+}
+/* le repère des 85 %, visible que la barre l'ait atteint ou non */
+/* Le repère des 85 % doit rester lisible qu'il soit sur la piste vide ou
+   sous la barre pleine : trait clair + liseré sombre. */
+.jg-piste em { position: absolute; left: 85%; top: -1px; bottom: -1px; width: 2px; background: var(--card); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent); }
+
+.jg--ok      > b, .jg--ok      .jg-lg > b { color: var(--vert); }
+.jg--proche  > b, .jg--proche  .jg-lg > b { color: var(--ambre); }
+.jg--depasse .jg-lg > b { color: var(--rouge); }
+.jg--depasse .jg-piste::before { background: var(--rouge); }
+.jg--indet   .jg-lg > b { color: var(--gris); }
+.jg--indet   .jg-piste::before { background: repeating-linear-gradient(45deg, var(--gris) 0 4px, transparent 4px 8px); }
+.jg--souslq  .jg-lg > b { color: var(--gris); }
+.jg--souslq  .jg-piste::before { background: var(--gris); opacity: .45; }
+
+/* La seconde barre — repère le plus strict, ou repère « nourrissons » —
+   est plus fine : c'est un repère, pas une limite opposable. */
+.jg--repere .jg-piste { height: 7px; }
+
+
+/* Dans une carte d'indicateur, les jauges viennent juste sous la valeur. */
+.ind .jauges { margin: var(--e-1) 0 var(--e-1); }
+
+/* ===========================================================================
+   21. LES SECTIONS SE VOIENT
+   Un sur-titre coloré précédé d'un filet, un titre au cran supérieur, et une
+   alternance de fond : on doit savoir qu'on a changé de sujet sans lire.
+   =========================================================================== */
+.section { padding-block: var(--e-9); }
+.section + .section { border-top: 0; }
+main > section.section { border-top: 1px solid var(--line); }
+main > section.section:nth-of-type(even) { background: var(--card-alt); }
+/* une surface de doctrine reste sombre quel que soit son rang */
+main > section.section.section--sombre { background: var(--eau-deep); }
+:root[data-theme="sombre"] main > section.section.section--sombre { background: #08131C; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) main > section.section.section--sombre { background: #08131C; } }
+
+.section .surtitre {
+  font-size: var(--t-sm); font-weight: 700; letter-spacing: .14em;
+  color: var(--eau); margin-bottom: var(--e-4);
+}
+.section .surtitre::before {
+  content: ""; display: block; width: 40px; height: 3px; border-radius: var(--r-pastille);
+  background: var(--eau); margin-bottom: var(--e-4);
+}
+.section > .zone > h2, .section .zone > h2 { font-size: var(--t-2xl); letter-spacing: -.018em; }
+
+/* Le sur-titre d'une carte n'est pas celui d'une section : pas de filet. */
+.lecture .surtitre::before, .verdict-bloc .surtitre::before,
+.ind .surtitre::before, .registre .surtitre::before, .offre .surtitre::before { display: none; }
+.lecture .surtitre, .verdict-bloc .surtitre, .offre .surtitre { font-size: var(--t-xs); letter-spacing: .1em; }
+
+@media (max-width: 900px) {
+  .section { padding-block: var(--e-7); }
+  .section .surtitre::before { width: 32px; }
+}
+
+/* Les surfaces sombres redéfinissent le sur-titre APRÈS la règle générale
+   de la section, sinon l'ordre du fichier l'emporte sur l'intention. */
+.section.section--sombre .surtitre { color: var(--eau-clair); }
+.section.section--sombre .surtitre::before { background: var(--eau-clair); }
+
+/* ===========================================================================
+   22. ACCUEIL v2 — d'après COMMUNICATION_OBSERVATOIRE_2026-08-14.md
+   Trois ajouts de structure : une hiérarchie dans les dossiers (§1.2.F),
+   un bloc « Et maintenant ? » (§2.8), un état vide de recherche (§2.9).
+   =========================================================================== */
+
+/* -- La marque porte sa traduction, pas seulement son nom (§1.2.B) --------- */
+.marque-txt b { display: block; }
+.baseline {
+  font-size: var(--t-md); color: var(--ink-soft); font-family: var(--f-titre);
+  font-style: italic; margin: var(--e-2) 0 0;
+}
+
+/* -- Hiérarchie des dossiers : un phare, six cartes, un aveu (§1.2.F) ----- */
+.dossier--phare { grid-column: span 2; }
+.dossier--phare .dossier-chiffre { font-size: var(--t-2xl); }
+.dossier--phare h3 { font-size: var(--t-lg); }
+.dossier--phare p { font-size: var(--t-base); }
+.dossier--aveu { grid-column: 1 / -1; border-style: dashed; }
+.dossier--aveu .dossier-chiffre { color: var(--ambre); }
+.dossier-tag {
+  display: inline-flex; align-items: center; gap: var(--e-2); align-self: flex-start;
+  font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  border-radius: var(--r-pastille); padding: var(--e-1) var(--e-3); margin-bottom: var(--e-2);
+  background: var(--rouge-bg); color: var(--rouge);
+}
+.dossier-tag--aveu { background: var(--ambre-bg); color: var(--ambre); }
+.dossier-precision { font-size: var(--t-sm); color: var(--ink-faint); font-style: italic; margin: var(--e-3) 0 0; }
+
+/* -- « Et maintenant ? » : trois portes, pas trois conseils (§2.8) -------- */
+.portes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-4); }
+.porte {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: var(--e-6); display: flex; flex-direction: column; gap: var(--e-3);
+  border-top: 3px solid var(--eau);
+}
+.porte-n {
+  font-size: var(--t-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--eau);
+}
+.porte h3 { font-size: var(--t-lg); }
+.porte p { font-size: var(--t-base); color: var(--ink-soft); margin: 0; max-width: none; }
+.porte ul { margin: 0; padding-left: var(--e-5); font-size: var(--t-base); color: var(--ink); }
+.porte li { margin-bottom: var(--e-2); }
+.porte .lien-fort { align-self: flex-start; margin-top: auto; background: var(--eau); color: #FFFFFF; }
+.porte .lien-fort:hover { background: var(--eau-deep); }
+:root[data-theme="sombre"] .porte .lien-fort { color: #0C1620; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .porte .lien-fort { color: #0C1620; } }
+.porte-liens { display: flex; flex-wrap: wrap; gap: var(--e-2) var(--e-4); font-size: var(--t-sm); margin-top: auto; padding-top: var(--e-3); }
+
+/* -- Signature : qui parle (§2.11) ---------------------------------------- */
+.signature {
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  background: var(--card); padding-block: var(--e-7);
+}
+.signature-i { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--e-6); align-items: start; }
+.signature svg { width: 46px; height: 46px; }
+.signature h2 { font-size: var(--t-lg); margin-bottom: var(--e-3); }
+.signature p { font-size: var(--t-base); color: var(--ink-soft); max-width: 78ch; }
+
+/* -- Recherche : résultats et état vide (§2.9) ---------------------------- */
+.resultats { list-style: none; margin: var(--e-4) 0 0; padding: 0; }
+.resultats li { border-bottom: 1px solid var(--line-soft); }
+.resultats a { display: flex; justify-content: space-between; gap: var(--e-3); padding: var(--e-3) var(--e-2); text-decoration: none; color: var(--ink); font-weight: 600; border-radius: var(--r-sm); }
+.resultats a:hover { background: var(--card-alt); }
+.resultats .dept { color: var(--ink-faint); font-weight: 500; font-size: var(--t-sm); }
+
+.vide-corpus {
+  margin-top: var(--e-4); border: 1px solid var(--line); border-left: 4px solid var(--gris);
+  border-radius: var(--r-md); background: var(--gris-bg); padding: var(--e-5);
+}
+.vide-corpus h3 { font-size: var(--t-md); margin-bottom: var(--e-3); }
+.vide-corpus p { font-size: var(--t-sm); color: var(--ink-soft); margin-bottom: var(--e-3); }
+.vide-corpus p:last-of-type { margin-bottom: var(--e-4); }
+.vide-actions { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+.bouton-sec {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  border-radius: var(--r-pastille); padding: var(--e-2) var(--e-4);
+  font-size: var(--t-sm); font-weight: 650; text-decoration: none; cursor: pointer; font-family: inherit;
+}
+.bouton-sec:hover { border-color: var(--eau); color: var(--eau); }
+[hidden] { display: none !important; }
+
+@media (max-width: 1180px) { .dossier--phare { grid-column: 1 / -1; } }
+@media (max-width: 900px) {
+  .portes { grid-template-columns: minmax(0, 1fr); }
+  .signature-i { grid-template-columns: minmax(0, 1fr); gap: var(--e-4); }
+}
+
+/* Le bouton plein existe hors de la zone Mytae : sa forme est générique,
+   seules ses couleurs dépendent de la surface qui l'accueille. */
+.lien-fort {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  padding: var(--e-3) var(--e-5); border-radius: var(--r-pastille);
+  font-size: var(--t-sm); font-weight: 650; text-decoration: none;
+  background: var(--eau); color: #FFFFFF;
+}
+.lien-fort:hover { background: var(--eau-deep); text-decoration: none; }
+:root[data-theme="sombre"] .lien-fort { color: #0C1620; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .lien-fort { color: #0C1620; } }
+:root[data-theme="sombre"] .lien-fort:hover { background: #FFFFFF; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .lien-fort:hover { background: #FFFFFF; } }
+
+/* La carte d'aveu occupe toute la largeur : son texte, lui, garde sa mesure. */
+.dossier--aveu p { max-width: var(--mesure); }
+.dossier--aveu .dossier-pied { max-width: none; }
