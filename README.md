@@ -9,9 +9,12 @@ robinet en France. Porté par Éditions Mytae.
 
 Il sépare **la mesure** du **verdict**.
 
-Une mesure est un fait : *0,092 µg/L d'ESA métolachlore, le 14 mars 2025, à
-Saintes*. Un verdict est une convention administrative : *« conforme »*. Le
-fait ne change pas ; la convention, si.
+Une mesure est un fait : *14,0 µg(Se)/L de sélénium, le 29 octobre 2024, à
+Auneau-Bleury-Saint-Symphorien*. Un verdict est une convention administrative :
+*« conforme »*. Le fait ne change pas ; la convention, si — la limite du
+sélénium est passée de 10 à 20 µg/L le 1er janvier 2023. Cette eau est conforme
+à la date de son prélèvement, et ne l'aurait pas été deux ans plus tôt, sans
+qu'une molécule ait bougé.
 
 L'outil prend un bulletin d'analyse réel, complet, daté, et note chacune de
 ses mesures **trois fois** :

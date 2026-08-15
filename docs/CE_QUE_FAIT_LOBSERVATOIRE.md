@@ -10,13 +10,22 @@ leur date : le corpus grossit, et un chiffre sans sa date est un chiffre faux.*
 
 **L'Observatoire sépare la mesure du verdict.**
 
-Une mesure est un fait physique : *0,092 microgramme par litre d'ESA
-métolachlore, le 14 mars 2025, à Saintes*. Ce fait ne change pas.
+Une mesure est un fait physique : *14,0 microgrammes de sélénium par litre, le
+29 octobre 2024, à Auneau-Bleury-Saint-Symphorien, en Eure-et-Loir*. Ce fait ne
+change pas.
 
 Un verdict est une convention administrative : *« conforme »*. Cette convention
 se déplace dans le temps. La même eau, avec exactement la même mesure, peut
 être « non conforme » en 2016 et « conforme » en 2026 — non parce que l'eau
 s'est améliorée, mais parce que la limite a bougé.
+
+Ici, elle a bougé un jour précis : **la limite du sélénium est passée de 10 à
+20 microgrammes par litre le 1er janvier 2023**, par l'arrêté du 30 décembre
+2022. Ces 14,0 microgrammes sont donc conformes le jour du prélèvement, et
+auraient été une non-conformité le 31 décembre 2022 — même eau, même
+laboratoire, même chiffre. Le bulletin porte 606 paramètres recherchés dont 569
+notés, et cette bascule est la seule qu'il contienne : elle est consultable sur
+la fiche de la commune.
 
 > **Ce n'est pas l'eau qui est devenue potable. C'est la limite qui a bougé.**
 
