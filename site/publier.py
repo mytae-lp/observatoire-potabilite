@@ -321,6 +321,28 @@ def envoyer(ftp, local, distant, connus, essais=3):
 # Publication
 # --------------------------------------------------------------------------
 
+def adopter(ftp, racine_distante, sauf=()):
+    """Déclare l'état distant conforme à l'état local, sans rien transférer.
+
+    Sert après un premier envoi fait autrement — FileZilla, par exemple, qui
+    est plus confortable pour les 363 Mo initiaux. Sans ce relais, le script
+    ne trouverait aucun manifeste et renverrait tout.
+
+    Le manifeste devient alors une AFFIRMATION, pas une observation : si le
+    distant ne correspond pas réellement, les écarts seront tenus pour déjà
+    publiés et sautés. En cas de doute, `--forcer` republie tout et remet les
+    deux en accord.
+    """
+    locales = empreintes_locales(PUBLIC, sauf)
+    if not locales:
+        sys.exit(f"{PUBLIC} est vide — rien à adopter.")
+    ecrire_manifeste(ftp, racine_distante, locales)
+    print(f"\n  {len(locales)} fichiers déclarés déjà en ligne sous "
+          f"{racine_distante}.")
+    print("  Les prochaines publications n'enverront que ce qui change.")
+    print("  Si le distant ne correspondait pas : relancer avec --forcer.")
+
+
 def publier(ftp, racine_distante, simulation=False, forcer=False, sauf=()):
     if not os.path.isdir(PUBLIC):
         sys.exit(f"{PUBLIC} n'existe pas. Construire la vitrine d'abord :\n"
@@ -411,6 +433,9 @@ def main():
                    dest="sans_verif",
                    help="conserve le chiffrement mais ne vérifie pas "
                         "l'identité du serveur (cas d'une connexion par IP)")
+    p.add_argument("--adopter", action="store_true",
+                   help="déclare le distant conforme au local sans rien "
+                        "envoyer, après un premier transfert fait autrement")
     args = p.parse_args()
 
     cfg = config()
@@ -429,7 +454,11 @@ def main():
         if not racine_distante:
             sys.exit("Dossier distant inconnu. Le découvrir avec --explorer, "
                      "puis poser OBS_FTP_RACINE.")
-        publier(ftp, racine_distante, args.simulation, args.forcer, args.sauf)
+        if args.adopter:
+            adopter(ftp, racine_distante, args.sauf)
+        else:
+            publier(ftp, racine_distante, args.simulation, args.forcer,
+                    args.sauf)
     finally:
         try:
             ftp.quit()
