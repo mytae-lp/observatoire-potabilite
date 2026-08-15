@@ -1,0 +1,30 @@
+# Paramètres mesurés qui ne sont PAS des paramètres de qualité de l'eau.
+#
+# Décision de Yannick, 15 août 2026 (docs/CHANTIERS.md §C11, décision 3).
+#
+# Ce que ce fichier produit, et les trois effets ne se confondent pas :
+#   · l'attribution devient `hors_perimetre` — aucun verdict n'est prononcé ;
+#   · la mesure SORT DU DÉNOMINATEUR de pct_couverture. La compter comme
+#     « non notée » faisait passer une donnée de contexte pour un angle mort,
+#     et tirait la couverture vers le bas sans raison ;
+#   · la mesure RESTE AFFICHÉE, dans un bloc propre en bas de fiche.
+#     « Hors périmètre » ne veut pas dire « invisible » : ces valeurs disent la
+#     qualité du prélèvement lui-même, et Yannick les veut visibles — « peut-être
+#     que nous pourrons à terme faire des corrélations ». Cette piste est une
+#     HYPOTHÈSE À INSTRUIRE, jamais un acquis (cf. le précédent de la dilution,
+#     CLAUDE.md §7.2).
+#
+# Le critère d'entrée, et il est strict : le paramètre décrit les CONDITIONS de
+# la mesure, pas l'eau. Un paramètre auquel la source oppose une référence de
+# qualité n'entre JAMAIS ici — c'est le cas de « Température de l'eau », que
+# l'administration encadre à 25 (décision 2 du même jour) et qui reste donc
+# pleinement dans le périmètre.
+#
+# Colonnes : libelle_norm ; libelle ; motif ; sources
+# Séparateur point-virgule. JAMAIS de point-virgule dans une cellule (CLAUDE.md §5).
+libelle_norm;libelle;motif;sources
+temperature de l'air;Température de l'air;température ambiante au moment du prélèvement — décrit la météo, pas l'eau;
+pluviometrie-48h;Pluviométrie-48h;cumul de pluie des 48 h précédentes — contexte hydrologique du prélèvement;
+temperature de mesure du ph;Température de mesure du pH;température à laquelle la mesure de pH a été faite — paramètre d'instrument;
+temp de mesure de conductivite 25c;Temp de mesure de conductivité 25°C;température à laquelle la conductivité a été mesurée — paramètre d'instrument;
+prelevement sous acreditation;Prélèvement sous acréditation;métadonnée d'assurance qualité du prélèvement — n'est pas une mesure;

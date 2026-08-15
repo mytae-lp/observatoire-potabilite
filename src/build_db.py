@@ -20,6 +20,7 @@ from common import (DB_PATH, REF_CSV, ALIAS_CSV, RACINE,
                     bornes_reference)
 
 REGLES_CSV = os.path.join(RACINE, "referentiel", "regles_famille.csv")
+HORS_PERIMETRE_CSV = os.path.join(RACINE, "referentiel", "hors_perimetre.csv")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS communes (
@@ -133,6 +134,17 @@ CREATE TABLE IF NOT EXISTS regles_famille (
     justification   VARCHAR,
     sources         VARCHAR
 );
+
+-- Les paramètres qui ne sont pas des paramètres de qualité de l'eau.
+-- Chargée depuis referentiel/hors_perimetre.csv, qui porte le critère d'entrée
+-- et les trois effets (§C11 décision 3) : aucun verdict, hors du dénominateur
+-- de couverture, mais TOUJOURS AFFICHÉ.
+CREATE TABLE IF NOT EXISTS parametres_hors_perimetre (
+    libelle_norm    VARCHAR PRIMARY KEY,
+    libelle         VARCHAR,
+    motif           VARCHAR,
+    sources         VARCHAR
+);
 """
 
 # ---------------------------------------------------------------------------
@@ -175,8 +187,12 @@ SELECT
     END AS mode_appariement,
     CASE WHEN COALESCE(r1.libelle_norm, rc.libelle_norm, r2.libelle_norm,
                        r3.libelle_norm) IS NULL
-         THEN g.nom_regle END AS regle_appliquee
+         THEN g.nom_regle END AS regle_appliquee,
+    (hp.libelle_norm IS NOT NULL) AS est_hors_perimetre,
+    hp.motif                      AS motif_hors_perimetre
 FROM mesures m
+LEFT JOIN parametres_hors_perimetre hp
+       ON hp.libelle_norm = m.libelle_norm
 LEFT JOIN referentiel_seuils r1
        ON r1.code_parametre IS NOT NULL AND r1.code_parametre = m.code_parametre
 LEFT JOIN referentiel_seuils rc
@@ -323,6 +339,14 @@ SELECT
     -- « dans somme » se teste AVANT tout seuil, sinon la limite déclarée par la
     -- source reprend la main sur une substance que le texte ne juge pas seule.
     CASE
+        -- HORS PÉRIMÈTRE — testé EN PREMIER, et c'est signifiant.
+        -- Ce n'est pas « on ne sait pas juger », c'est « il n'y a rien à
+        -- juger » : la température de l'air ou la pluviométrie des 48 h
+        -- décrivent les conditions du prélèvement, pas l'eau. Les laisser
+        -- tomber en bas de cascade les faisait compter comme angles morts
+        -- (§C11 décision 3). La liste est versionnée dans
+        -- referentiel/hors_perimetre.csv, jamais en dur ici.
+        WHEN v.est_hors_perimetre              THEN 'hors_perimetre'
         WHEN v.statut_2026 LIKE 'dans somme%'  THEN 'juge_avec_son_groupe'
         WHEN v.seuil_2026 * v.k IS NOT NULL
           OR v.seuil_2016 * v.k IS NOT NULL    THEN 'juge'
@@ -336,6 +360,24 @@ SELECT
         -- une date de FIN (CLAUDE.md §8).
         WHEN v.statut_2026 LIKE 'reference%'   THEN 'norme_non_exprimee'
         WHEN limite_utile IS NOT NULL          THEN 'juge_sur_valeur_declaree'
+        -- LA SOURCE DÉCLARE UNE RÉFÉRENCE DE QUALITÉ, et nous nous taisions.
+        --
+        -- Défaut réel, mesuré le 15 août 2026 : **7 940 mesures étaient
+        -- `hors_reference = TRUE`** — donc déclarées hors de leur référence par
+        -- l'administration elle-même, et affichées comme telles par le bloc
+        -- « Hors de la référence de qualité » de la fiche (§11.3) — tout en
+        -- portant l'attribution « rien ne se prononce » et en ne comptant PAS
+        -- comme notées. Deux organes du même moteur disaient l'inverse l'un de
+        -- l'autre sur la même mesure.
+        --
+        -- 10 libellés étaient dans ce cas, dont la **température de l'eau**,
+        -- que la source encadre à 25 et qui sort de sa référence 243 fois.
+        --
+        -- Placée APRÈS `limite_utile` : une limite est opposable, une référence
+        -- ne l'est pas. Quand la source déclare les deux, c'est la limite qui
+        -- parle (§11.3 : « là où une limite existe, c'est elle qui parle »).
+        WHEN v.reference_max IS NOT NULL
+          OR v.reference_min IS NOT NULL       THEN 'juge_sur_reference_declaree'
         -- Rien ne juge cette substance. Reste à dire si on l'a VÉRIFIÉ.
         -- `fiabilite` ne vient que du référentiel : elle n'est renseignée que
         -- si une ligne existe pour ce paramètre. Une ligne sans seuil est
@@ -354,9 +396,27 @@ SELECT
     v.pe_scientifique,
     v.fiabilite,
 
+    -- Propagées telles quelles : `v_prelevement_verdict` en a besoin pour
+    -- retrancher le hors périmètre du dénominateur, et la fiche pour afficher
+    -- son bloc de bas de page avec le motif de chaque ligne.
+    v.est_hors_perimetre,
+    v.motif_hors_perimetre,
+
     -- Une mesure est « notée » si elle a un seuil de comparaison actuel.
     -- C'est le dénominateur honnête de toute affirmation de conformité.
-    (COALESCE(v.seuil_2026 * v.k, limite_utile) IS NOT NULL) AS notee,
+    --
+    -- La borne de référence déclarée en fait partie depuis le 15 août 2026.
+    -- Elle produit déjà un verdict — `hors_reference` la compare, et la fiche
+    -- l'affiche — donc l'exclure d'ici revenait à juger une mesure tout en
+    -- déclarant qu'on ne la jugeait pas. Une référence n'est pas une limite
+    -- (`nature_seuil` continue de les séparer, et `nb_depasse_limite` avec),
+    -- mais c'est bien un terme de comparaison.
+    --
+    -- Un paramètre hors périmètre n'est jamais noté : il n'y a rien à noter.
+    (NOT v.est_hors_perimetre
+     AND (COALESCE(v.seuil_2026 * v.k, limite_utile) IS NOT NULL
+          OR v.reference_max IS NOT NULL
+          OR v.reference_min IS NOT NULL))                    AS notee,
 
     -- 2016 et strict ne viennent QUE du référentiel : on n'invente pas de
     -- passé réglementaire à partir de la grille d'aujourd'hui.
@@ -530,8 +590,23 @@ SELECT
     p.conclusion_conformite,
     COUNT(v.libelle_parametre)                                    AS nb_mesures_lues,
     COUNT(*) FILTER (WHERE v.notee)                               AS nb_mesures_notees,
+
+    -- LE DÉNOMINATEUR EXCLUT LE HORS PÉRIMÈTRE (§C11 décision 3).
+    --
+    -- `nb_mesures_lues` ci-dessus continue de tout compter — c'est ce que le
+    -- laboratoire a réellement rendu, et ce chiffre ne doit pas mentir. Mais
+    -- une conformité se rapporte à ce qui POUVAIT être jugé : compter la
+    -- température de l'air au dénominateur faisait passer une donnée de
+    -- contexte pour un angle mort et tirait la couverture vers le bas.
+    -- Effet mesuré sur le corpus au 15 août 2026 : 90,07 % -> 90,41 %.
+    --
+    -- Les deux comptes sont publiés côte à côte, jamais l'un sans l'autre : le
+    -- §2.8 veut le dénominateur visible, pas un dénominateur avantageux.
+    COUNT(*) FILTER (WHERE v.est_hors_perimetre)                  AS nb_hors_perimetre,
+    COUNT(*) FILTER (WHERE NOT v.est_hors_perimetre)              AS nb_mesures_jugeables,
     ROUND(100.0 * COUNT(*) FILTER (WHERE v.notee)
-          / NULLIF(COUNT(v.libelle_parametre), 0), 1)             AS pct_couverture,
+          / NULLIF(COUNT(*) FILTER (WHERE NOT v.est_hors_perimetre), 0), 1)
+                                                                  AS pct_couverture,
     COUNT(*) FILTER (WHERE v.origine_seuil_2026 = 'referentiel')  AS nb_notees_referentiel,
     COUNT(*) FILTER (WHERE v.origine_seuil_2026 = 'declare')      AS nb_notees_declare,
     COUNT(*) FILTER (WHERE v.origine_seuil_2026 = 'absent')       AS nb_sans_seuil,
@@ -618,6 +693,51 @@ FROM v_mesures_ref
 WHERE ref_key IS NULL AND limite_declaree IS NULL
   AND reference_max IS NULL AND reference_min IS NULL
 GROUP BY 1, 2
+ORDER BY nb_quantifiees DESC, nb_mesures DESC;
+"""
+
+# 4bis) Les mesures qu'AUCUN SEUIL ne compare — à ne pas confondre avec la vue
+#       précédente, et c'est tout l'objet de celle-ci.
+#
+# `v_parametres_non_apparies` répond à « quel libellé n'a AUCUNE LIGNE au
+# référentiel ». Tant que le référentiel était pauvre, cette question et « quel
+# libellé n'a aucun SEUIL » avaient la même réponse. **Le chantier C11 a rompu
+# cette identité le 15 août 2026** : 363 lignes ont été ajoutées, toutes SANS
+# valeur, pour dire « nous avons cherché, aucun texte n'oppose de seuil ». Ces
+# libellés sont désormais appariés — et toujours sans seuil.
+#
+# Effet mesuré le jour même : la vue d'appariement est passée de 362 libellés à
+# **5**, quand **380** restent sans aucun terme de comparaison. Un diagnostic
+# qui sous-compte par 75 est pire qu'absent — il fait croire le problème résolu.
+#
+# Les deux vues sont donc gardées, et elles ne se remplacent pas :
+#   · `v_parametres_non_apparies` — un défaut d'APPARIEMENT, donc un travail de
+#     référentiel à faire (alias manquant, code SANDRE non renseigné) ;
+#   · `v_parametres_sans_seuil`   — une absence de VALEUR, qui peut être un fait
+#     établi et documenté. C'est celle qu'il faut lire pour savoir ce que le
+#     projet ne juge pas.
+#
+# La colonne `attribution` dit laquelle des deux situations on regarde, et
+# `fiabilite` dit si quelqu'un a réellement lu un texte pour le conclure.
+# Le hors périmètre est exclu : la température de l'air ne « manque » pas d'un
+# seuil, elle n'en appelle aucun (§C11 décision 3).
+VUE_SANS_SEUIL = """
+CREATE OR REPLACE VIEW v_parametres_sans_seuil AS
+SELECT
+    libelle_parametre,
+    ANY_VALUE(code_parametre)                       AS code_parametre,
+    ANY_VALUE(code_cas)                             AS code_cas,
+    ANY_VALUE(unite)                                AS unite,
+    ANY_VALUE(famille)                              AS famille,
+    ANY_VALUE(attribution)                          AS attribution,
+    ANY_VALUE(fiabilite)                            AS fiabilite,
+    ANY_VALUE(statut_2026)                          AS statut_2026,
+    COUNT(*)                                        AS nb_mesures,
+    COUNT(*) FILTER (WHERE est_quantifie)           AS nb_quantifiees,
+    MAX(resultat_num) FILTER (WHERE est_quantifie)  AS max_quantifie
+FROM v_mesures_verdict
+WHERE NOT notee AND NOT est_hors_perimetre
+GROUP BY 1
 ORDER BY nb_quantifiees DESC, nb_mesures DESC;
 """
 
@@ -1273,6 +1393,7 @@ ORDER BY 1, 2;
 """
 
 VUES = [VUE_REF, VUE_VERDICT, VUE_PRELEVEMENT, VUE_NON_APPARIES,
+        VUE_SANS_SEUIL,
         VUE_COUVERTURE_REF, VUE_REGLE_FAMILLE, VUE_ECARTS, VUE_UNITES,
         VUE_SEUILS_SANS_DATE, VUE_EFFORT, VUE_CONDITIONS,
         VUE_PANEL, VUE_PANEL_EVOLUTION, VUE_PARAMETRES_ABANDONNES,
@@ -1496,6 +1617,44 @@ def charger_regles(con, chemin=REGLES_CSV):
     return n
 
 
+def charger_hors_perimetre(con, chemin=HORS_PERIMETRE_CSV):
+    """Charge hors_perimetre.csv : ce qui n'est pas un paramètre de qualité.
+
+    Un garde-fou, et il n'est pas décoratif : **un libellé auquel le
+    référentiel oppose un seuil ne peut pas être hors périmètre.** Les deux
+    ensembles doivent être disjoints, sinon on déclarerait « rien à juger » sur
+    une substance qu'on juge — et la mesure sortirait du dénominateur sans
+    sortir du numérateur, ce qui fabriquerait une couverture supérieure à
+    100 %. La ligne est refusée et le motif est dit.
+    """
+    con.execute("DELETE FROM parametres_hors_perimetre")
+    if not os.path.exists(chemin):
+        return 0
+    juges = {r[0] for r in con.execute(
+        "SELECT libelle_norm FROM referentiel_seuils").fetchall()}
+    n, refusees = 0, []
+    with open(chemin, encoding="utf-8") as fh:
+        for ligne in csv.DictReader(_sans_commentaires(fh), delimiter=";"):
+            cle = norm(ligne.get("libelle_norm"))
+            if not cle:
+                continue
+            if cle in juges:
+                refusees.append(f"{cle} (le référentiel lui oppose un seuil : "
+                                "hors périmètre et jugé sont exclusifs)")
+                continue
+            con.execute(
+                "INSERT INTO parametres_hors_perimetre VALUES (?,?,?,?)",
+                [cle, s(ligne.get("libelle")), s(ligne.get("motif")),
+                 s(ligne.get("sources"))],
+            )
+            n += 1
+    if refusees:
+        print(f"  ! {len(refusees)} ligne(s) hors périmètre refusée(s) :")
+        for r in refusees:
+            print(f"      {r}")
+    return n
+
+
 def charger_unites(con):
     """Facteurs de conversion des unités de masse par litre (physique, pas
     réglementation) : ils ne sont donc pas dans un CSV versionné."""
@@ -1543,6 +1702,9 @@ def build(db=DB_PATH, reset=False):
     print(f"unités        : {nunites} facteurs de conversion masse/litre")
     nregles = charger_regles(con)
     print(f"règles famille: {nregles} règle(s) de rattachement par limite déclarée")
+    nhors = charger_hors_perimetre(con)
+    print(f"hors périmètre: {nhors} paramètre(s) qui ne jugent pas l'eau, "
+          "hors du dénominateur mais affichés")
 
     for v in VUES:
         con.execute(v)

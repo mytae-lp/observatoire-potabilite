@@ -107,8 +107,13 @@ def main():
         # calcium est ce cas : mesuré, sans aucun seuil auquel le comparer, et
         # il doit rester au bulletin — l'y faire disparaître ferait passer une
         # question non instruite pour une mesure qui n'existe pas (§2.4).
+        # Le libellé est fictif depuis le 15 août 2026 : il était « Calcium »,
+        # et le chantier C11 a donné une ligne de référentiel au calcium. Un
+        # montage qui prend une vraie substance pour incarner « ce que le
+        # référentiel ignore » se périme au premier enrichissement.
         calcium = con.execute("""
-            SELECT COUNT(*) FROM verdicts_figes WHERE libelle_parametre = 'Calcium'
+            SELECT COUNT(*) FROM verdicts_figes
+            WHERE libelle_parametre = 'Substance fictive sans aucun seuil'
         """).fetchone()[0]
         verifie(calcium == 1,
                 "une mesure sans aucun seuil est figée quand même — le détail "

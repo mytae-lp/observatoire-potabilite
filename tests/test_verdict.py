@@ -159,7 +159,15 @@ def bulletin_fictif():
 
         # --- 7. AUCUN SEUIL DU TOUT -----------------------------------------
         # Ni référentiel, ni limite déclarée : mesure invisible, à signaler.
-        {"code_parametre": "99904", "libelle_parametre": "Calcium",
+        #
+        # Le libellé est VOLONTAIREMENT fictif depuis le 15 août 2026. Il était
+        # « Calcium », et le chantier C11 a donné une ligne de référentiel au
+        # calcium — le montage a donc cessé de tester ce qu'il annonçait, sans
+        # que rien ne le dise avant l'échec. Un test qui prend une vraie
+        # substance pour incarner « ce que le référentiel ignore » se périme au
+        # premier enrichissement du référentiel. Celui-ci ne peut pas se périmer.
+        {"code_parametre": "99904",
+         "libelle_parametre": "Substance fictive sans aucun seuil",
          "resultat_alphanumerique": "80", "resultat_numerique": 80.0,
          "libelle_unite": "mg/L"},
 
@@ -393,7 +401,8 @@ def main():
         print("\n11. diagnostic des mesures sans aucun seuil")
         na = [r[0] for r in con.execute(
             "SELECT libelle_parametre FROM v_parametres_non_apparies").fetchall()]
-        verifie("Calcium" in na, "Calcium (ni référentiel ni limite déclarée) est signalé")
+        verifie("Substance fictive sans aucun seuil" in na,
+                "un paramètre sans référentiel ni limite déclarée est signalé")
         verifie("ESA metolachlore" not in na, "un paramètre apparié n'y figure pas")
         verifie("Boscalid" not in na, "un paramètre rattaché par règle n'y figure pas")
 

@@ -62,6 +62,7 @@ import duckdb
 from common import DB_PATH, REF_CSV, ALIAS_CSV, RACINE
 
 REGLES_CSV = os.path.join(RACINE, "referentiel", "regles_famille.csv")
+HORS_PERIMETRE_CSV = os.path.join(RACINE, "referentiel", "hors_perimetre.csv")
 
 # Familles considérées comme substances de synthèse pour la charge cumulée.
 FAMILLES_SYNTHESE = ("pesticide", "metabolite", "PFAS", "organique")
@@ -342,7 +343,11 @@ def version_referentiel():
     rester identifiable.
     """
     h = hashlib.sha256()
-    for chemin in (REF_CSV, ALIAS_CSV, REGLES_CSV):
+    # `hors_perimetre.csv` en fait partie depuis le 15 août 2026 : son contenu
+    # décide de ce qui entre au dénominateur de `pct_couverture`, donc de ce que
+    # vaut un « conforme » affiché. Une empreinte qui l'ignorerait laisserait
+    # deux couvertures différentes cohabiter sous une même version.
+    for chemin in (REF_CSV, ALIAS_CSV, REGLES_CSV, HORS_PERIMETRE_CSV):
         h.update(os.path.basename(chemin).encode())
         if os.path.exists(chemin):
             with open(chemin, "rb") as fh:
@@ -471,12 +476,29 @@ def _sommes(con, code_prel):
     # par la seule limite déclarée) n'entre pas dans l'indice. L'indice porte
     # donc sur ce qui est classé, et `indice_danger_n` dit sur combien de
     # substances il est calculé — sans ce nombre, il n'est pas interprétable.
+    # Le seuil du diviseur est celui qui S'APPLIQUAIT LE JOUR DU PRÉLÈVEMENT,
+    # pas celui d'aujourd'hui.
+    #
+    # Corrigé le 14 août 2026, sur arbitrage de Yannick : « la règle c'est la
+    # réglementation à date ». L'indice divisait par `seuil_2026_effectif` —
+    # la valeur du jour — pendant que `depasse_applicable` comparait à
+    # `seuil_applicable`. Le même bulletin portait donc deux lectures de la
+    # même substance, et l'écart n'était pas marginal : à Thiville, le
+    # chlorothalonil R471811 compté contre 0,9 µg/L donnait un indice de 15,15
+    # là où la valeur applicable à la date (0,1 avant le 29/04/2024, référentiel
+    # ligne 8865) le portait à 29,2.
+    #
+    # C'est le §2.10 — un verdict se rend à la date, un reclassement n'est pas
+    # rétroactif — appliqué à l'indice comme il l'était déjà au verdict. Et
+    # `seuil_applicable` traite le seuil conditionnel comme `depasse_applicable`
+    # le fait : c'est le plus permissif qui fait foi, l'asymétrie assumée du
+    # §2.13.
     hi = con.execute(f"""
-        SELECT SUM(resultat_num / seuil_2026_effectif), COUNT(*)
+        SELECT SUM(resultat_num / seuil_applicable), COUNT(*)
         FROM v_mesures_verdict
         WHERE code_prelevement = ? AND est_quantifie AND NOT est_agregat
           AND famille IN ({familles})
-          AND seuil_2026_effectif IS NOT NULL AND seuil_2026_effectif > 0
+          AND seuil_applicable IS NOT NULL AND seuil_applicable > 0
     """, [code_prel]).fetchone()
 
     return {

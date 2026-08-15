@@ -2275,10 +2275,10 @@ démontré, ce qui ne l'est pas est marqué comme tel.
 
 ---
 
-## 19. État au 12 août 2026, 18 h 30 — PÉRIMÉ, voir le §21
+## 19. État au 12 août 2026, 18 h 30 — PÉRIMÉ, voir le §22
 
 > **Ne plus lire cette section comme l'état courant.** Elle a été
-> remplacée par le **§21**, écrit le 13 août au soir. Plusieurs de ses
+> remplacée par le **§22**, écrit le 13 août au soir. Plusieurs de ses
 > affirmations sont infirmées depuis : le rattachement Sicoval (§20.2),
 > la question du point de prélèvement (§20.7), le décompte des
 > candidats à l'alerte (§20.15) et « le département le plus
@@ -3578,12 +3578,12 @@ sourcée, écrite, câblée et publiée sur 558 fiches.
 
 ---
 
-## 21. ÉTAT ACTUEL au 13 août 2026, 20 h 30 — À LIRE EN PREMIER
+## 22. ÉTAT ACTUEL au 13 août 2026, 20 h 30 — À LIRE EN PREMIER
 
 **Cette section remplace le §19 en entier.** Le §20 raconte la journée du
 13 août dans le détail ; celle-ci porte l'état et la file d'attente.
 
-### 21.1 RIEN NE TOURNE — la base est libre, le site est à jour
+### 22.1 RIEN NE TOURNE — la base est libre, le site est à jour
 
 Aucun processus en cours. Aucune décision en attente de Yannick.
 
@@ -3597,7 +3597,7 @@ Aucun processus en cours. Aucune décision en attente de Yannick.
   n'était pas le cas le 12 août. **Aucun dépôt distant** : `git push` est
   impossible, la sauvegarde reste locale.
 
-### 21.2 LES COMMANDES QUI SERVENT
+### 22.2 LES COMMANDES QUI SERVENT
 
 ```
 py -X utf8 src/moisson.py --depts 04,05 --tous      # réseau, base LIBRE
@@ -3615,7 +3615,7 @@ refigeage **63 bulletins/min** (396 min sur 25 297) ; construction du site
 **112 fiches/min** (42 min) ; dossiers de faits **1 min** ; relevé de l'alerte
 **1 appel Hub'Eau par commune**, ~1,5 s.
 
-### 21.3 LA FILE D'ATTENTE — un sujet à la fois, décision de Yannick
+### 22.3 LA FILE D'ATTENTE — un sujet à la fois, décision de Yannick
 
 1. **Ajouter `alerte_panel` à la moisson de `tests/test_sorties.py`.** 558
    fiches portent un texte que rien ne relit. Le texte est déjà en Python pour
@@ -3636,14 +3636,14 @@ refigeage **63 bulletins/min** (396 min sur 25 297) ; construction du site
 6. **La source data.gouv.fr** et le risque d'injustice sur le plomb (§20.11
    point 4) — le plus lourd de conséquences, le moins mûr.
 
-### 21.4 CE QUI N'EST PAS À MOI, ET QUE JE N'AI PAS COMMITÉ
+### 22.4 CE QUI N'EST PAS À MOI, ET QUE JE N'AI PAS COMMITÉ
 
 `docs/AUDIT_FORME_2026-08-13.md` et `docs/CONSIGNE_AUDIT_FORME.md`, écrits par
 une autre session le 13 août à 14 h 38. **Laissés non suivis par git**
 volontairement : je ne les ai ni lus ni vérifiés. À intégrer par qui les a
 écrits, ou après relecture.
 
-### 21.5 LES TROIS PIÈGES DE LA JOURNÉE — à ne pas refaire
+### 22.5 LES TROIS PIÈGES DE LA JOURNÉE — à ne pas refaire
 
 - **Le test binaire « a-t-il été mesuré depuis »** rate les abandons. C'est
   l'ancienneté de la dernière mesure qui fait foi. Réclainville ressortait
@@ -3653,3 +3653,352 @@ volontairement : je ne les ai ni lus ni vérifiés. À intégrer par qui les a
 - **un superlatif non compté est un faux.** « Le département le plus
   profondément collecté » a circulé de note en note sans que personne ne le
   compte — et il était faux.
+
+---
+
+## 23. Clôture de session du 13 août 2026, 21 h 10 — phase C de l'audit interrompue
+
+**Arrêt propre.** Tous les processus Python ont été arrêtés sur demande : les
+deux builds de l'audit et le serveur `http.server` du port 8765. Base libre,
+aucun `.wal` résiduel, aucune écriture en attente. Rien n'a été commité.
+
+### Ce que la phase C a donné avant l'interruption
+
+- **`tests/test_sorties.py` ÉCHOUE** : code de sortie 1, 8,33 s, sur le contrôle
+  « la fiche autonome porte cette version ». **Conséquence directe sur le
+  chantier A** : brancher ce contrôle sur `site/publier.py` aujourd'hui
+  bloquerait toute publication. Le chantier A n'est donc pas le geste d'une ligne
+  annoncé l'après-midi — l'échec se traite d'abord.
+- **Le `diff` de reproductibilité n'a PAS été fait.** `buildA` a été interrompu à
+  4 092 fichiers produits pour ~4 984 attendus (débit mesuré : 2,4 fichiers/s,
+  démarré à 20:34:25). `buildB` n'a jamais démarré. Compter **~35 min** pour
+  refaire les deux.
+- **Le goulot et l'épreuve du facteur 100 ne sont pas mesurés.**
+- L'audit n'a **jamais touché `site/public`** : `site/build_site.py` accepte
+  `--sortie`, les deux builds écrivaient dans un répertoire temporaire.
+
+### L'état du site, et pourquoi il ne prouve rien
+
+Le site a été republié à 20:09 **par une autre session**, avec six départements
+de plus. Mesuré après cette republication :
+
+```
+pages commune : 4924
+entrees : 5090 | pointant une page : 4919 | LIENS MORTS : 0
+departements : 04 05 06 09 12 13 28 31 32 47 65 69 71 81 82 83 84
+```
+
+**Les 23 liens morts du Lot-et-Garonne mesurés à 15 h ont disparu — par
+republication, pas par correction.** Le défaut n'a reçu aucun diagnostic : rien
+ne dit qu'une prochaine publication partielle ne le reproduira pas. C'est
+exactement ce que le chantier A vise, et la question posée à l'auditeur — le
+défaut est-il dans la publication ou dans la génération de l'index ? — **reste
+sans réponse mesurée.**
+
+### Un constat de chaîne, né de la journée elle-même
+
+Deux sessions ont travaillé en concurrence sur ce dépôt le 13 août : l'une
+auditait, l'autre publiait et écrivait dans ce fichier. **Rien dans la chaîne
+n'empêche deux publications concurrentes**, et l'audit a dû mesurer une cible
+mouvante. À verser à l'axe 2.
+
+### Pour reprendre
+
+Deux entrées possibles, dans cet ordre de préférence :
+
+1. **Traiter l'échec de `tests/test_sorties.py`** — il bloque le chantier A et
+   c'est le seul résultat dur de la phase C.
+2. **Relancer la phase C** (~35 min) : deux builds via
+   `site/build_site.py --sortie <répertoire temporaire>`, jamais vers
+   `site/public` ; puis le `diff`, la mesure du goulot, le facteur 100.
+   `src/build_db.py` et `src/figer.py` restent interdits à l'auditeur.
+
+Rapport de l'audit : `docs/AUDIT_FORME_2026-08-13.md`. Consigne appliquée :
+`docs/CONSIGNE_AUDIT_FORME.md`. Contexte des phases A et B : §21 ci-dessus.
+
+---
+
+## 24. Mesures de la phase C — consignées le 14 août 2026 à 08 h 45, hors du rapport
+
+**Pourquoi ici et pas dans le rapport d'audit.** L'auditeur a été interrompu à
+08 h 38 par une erreur serveur (`API Error: 529 Overloaded`) avant d'avoir
+reporté ses mesures dans `docs/AUDIT_FORME_2026-08-13.md`. Elles ne vivaient
+plus que dans une conversation. **Une mesure qui n'est pas sur disque n'existe
+pas** — elles sont donc écrites ici, telles quelles, en attendant que
+l'auditeur les intègre à son rapport.
+
+### 24.1 Le goulot n'est pas où on le croyait — c'est `sys.path`
+
+Profil d'un build réel du **Tarn-et-Garonne** (195 communes, **98,4 s**) :
+**12 815 appels `execute()`**, dont **34,6 s passées à rescanner `sys.path`**.
+DuckDB tente d'importer `pandas` et `pyarrow` à chaque appel, ne les trouve pas,
+et **ne met pas l'échec d'import en cache**.
+
+```
+2,282 ms par execute()  avec le sys.path gonflé par le dépôt
+0,859 ms par execute()  avec le sys.path de base
+        soit +165,6 %
+```
+
+**Vérifié en session principale** : `pandas` ABSENT, `pyarrow` ABSENT,
+`duckdb 1.5.5`.
+
+**Ce n'est pas une recommandation d'installer `pandas`** : l'installer changerait
+le comportement de DuckDB lui-même. C'est un constat mesuré, l'arbitrage revient
+à Yannick.
+
+### 24.2 Le facteur 100 cède sur UN gros département, pas sur leur nombre
+
+Maillon : **`site/build_site.py:1720`** — `rows = con.execute(requete, …).fetchall()`,
+qui charge tout l'export en mémoire d'un coup. Mesuré au `tracemalloc` :
+
+```
+233 038 lignes (dépt 82)  →  270 Mo        soit 1 213 octets / ligne
+1 787 047 lignes (le Var, DÉJÀ au corpus)  →  2,02 Go en un seul fetchall()
+```
+
+**Vérifié en session principale** : la ligne 1720 fait bien `.fetchall()` ;
+l'écriture qui suit est en flux (générateur, ligne 1724). C'est donc bien la
+lecture, pas l'écriture, qui porte le risque.
+
+### 24.3 Le soupçon de tri instable est INFIRMÉ — l'auditeur se contredit lui-même
+
+Trois builds directs successifs du 82 : **218 fichiers sur 218 identiques octet
+pour octet**. Le rendu HTML est reproductible.
+
+Ce qui diffère, et c'est beaucoup plus petit : les `verdicts_*.csv.gz` changent à
+chaque build **à contenu décompressé identique** — l'en-tête gzip écrit à
+`site/build_site.py:1726` porte un horodatage.
+
+### 24.4 Ce qui n'est PAS fait
+
+**La durée du build complet, elle, est mesurée** — c'était l'une des épreuves
+du §4 :
+
+```
+buildA | code de sortie 0 | duree 2 486,8 s (41,4 min) | 4 974 fichiers
+```
+
+Reste le `diff` des **deux** builds complets. `buildB` s'est arrêté à
+2 410 fichiers sur 4 956 le 14 août à 09 h 01, sans erreur au journal, avec
+389 Go de disque et 9,9 Go de RAM libres — **ni la mémoire ni l'espace ne sont
+en cause, et la cause réelle n'est pas établie** ; l'hypothèse la plus
+vraisemblable est le nettoyage des processus rattachés à l'agent d'audit, mort
+une minute plus tôt d'une erreur serveur. À ne pas imputer au dépôt sans
+preuve.
+
+`buildA` étant complet et valide, **il suffit de relancer UN build** (~41 min)
+et de comparer les deux arborescences.
+
+### 24.5 Le `diff` des deux builds complets — ÉPREUVE NON CONCLUANTE
+
+Menée le 14 août 2026. **Le résultat ne peut pas être interprété**, et il faut
+dire pourquoi avant de citer le moindre chiffre.
+
+```
+buildA | code 0 | 2 486,8 s (41,4 min) | 4 974 fichiers   [08:02 → 08:43]
+buildB | code 0 | 2 385,8 s (39,8 min) | 4 974 fichiers   [09:03 → 09:43]
+
+seulement dans A : 0      seulement dans B : 0
+DIFFERENTS : 4 964  →  4 946 .html, 17 .csv.gz, 1 .css
+```
+
+**Ces 4 964 fichiers ne mesurent pas le non-déterminisme du build.**
+`site/gabarits/observatoire.css` a été modifié **à 08 h 24 34, pendant
+`buildA`**, par une session travaillant en parallèle (42 488 o / 708 lignes du
+côté A, 43 790 o / 730 lignes du côté B). Les deux builds ne partent donc pas du
+même code source. La précaution prise portait sur la base — inchangée depuis le
+13 août 19 h 12 — mais **pas sur le dépôt** : c'est un défaut du protocole de
+mesure, pas un défaut du dépôt.
+
+**Ce qui reste valide malgré tout :**
+
+1. **Deux durées cohérentes pour un build complet** : 41,4 et 39,8 min sur
+   ~4 974 fichiers.
+2. **Le build produit exactement le même ENSEMBLE de fichiers** : 4 974 des deux
+   côtés, zéro fichier orphelin d'un côté ou de l'autre. Le grief « le site
+   n'efface jamais son dossier de sortie » ne se reproduit pas ici — mais ces
+   builds visaient un répertoire neuf, ce qui n'est pas le cas de `site/public`.
+3. **Un mécanisme de conception, mesuré** : les pages portent
+   `observatoire.css?v=<hash>`. **Modifier une seule ligne de CSS fait donc
+   changer les 4 946 pages HTML.** C'est voulu — c'est un cache-buster — mais
+   cela signifie qu'aucun `diff` de publication ne sera jamais lisible après une
+   retouche de style : tout bouge à chaque fois.
+
+**Ce qui n'est PAS établi** : le déterminisme du rendu à l'échelle du site
+complet. La seule mesure propre reste celle du Tarn-et-Garonne (§24.3) : trois
+builds successifs, 218 fichiers sur 218 identiques octet pour octet. Elle a
+abouti **parce qu'elle était courte**.
+
+**L'enseignement de méthode, et il vaut pour l'axe 2** : sur ce dépôt, une
+épreuve de reproductibilité de 80 minutes ne peut pas aboutir tant qu'une autre
+session modifie le code en parallèle. Refaire cette épreuve suppose de **geler
+le dépôt** le temps des deux builds — ou de se contenter de l'échelle
+départementale, qui tient en quelques minutes.
+
+---
+
+## 26. ÉTAT ACTUEL au 14 août 2026, 20 h 15 — campagne de 7 départements, refigeage EN COURS
+
+**Cette section remplace le §22 sur l'état du corpus.** Elle est écrite pendant
+que le refigeage tourne : au moment où tu la lis, il a fini ou il est mort.
+**Commence par le journal, pas par ce texte.**
+
+### 26.1 CE QUI TOURNE — un refigeage complet, détaché de toute session
+
+```
+PID au lancement : 6196          (lancé le 14 août à 20 h 14)
+journal          : data/journal/refigeage_2026-08-14.log
+erreurs          : data/journal/refigeage_2026-08-14.err
+commande         : py -X utf8 -u src/ingerer.py --tous --refiger
+```
+
+**40 745 bulletins à refiger sous `d0fb678dcbe2`.** Compter **~11 h** à
+63 bulletins/min, donc une fin vers 7 h - 9 h le 15 août, probablement plus tard
+— le débit baisse à mesure que la base grossit (mesuré ce jour : l'ingestion est
+passée de 47 à 23 bulletins/min selon le département).
+
+Le journal porte un jalon tous les 5 % avec le temps restant estimé, écrit avec
+`flush=True`. **Il survit à la mort du processus** — c'est la seule source de
+vérité sur l'avancement. Il est en UTF-8 ; `Get-Content` de PowerShell l'affiche
+avec des accents cassés, `tail` le rend correctement — c'est la console qui
+déforme, pas le fichier.
+
+**Trois lectures possibles de la dernière ligne :**
+
+| ce que dit le journal | ce que ça veut dire | quoi faire |
+|---|---|---|
+| le bilan du figeage + « la base est rendue » | terminé | passer à la suite (§26.4) |
+| un jalon `N/40745`, processus mort | coupé en route | **tout relancer**, même commande |
+| `MoteurChange` | `figer.py` a rebougé pendant | relancer avec `--refiger` |
+
+**Le refigeage ne reprend PAS où il s'est arrêté** : en mode `complet`, la liste
+à traiter est le corpus entier, sans saut des bulletins déjà refaits. Une
+interruption coûte tout le temps écoulé — **mais rien n'est détruit** : le
+remplacement se fait bulletin par bulletin, et `figeage_moteur` n'est écrit
+qu'à la toute fin, donc une base à moitié refigée refuse tout autre figeage au
+lieu de mélanger deux calculs (leçon du 11 août, §17).
+
+### 26.2 POURQUOI un refigeage complet et pas incrémental
+
+**`src/figer.py` a été modifié le 14 août par une autre session** (non commité au
+lancement, 19 insertions) : l'indice de danger divisait par `seuil_2026_effectif`
+— la valeur du jour — au lieu de `seuil_applicable`, la valeur en vigueur à la
+date du prélèvement. C'est le §2.10 appliqué à l'indice comme il l'était déjà au
+verdict. Exemple porté par le commentaire du code : à Thiville, le
+chlorothalonil R471811 donnait un indice de 15,15 contre 0,9 µg/L, et 29,2
+contre la valeur applicable à la date.
+
+`version_moteur()` a donc changé, et le figeage incrémental **refuse** de
+tourner. Le refigeage complet n'était pas un choix.
+
+**Conséquence à ne pas manquer : l'indice de danger change sur TOUT le corpus
+déjà publié**, pas seulement sur les sept nouveaux départements. Les chiffres
+d'effet cocktail des fiches en ligne sont périmés jusqu'à republication.
+
+### 26.3 LE CORPUS APRÈS LA CAMPAGNE
+
+**40 725 analyses complètes, 15 534 040 mesures, 33 départements représentés.**
+Le corpus passe de 25 297 à 40 725 bulletins, **+61 %**.
+
+Sept départements moissonnés le 14 août, **tous à 100 %, `--termine` rend 0 pour
+chacun**, zéro erreur résiduelle :
+
+| dept | communes | bulletins | installations | analysées | rattachées | non doc. |
+|---|---|---|---|---|---|---|
+| 48 Lozère | 152/152 | 446 | 228 | 87 | 15 | 23 |
+| 07 Ardèche | 335/335 | 1 973 | 449 | 212 | 115 | 8 |
+| 26 Drôme | 362/362 | 1 227 | 258 | 205 | 99 | 58 |
+| 38 Isère | 512/512 | 5 338 | **729** | 372 | 133 | 5 |
+| 42 Loire | 320/320 | 1 803 | **152** | 114 | **194** | 11 |
+| 68 Haut-Rhin | 366/366 | 2 146 | 272 | — | — | — |
+| 67 Bas-Rhin | 514/514 | 2 516 | 246 | — | — | — |
+
+**2 561 communes, 15 449 bulletins.** Les cinq premiers ont été demandés par
+Yannick dans cet ordre ; le 68 et le 67 ont été ajoutés en cours de journée pour
+sortir du sud — voir §26.5.
+
+**Deux profils opposés, à retenir avant toute comparaison (§2.11) :**
+
+- **l'Isère est fragmentée**, pas sur-analysée. 729 installations de production,
+  contre 150 à 450 partout ailleurs, sur la même période 2016-2026. Ses 7,3
+  bulletins par installation sont *en dessous* de la Loire (11,9), du Bas-Rhin
+  (10,2) et du Tarn (8,6). Département de montagne, très nombreux petits
+  captages indépendants ;
+- **la Loire est l'inverse** : 152 installations pour 320 communes, de gros
+  syndicats, d'où **194 communes rattachées au réseau pour 114 analysées** —
+  seul département du corpus où les rattachées dominent. Le §8bis n° 5
+  s'applique en force : dire où le prélèvement a été fait.
+
+**Mesures de débit du 14 août, à réutiliser** — elles corrigent celles du 13 :
+
+| geste | débit mesuré |
+|---|---|
+| moisson | 2,5 à 6,8 s/commune, 4 ouvriers ; 2,0 à 2,5 appels/s (plafond projet : 3,0) |
+| ingestion | **47/min** (42+68+67), **41/min** (48+07), **23/min** (38 Isère) |
+| refigeage | 63/min au 13 août sur 25 297 — **à remesurer**, il baisse avec la taille |
+
+Le débit d'ingestion **n'est pas une constante** : il tombe de moitié sur un gros
+département en fin de campagne. Ne pas reporter 47/min sur un devis.
+
+### 26.4 CE QUI EST INTERDIT, ET CE QUI ATTEND
+
+**Décision de Yannick, 14 août : ne rien publier.** Il reprend entièrement le
+graphisme des fiches (`docs/CHARTE_GRAPHIQUE.md`, `site/gabarits/observatoire-v2.css`,
+`marque.svg`, `polices/` — non commités, ce n'est pas mon travail).
+**`site/build_site.py` et `site/publier.py` ne doivent pas être lancés.**
+
+Figer et publier sont deux étages séparés : figer calcule et estampille en base,
+publier ne fait que rendre ce qui est déjà figé. D'où l'ordre choisi — figer
+cette nuit, publier quand la charte sera prête, **sans repayer 11 h**.
+
+Ce qui attend, une fois le refigeage terminé :
+
+1. **Relever les chiffres des sept départements** — conformes 2026 avec bascule,
+   conformes à la date, dépassements sur limite, couverture. **Jamais sans leur
+   version de référentiel** (§13.1). Aucun n'a encore été lu : au 14 août au
+   soir, **on ne sait rien des excès ni des bascules de ces départements.**
+2. **`v_parametres_non_apparies` sur un corpus de 33 départements** — le compte
+   va monter, et chaque libellé nouveau est un paramètre qui ne pèse sur aucun
+   verdict.
+3. **L'Alsace, et la raison éditoriale de l'avoir collectée** : voir §26.5.
+4. La file du §22.3 reste ouverte, inchangée.
+
+### 26.5 POURQUOI L'ALSACE — le motif éditorial, à instruire
+
+Le corpus était à 19 départements sur 21 au sud de la Loire. Le 68 et le 67 ont
+été choisis le 14 août sur un raisonnement, **pas sur une source lue en
+session** : la nappe d'Alsace, son héritage industriel (terrils salés des mines
+de potasse, Stocamine, plateforme de Chalampé-Ottmarsheim, chrome d'Ochsenfeld).
+**Tout cela est à sourcer avant le moindre usage (§2.7).**
+
+**Ce qui rend ce terrain intéressant pour la thèse, et c'est vérifiable :** les
+chlorures sont au référentiel à **250 mg/L de nature `reference`, pas `limite`**
+(ligne code 1337, source REG-01, `verifie`). Une eau chargée en chlorures est
+donc **hors de la référence de qualité sans être non conforme** — elle passe,
+réglementairement. Le bloc « Hors de la référence de qualité » du §11.3 est
+déjà écrit pour l'afficher.
+
+Trois bénéfices de méthode : une ARS différente donc un marché d'analyses
+différent donc un panel différent (met à l'épreuve la 3ᵉ règle du §2.11) ; un
+motif de contamination **minéral et ponctuel** là où tout le corpus est pesticide
+et diffus ; et une géographie enfin hors du sud.
+
+**Réserve à tenir** : nos données sont l'eau **distribuée**, après captage,
+mélange et traitement — pas la nappe. Un bassin industriel très contaminé peut
+rendre une eau distribuée propre. **Il faut accepter que le résultat soit
+« rien »**, et un résultat négatif ne fait pas un chapitre.
+
+### 26.6 DEUX PIÈGES DE LA JOURNÉE
+
+- **Le code de sortie 0 d'une moisson ne dit rien.** La Lozère est ressortie
+  « terminée » à 125/152 : 27 communes en `ConnectionResetError 10054`, une
+  salve coupée côté serveur, dont Mende et Marvejols. Idem 510/512 sur l'Isère,
+  319/320 sur la Loire. **`--termine` est le seul juge**, et il a fonctionné
+  les trois fois. Le relancer systématiquement, et relancer la moisson tant
+  qu'il ne rend pas 0.
+- **Deux sessions ont encore travaillé en parallèle sur ce dépôt**, et l'une a
+  modifié `figer.py` pendant que l'autre collectait — ce que le §6 du CLAUDE.md
+  interdit explicitement pendant une campagne. Coût : le refigeage complet de
+  11 h au lieu d'un incrémental de 4 h. Ce n'est pas une faute de calcul, c'est
+  un défaut de coordination, et il est maintenant chiffré.

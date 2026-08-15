@@ -20,6 +20,7 @@ commité, l'historique git ne le porte donc pas.
 | l'effet cocktail | `docs/METHODE_EFFET_COCKTAIL.md` |
 | pourquoi toute substance mesurée reçoit une attribution, même « rien ne se prononce » | `docs/METHODE_ATTRIBUTION.md` |
 | le mélange de réseaux et la dilution | `docs/METHODE_DILUTION.md` |
+| la forme — couleurs, typographie, espacements, et ce que la méthode y impose | `docs/CHARTE_GRAPHIQUE.md` |
 | l'état du chantier, ce qui est en cours | `docs/REPRISE.md` puis `docs/CHANTIERS.md` |
 | une source documentaire | `docs/INDEX_SOURCES.md` |
 
@@ -39,8 +40,22 @@ base de données, des vérifications et des fiches reproductibles.
 
 Le projet sépare **la mesure** du **verdict**.
 
-Une mesure est un fait physique : *0,092 µg/L d'ESA métolachlore, le
-14 mars 2025, à Saintes*. Ce fait ne change pas.
+Une mesure est un fait physique : *14,0 µg(Se)/L de sélénium, le
+29 octobre 2024, à Auneau-Bleury-Saint-Symphorien (28)*. Ce fait ne change pas.
+
+Le seuil, lui, a bougé : **10 µg/L jusqu'au 31 décembre 2022, 20 µg/L depuis le
+1er janvier 2023** (arrêté du 30 décembre 2022, art. 2 — référentiel ligne
+« Selenium », `REG-02|REG-03`, `verifie`). Cette eau est donc conforme à la date
+de son prélèvement, et ne l'aurait pas été deux ans plus tôt, **à mesure
+identique**. Le bulletin porte 606 paramètres dont 569 notés, aucun dépassement
+à la date, une bascule : `site/public/commune/28015.html`.
+
+**Exemple choisi le 14 août 2026, et choisi pour ça** : sur les 933 bascules du
+corpus, 929 portent sur des métabolites, dont le seuil de 2016 est *extrapolé*
+de l'instruction de décembre 2020 (§2.12). Ici la limite de 2016 est réelle et
+l'instrument qui l'a déplacée est daté au jour près — l'énoncé est littéral, pas
+inféré. Il remplace un exemple antérieur (« ESA métolachlore à Saintes ») qui ne
+se recoupait avec aucune fiche : le 17 n'est pas collecté.
 
 Le verdict est une convention administrative : *« conforme »*. Cette convention
 change dans le temps. La même eau, avec la même mesure, peut être « non
@@ -369,9 +384,17 @@ Vues :
   sinon libellé normalisé, sinon alias) ;
 - `v_mesures_verdict` — les trois notations et la bascule ;
 - `v_prelevement_verdict` — agrégat par prélèvement ;
-- `v_parametres_non_apparies` — **diagnostic indispensable au passage à
-  l'échelle** : les mesures sans aucun seuil de comparaison. Un tel paramètre
-  existe en base et ne pèse sur aucun verdict ;
+- `v_parametres_non_apparies` — un défaut d'**APPARIEMENT** : le libellé n'a
+  aucune ligne au référentiel. C'est un travail de référentiel à faire — alias
+  manquant, code SANDRE non renseigné ;
+- `v_parametres_sans_seuil` — une absence de **VALEUR** : aucun terme de
+  comparaison, quelle qu'en soit la raison. **C'est celle-ci qu'il faut lire
+  pour savoir ce que le projet ne juge pas.** Sa colonne `attribution` dit
+  pourquoi (instruit et sans valeur opposable / jugé avec son groupe / non
+  instruit) et `fiabilite` dit si un texte a réellement été lu.
+  **Ne pas confondre les deux** : elles ont eu la même réponse tant que le
+  référentiel était pauvre, et le chantier C11 a rompu cette identité le
+  15 août 2026 — 5 libellés non appariés, **380 sans seuil** ;
 - `v_regle_famille_appliquee` — ce que la règle de famille a rattaché
   automatiquement, **à relire** : une substance qui n'est pas un pesticide et
   qui porte la même limite y figurerait à tort ;

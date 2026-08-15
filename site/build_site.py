@@ -227,6 +227,16 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 {corps}
 
 <footer><div class="src">
+  <p class="avert"><strong>Avertissement.</strong> Cet observatoire est un outil
+  d'information citoyenne. Il rapproche des mesures publiques d'un référentiel de
+  seuils daté que nous construisons et documentons nous-mêmes : <strong>ce
+  rapprochement peut comporter des erreurs</strong>. Les valeurs affichées ici
+  n'ont aucun caractère officiel et ne remplacent pas les conclusions sanitaires
+  de l'agence régionale de santé. Pour tout usage engageant — démarche
+  administrative, litige, décision de santé — reportez-vous aux sources
+  officielles et faites vérifier ces éléments par un tiers compétent. Les
+  références sur la qualité de votre eau restent votre ARS, votre mairie et le
+  rapport annuel de votre service d'eau.</p>
   <strong>Sources &amp; licences.</strong> Mesures : SISE-Eaux (ministère chargé de la
   santé) via l'API Hub'Eau, sous Licence Ouverte 2.0. Référentiel de seuils, méthode
   et base : ODbL 1.0. Code : MIT. Fond de carte : contours départementaux IGN/Etalab,

@@ -2662,3 +2662,1498 @@ en parallèle**, sans l'interrompre.
   et **`depasse_applicable` mélange limites et valeurs de vigilance** (79 des
   135 dépassements du Tarn). Aucun code touché : ce sont deux décisions
   éditoriales, pas deux bugs.
+
+---
+
+## C11 — RÉFÉRENTIEL : les 376 libellés mesurés que la grille ne regarde pas
+
+**Ouvert le 15 août 2026.** Douze décisions de Yannick prises le jour même, en
+une passe. Ce chantier remplace le point 1 du §10.2 de `docs/REPRISE.md`
+(« les libellés listés sans seuil »), qu'il absorbe et dépasse.
+
+### C11.0 L'état des lieux, mesuré
+
+Sur un corpus de **40 725 bulletins complets, 33 départements représentés** dont
+**24 collectés en entier**, l'attribution `rien_ne_se_prononce_non_instruit`
+porte **376 libellés, 1 364 674 mesures, 405 959 quantifiées**.
+
+**Ce n'est PAS un compte d'angles morts** — la leçon du 9 août
+(`docs/AUDIT_NON_APPARIES.md`) se répète : la température de l'eau est dans la
+liste. Le tri en 17 dossiers est produit par `src/etude_non_apparies.py` et
+versé dans `data/etudes/classement_non_apparies_<jour>.csv`.
+
+Deux faits établis par requête, et ils commandent une partie des décisions :
+
+1. **L'administration n'oppose AUCUNE limite de qualité à ces 376 libellés.**
+   Zéro `limite_declaree`. En revanche **8 portent une `reference_declaree`** —
+   et notre cascade d'attribution ne lit pas cette colonne, d'où leur
+   classement en « non instruit » alors que la source leur oppose un nombre.
+2. **Les cyanobactéries sont dans le périmètre.** Elles apparaissent sur
+   122 bulletins de 245 à 653 paramètres, même `code_lieu_analyse` que tout le
+   reste du corpus : ce n'est pas de la surveillance d'eau brute.
+
+Et un troisième, qui ferme une question ouverte : **le radon 222 et le tritium
+sont déjà appariés** (§11.1). Le trou radiologique porte sur les activités
+globales et les radionucléides individuels, pas sur eux.
+
+### C11.1 Les douze décisions
+
+| n° | sujet | décision |
+|---|---|---|
+| 1 | `reference_declaree` dans la cascade | **oui** — elle doit produire une attribution |
+| 2 | Température de l'eau | **référence de qualité**, pas hors périmètre |
+| 3 | Contexte du prélèvement (5 libellés) | **hors périmètre**, mais **affichés en bas de fiche** |
+| 4 | Calco-carbonique (19) | **dossier de sourçage** — détailler, pas seulement totaliser |
+| 5 | Organoleptique (9) | **couper en deux** : par dilution noté, qualitatif non exprimé |
+| 6 | Revivifiables 22°/36° | **rien pour l'instant**, gardé en amélioration future |
+| 7 | Cyanobactéries (94) | **un bloc « surveillance sans verdict »**, pas 94 dossiers |
+| 8 | Radiologique (20) | **gros dossier, important** |
+| 9 | PCB (33) | **fait d'effort de recherche** — et voir la réserve ci-dessous |
+| 10 | PFAS (16) | **recherche poussée** — dire s'il existe une recherche plus large que les 20 |
+| 11 | COV et solvants (81) | **on source, on affiche** — priorité haute |
+| 12 | Désinfection (8) | **afficher les chiffres même sans seuil** |
+
+### C11.2 Ce que chaque décision engage, et ce qu'elle coûte
+
+**Décision 1 — `reference_declaree` entre dans la cascade.**
+Modification de `build_db.py`, donc de `version_moteur` : refigeage complet
+obligatoire. Effet mesuré d'avance : 8 libellés, ~77 000 mesures, reclassés
+sans qu'aucune ligne de référentiel ne soit écrite. C'est la correction la
+moins chère du chantier et la plus rentable.
+
+**Décision 3 — « hors périmètre » ne veut pas dire « invisible ».**
+Consigne de Yannick : *« nous pourrions les afficher en bas des fiches comme
+indicateur de la qualité du prélèvement. Peut-être que nous pourrons à terme
+faire des corrélations ? »*
+
+Donc **trois effets distincts, qui ne se confondent pas** :
+
+- sort du **dénominateur** de `pct_couverture` (90,07 % → 90,41 %) ;
+- ne reçoit **aucun verdict** ;
+- **reste affiché**, dans un bloc propre en bas de fiche, nommé pour ce qu'il
+  est : les conditions du prélèvement, pas la qualité de l'eau.
+
+C'est un quatrième état d'affichage, à écrire dans la charte. Et la piste des
+corrélations est notée comme **hypothèse à instruire**, jamais comme un acquis
+(§7.2 : le précédent de la dilution).
+
+**Décision 4 — détailler le calco-carbonique.**
+*« aujourd'hui il existe un total calco carbonique, et je crois qu'il est bon
+de donner le détail. »* Le corpus porte en effet `Equilibre calcocarbonique
+0/1/2/3/4`, un indice codé, sur 37 402 mesures — un agrégat sans ses termes.
+Le dossier doit établir, sur source primaire, ce que la réglementation dit de
+l'équilibre calcocarbonique et si elle l'exprime en valeur. **19 libellés,
+191 752 quantifications — le plus gros bloc de l'inventaire.**
+
+**Décision 9 — la réserve de Yannick, et elle est juste.**
+*« je rappelle que nous n'avons pas tous les départements disponibles ! Sur
+17 % difficile de dire que ça ne donne rien. »*
+
+Le chiffre exact est **24 départements collectés en entier sur 101, soit 23,8 %**
+(33 comptent au moins un bulletin complet, les autres étant partiels). La
+précision ne change rien à la conclusion, elle la renforce.
+
+**La règle qui en découle est plus forte que le cas des PCB** : 219 043 mesures
+pour 3 quantifications ne se dit **jamais** « les PCB sont absents ». C'est le
+§2.4 transposé du seuil de quantification à la couverture géographique — *zéro
+n'est pas zéro*, et *pas encore cherché partout* n'est pas *pas trouvé*. La
+formulation à tenir : « recherchés sur N bulletins de M départements,
+quantifiés 3 fois » — le dénominateur, toujours.
+
+**Décision 10 — les PFAS, et la question qui vaut le chantier.**
+*« s'il existe une recherche plus large que les 20 du total des 20 il faut
+l'indiquer ! »* C'est exactement le §2.14 : le corpus mesure **16 PFAS qui ne
+sont dans aucun total opposable**, sur 2 629 bulletins chacun. Le laboratoire
+cherche donc plus large que ce que la norme additionne. **Ce fait-là est la
+thèse du projet appliquée au périmètre plutôt qu'à la valeur**, et il est
+démontrable sur nos données.
+
+À établir avant d'écrire : lesquels des 16 sont dans les 20 de la directive
+2020/2184 et lesquels n'y sont pas. **Aucune liste ne doit être écrite de
+mémoire** (§2.7).
+
+**Décision 12 — afficher la désinfection, et le cadre dans lequel l'écrire.**
+Décision retenue : les chiffres du chlore libre, total, combiné, du ClO2 et de
+l'ozone sont affichés même sans valeur opposable. **62 008 quantifications**,
+c'est une part majeure de ce que subit l'eau distribuée et l'invisibiliser
+n'aurait pas de sens.
+
+**Trois précautions de rédaction, non négociables**, parce que le motif avancé
+touche à des affirmations sanitaires :
+
+1. **Les sous-produits de chloration sont le terrain solide, et ils sont déjà
+   au référentiel** — THM, chlorites, chlorates, bromates. Le lien « chloration
+   → sous-produits » est documenté et déjà outillé ; c'est par là que le sujet
+   se traite.
+2. **« La chloration n'empêche pas réellement la désinfection » ne se publie
+   pas en l'état.** L'énoncé est contesté, et la donnée du projet ne le porte
+   pas : nous mesurons des résiduels de désinfectant, pas une efficacité.
+   §2.7 s'applique entier — et §2.1 : le sujet est la norme, pas l'exploitant
+   qui chlore parce que le texte le lui impose.
+3. **L'antibiorésistance n'est pas dans le corpus.** Aucune mesure ne s'y
+   rapporte. En parler serait sortir de ce que le dépôt peut démontrer, et
+   ferait basculer un outil de conscience en outil d'alerte (§2.2).
+
+Ce qui est publiable et fort : *« cette eau porte 0,3 mg/L de chlore libre ;
+aucune limite de qualité française ne s'y oppose ; les sous-produits qu'engendre
+cette désinfection, eux, sont limités — voici lesquels et où en est cette eau. »*
+
+### C11.3 L'ordre de travail arrêté
+
+**Rien n'est écrit dans `referentiel_seuils.csv` avant que les dossiers de
+sourçage ne soient faits.** Le refigeage étant à ~13 h, il ne se paie qu'une
+fois, à la toute fin.
+
+| phase | contenu | dépendance |
+|---|---|---|
+| **1** ✅ | classement des 376 en 17 dossiers | fait le 15 août |
+| **2** | décisions 1, 2, 3, 5 — mécaniques, sans source nouvelle | `build_db.py` |
+| **3** | dossiers de sourçage : **11 COV**, **8 radiologique**, **10 PFAS**, **4 calco-carbonique**, **12 désinfection** | sources primaires |
+| **4** | blocs sans verdict : 7 cyanobactéries, 9 PCB | rédaction |
+| **5** | écriture du référentiel, en une seule passe | phases 2-4 |
+| **6** | **un seul refigeage complet**, puis publication | phase 5 |
+
+**Décision 6 — revivifiables — est explicitement gelée** et rangée en
+amélioration future : la norme s'exprime en variation dans un rapport, que le
+modèle ne sait pas porter. Même famille que les chlorites datés par le haut
+(`CLAUDE.md` §8).
+
+### C11.4 Phase 2 — FAITE le 15 août 2026, mesurée
+
+**Nouvelles empreintes** : `version_referentiel` **`9a2777400815`** (était
+`d0fb678dcbe2`), `version_moteur` **`5a5473295577`**. Les deux ont changé —
+refigeage complet obligatoire, et il portera une version NEUVE, donc sans
+écraser les 34 823 lignes de `d0fb678dcbe2`.
+
+**Fichiers touchés** : `referentiel/hors_perimetre.csv` (créé, versionné),
+`src/build_db.py`, `src/figer.py`. `tests/test_verdict.py` et
+`tests/test_figer.py` passent tous les deux.
+
+#### Ce qui a été fait, décision par décision
+
+**Décision 1 et 2 — la référence déclarée produit désormais une attribution.**
+Nouvelle branche `juge_sur_reference_declaree`, placée **après**
+`juge_sur_valeur_declaree` : une limite est opposable, une référence ne l'est
+pas, donc quand la source déclare les deux c'est la limite qui parle.
+
+Le défaut corrigé était réel et mesurable : **7 940 mesures étaient
+`hors_reference = TRUE`** — déclarées hors de leur référence par
+l'administration, affichées comme telles par le bloc de la fiche — **tout en
+portant « rien ne se prononce » et en ne comptant pas comme notées.** Deux
+organes du même moteur se contredisaient sur la même mesure.
+
+**Après : 0 mesure `hors_reference` non notée.** L'incohérence est fermée.
+
+**Décision 3 — `hors_perimetre` existe**, testé EN PREMIER dans la cascade.
+Ce n'est pas « on ne sait pas juger » mais « il n'y a rien à juger ».
+5 libellés, 21 358 mesures. Un garde-fou refuse toute ligne dont le référentiel
+porte par ailleurs un seuil : hors périmètre et jugé sont exclusifs, sans quoi
+la mesure sortirait du dénominateur sans sortir du numérateur et fabriquerait
+une couverture supérieure à 100 %. **Contrôlé : 0 bulletin au-dessus de 100 %.**
+
+**Décision 5 — l'organoleptique s'est coupé tout seul.** Odeur et saveur *par
+dilution* portent une référence déclarée de 3 : la décision 1 les fait basculer
+en `juge_sur_reference_declaree` sans qu'aucune ligne de référentiel ne soit
+écrite. Les qualitatifs (aspect, couleur, odeur, saveur) restent « non
+instruits » — ils relèvent de la phase 5.
+
+#### L'effet mesuré sur le corpus
+
+| attribution | mesures | libellés |
+|---|---|---|
+| `juge` | 13 631 025 | 827 |
+| `rien_ne_se_prononce_non_instruit` | **1 225 519** (était 1 364 674) | **362** (était 376) |
+| `juge_sur_valeur_declaree` | 360 197 | 36 |
+| **`juge_sur_reference_declaree`** | **117 797** | **10** |
+| `norme_non_exprimee` | 79 005 | 4 |
+| `rien_ne_se_prononce_etabli` | 78 886 | 5 |
+| **`hors_perimetre`** | **21 358** | **5** |
+| `juge_avec_son_groupe` | 20 253 | 13 |
+
+**Couverture du corpus : 90,07 % → 91,46 %**, soit **+1,39 point**.
+
+> **Une prévision fausse, et la même leçon qu'au §12.2 de `docs/REPRISE.md`.**
+> J'avais annoncé +0,34 point. Ce chiffre ne portait que sur la sortie du
+> dénominateur (décision 3) ; il ignorait que faire entrer la référence
+> déclarée dans la cascade fait aussi entrer ces mesures au **numérateur**
+> (décision 1). Les deux effets s'ajoutent : +0,34 par le dénominateur,
+> +1,05 par le numérateur. **Ne jamais annoncer un chiffre de sortie avant de
+> l'avoir mesuré** — la règle était déjà écrite, et elle vient de resservir.
+
+#### Les 10 libellés qui basculent, et deux surprises
+
+| libellé | mesures | hors référence | référence déclarée |
+|---|---|---|---|
+| Température de l'eau | 40 012 | **243** | 25 |
+| **Equilibre calcocarbonique 0/1/2/3/4** | 37 402 | 0 | **2** |
+| Bact. et spores sulfito-réductrices | 27 957 | **222** | 0 |
+| Saveur par dilution à 25 °c | 5 915 | 13 | 3 |
+| Odeur (dilution à 25 °c) | 3 320 | 0 | 3 |
+| Oxydabilité KMnO4 | 2 163 | 5 | 5 |
+| **Conductivité à 20 °C** | 1 002 | **313** | 1 000 |
+| Chlorite en mg/L | 22 | 1 | 0,2 |
+| Chlorite (utiliser CLITEMG) | 3 | 2 | 200 |
+| Coliformes thermotolérants | 1 | 0 | 0 |
+
+**Deux entrées changent la donne pour les dossiers de la phase 3 :**
+
+1. **L'indice « Equilibre calcocarbonique 0/1/2/3/4 » porte une référence
+   déclarée de 2.** L'agrégat que la décision 4 veut détailler n'est donc pas
+   muet : la source lui oppose une valeur. Le dossier calco-carbonique doit
+   partir de là — que vaut ce codage 0/1/2/3/4, et que signifie « 2 » ?
+2. **La conductivité sort de sa plage 313 fois sur 1 002 mesures**, soit près
+   d'une sur trois. C'est le motif de l'eau agressive (§11.3), et il est bien
+   plus dense ici que partout ailleurs dans le corpus.
+
+#### Ce que la phase 2 NE fait pas
+
+Elle ne publie rien, ne fige rien, n'écrit aucune ligne dans
+`referentiel_seuils.csv`. **La base porte désormais des vues neuves et des
+tables figées calculées sous l'ancien moteur** : rien n'est citable tant que le
+refigeage de la phase 6 n'a pas eu lieu. C'est l'état attendu, et
+`figeage_moteur` le dira si quelqu'un tente de figer par inadvertance.
+
+### C11.5 Dossier PFAS — instruit le 15 août 2026 sur source primaire
+
+Deux agents, briefs disjoints : l'un lit la directive sans rien savoir du corpus,
+l'autre compte le corpus avec **interdiction formelle de proposer un seuil**. Le
+rapprochement n'a pas été délégué. Les deux livrables :
+`data/etudes/PFAS_source_directive.md` et `data/etudes/PFAS_inventaire_corpus.md`.
+
+**Tous les chiffres ci-dessous sont lus sur les vues vivantes, pas sur du figé.
+Rien n'est citable avant le refigeage de la phase 6** (§8bis).
+
+#### C11.5.1 Ce que dit la directive (UE) 2020/2184, lu et recompté
+
+Source : `Sources/REG_Reglementation_et_seuils/REG-01_UE_directive-2020-2184.pdf`,
+62 pages, **version anglaise** (aucune version française sur le disque).
+
+| point | ce qui est lu | page |
+|---|---|---|
+| liste de la « Sum of PFAS » | **20 substances**, série C4→C13 complète pour les carboxyliques et pour les sulfoniques, sans trou | 53, annexe III B 3 |
+| valeur « Sum of PFAS » | **0,10 μg/l** | 38, annexe I B |
+| valeur « PFAS Total » | **0,50 μg/l** | 38, annexe I B |
+| applicabilité | **12 janvier 2026** | 32, art. 25 §1 |
+| transposition | 12 janvier 2023 | 32, art. 24 |
+
+Le compte de 20 a été vérifié par trois compteurs indépendants sur le texte brut
+(20 puces, 20 « perfluoro », 20 « acid » dont 10 « sulfonic ») — et non repris de
+l'expression courante « les 20 PFAS ».
+
+**Citation littérale de l'article 25 §1, vérifiée en session principale :**
+
+> « By 12 January 2026, Member States shall take the measures necessary to ensure
+> that water intended for human consumption complies with the parametric values
+> set out in Part B of Annex I for **Bisphenol A, Chlorate, Chlorite, Haloacetic
+> Acids, Microcystin-LR, PFAS Total, Sum of PFAS and Uranium**. »
+
+**Ce report ne concerne donc PAS que les PFAS : il porte sur huit paramètres.**
+
+**Ce que la directive ne donne pas** : aucun numéro CAS ; aucun acronyme pour
+trois des vingt substances ; aucune liste ni méthode de dénombrement pour
+« PFAS Total » — dont la valeur est en outre suspendue à des lignes directrices
+techniques de la Commission, **sans date**.
+
+#### C11.5.2 Le conflit de dates entre les deux textes
+
+`REG-03_FR_arrete-2022-12-30_grille-2026.pdf` — **8 pages, extractible**, contre
+ce qu'affirme `docs/INDEX_SOURCES.md` (erreur à corriger, voir C11.5.5) — porte
+en tête :
+
+> « Entrée en vigueur : le texte entre en vigueur le **1er janvier 2023**. »
+
+**Aucune occurrence de « 12 janvier 2026 » dans l'arrêté.** Il transpose la seule
+« somme » (0,10 µg/L en eau distribuée, 2 µg/L en eaux brutes) et **ne reprend pas
+le paramètre « PFAS Total »**. Il sigle PFPeA/PFPeS là où la directive écrit
+PFPA/PFPS — écart de nomenclature à porter dans l'appariement.
+
+> **Deux textes, deux dates, même substance.** La directive fixe une échéance au
+> 12 janvier 2026 ; l'arrêté français applique les valeurs depuis le 1er janvier
+> 2023. Un État membre peut appliquer plus tôt que le minimum européen — c'est
+> une lecture plausible, **ce n'est pas une lecture établie**, et elle demande
+> une confirmation juridique avant toute publication (§2.7).
+
+#### C11.5.3 Ce que le corpus contient
+
+**22 libellés PFAS** : 20 substances individuelles, **chacune mesurée exactement
+2 629 fois** — même bordereau, le laboratoire les cherche ensemble — plus deux
+lignes de somme rendues par le laboratoire.
+
+| ligne | mesures | quantifiées | max | référentiel |
+|---|---|---|---|---|
+| Somme de 20 (code 8847) | 2 629 | 904 | **0,203 µg/L** | seuil 0,1 · statut **limite** |
+| Somme de 4 (code 9268) | 1 367 | 372 | 0,111 µg/L | **aucun seuil** · statut *vigilance* |
+
+Total PFAS du corpus : 56 575 mesures, 4 766 quantifications, **2 629 bulletins
+sur 29 départements**, dont 928 portent au moins une quantification.
+
+#### C11.5.4 DEUX DÉFAUTS ÉTABLIS
+
+**Défaut A — l'aiguillage des 20 individuelles est incomplet, et il pointe à
+l'envers.**
+
+Sur les 20 substances individuelles, **4 seulement portent `dans somme`** :
+PFOA, PFOS, PFNA, PFHxS. Ce sont exactement les composants de la **somme de 4**,
+celle qui ne porte **aucun seuil opposable** (statut *vigilance*). Les **16
+autres n'ont aucune ligne** et tombent en `rien_ne_se_prononce_non_instruit`.
+
+Or la seule limite opposable du dossier est portée par la **somme de 20**. Donc :
+
+- 4 substances renvoient à une somme qui ne prononce rien ;
+- 16 substances ne renvoient à rien, alors qu'une somme les juge à 0,10 µg/L.
+
+La directive nommant bien 20 substances dans sa somme, **les 16 doivent porter
+`dans somme`**. Ce n'était pas un trou de connaissance, c'est un défaut
+d'aiguillage — et il se corrige par 16 lignes de référentiel, sans code.
+
+**Défaut B — cinq lignes portent un seuil sans sa date d'applicabilité (§2.5).**
+
+| ligne | seuil_2016 | seuil_2026 | date_applicabilite_2026 |
+|---|---|---|---|
+| Bisphenol A | — | 2,5 | **vide** |
+| Chlorates | — | 0,25 | **vide** |
+| Chlorites | 0,25 | 0,25 | **vide** |
+| Somme de 20 PFAS | — | 0,1 | **vide** |
+| Uranium | — | 30,0 | **vide** |
+| Acides haloacétiques | — | 60,0 | **2023-01-01** ⚠️ |
+
+Les six figurent dans la liste de l'article 25. La sixième porte une date, mais
+**2023-01-01 — qui n'est ni celle de la directive (12/01/2026) ni rien de lu** :
+à instruire.
+
+**La portée du faux positif est réelle mais circonscrite, et il faut le dire
+précisément** : une date d'applicabilité absente ne fabrique un faux verdict que
+là où `seuil_2016` est vide. Pour les **chlorites**, `seuil_2016 = seuil_2026 =
+0,25` : la date ne déplace aucun verdict, et les 135 dépassements de ce
+paramètre **ne sont pas en cause**. Le risque porte sur bisphénol A, chlorates,
+uranium et la somme des 20.
+
+**Mesuré sur la somme des 20 :**
+
+| année | quantifiées | au-dessus de 0,10 | max |
+|---|---|---|---|
+| 2022 | 5 | **1** | 0,1629 |
+| 2023 | 19 | 0 | 0,0901 |
+| 2024 | 44 | 0 | 0,0962 |
+| 2025 | 458 | **2** | 0,1230 |
+| 2026 | 378 | **1** | 0,2030 |
+
+**4 bulletins dépassent, dans 4 communes de 4 départements.** Le dépassement de
+2022 est **antérieur au 1er janvier 2023 : c'est un faux positif sous les deux
+lectures**. Les deux de 2025 le seraient aussi si la date européenne du
+12 janvier 2026 devait primer. **Entre 1 et 3 faux positifs sur 4**, et l'écart
+entre ces deux chiffres est exactement le conflit de textes du C11.5.2.
+
+#### C11.5.5 Ce qui reste à faire, et une erreur du dépôt à corriger
+
+1. **Trancher le conflit de dates** — c'est un point de droit, pas de données.
+   Tant qu'il n'est pas tranché, aucun verdict PFAS antérieur au 12/01/2026 ne
+   se publie.
+2. **Écrire les 16 lignes `dans somme`** en phase 5, en appariant sur les noms
+   de l'arrêté français (PFPeA/PFPeS) autant que sur ceux de la directive.
+3. **Reprendre les cinq dates manquantes** — le sujet dépasse les PFAS et
+   touche sept autres paramètres.
+4. **`docs/INDEX_SOURCES.md` est faux sur REG-03** : il affirme que « son PDF
+   n'est pas extractible en texte ». Il l'est — 8 pages, 20 808 caractères,
+   texte propre, vérifié en session principale le 15 août 2026. Cette mention
+   a fait renoncer à une lecture qui aurait été possible dès le 10 août, et
+   c'est elle qui laissait la ligne turbidité en `a_verifier` (§12.3).
+5. ~~Le nom du fichier `REG-03_..._grille-2026.pdf` serait trompeur~~ —
+   **ALERTE RETIRÉE le 15 août 2026, elle était fausse.** `grille-2026` n'est
+   pas une affirmation sur une date du texte : c'est la **convention de nommage
+   du dépôt**, qui relie une source à la colonne qu'elle alimente. Le fichier
+   voisin le prouve : `REG-02_FR_arrete-2007-01-11_grille-2016.pdf` nourrit
+   `seuil_2016`, `REG-03_..._grille-2026.pdf` nourrit `seuil_2026`. Le fichier
+   ne doit **pas** être renommé — le renommer casserait la symétrie et la
+   lisibilité de l'index.
+
+   **Ce que cet épisode enseigne** : un agent qui ne connaît que le document
+   qu'on lui donne ne peut pas juger d'une convention de dépôt. Le signalement
+   était légitime de sa part ; l'erreur a été de le relayer sans regarder le
+   fichier d'à côté.
+
+### C11.6 Dossier RADIOLOGIQUE — instruit le 15 août 2026
+
+Même dispositif que les PFAS : deux agents à briefs disjoints, rapprochement non
+délégué, et **vérification en session principale de chaque fait décisif**.
+Livrables : `data/etudes/RADIO_source_reglementaire.md` et
+`data/etudes/RADIO_inventaire_corpus.md`.
+
+**Chiffres lus sur les vues vivantes. Rien n'est citable avant le refigeage.**
+
+#### C11.6.1 UNE ERREUR DE MA PART, CORRIGÉE — ce n'était pas un angle mort
+
+En ouvrant C11, j'ai écrit que le radiologique était *« l'angle mort du §8
+confirmé à l'échelle — 69 303 quantifications et le moteur ne prononce rien »*.
+**Le comptage était juste, la conclusion était fausse.**
+
+Table « C. – Paramètres indicateurs » de l'arrêté du 30/12/2022, lue en mode
+`layout` et vérifiée colonne par colonne :
+
+| PARAMÈTRES | RÉFÉRENCES DE QUALITÉ | UNITÉS | NOTES |
+|---|---|---|---|
+| Activité alpha globale | *(vide)* | *(vide)* | « En cas de valeur supérieure à **0,10 Bq/L**, il est procédé à l'analyse des radionucléides spécifiques… » |
+| Activité bêta globale résiduelle | *(vide)* | *(vide)* | « En cas de valeur supérieure à **1,0 Bq/L**… » |
+| Dose indicative (DI) | **0,1** | mSv/an | … |
+| Radon | **100** | Bq/L | « Uniquement pour les eaux d'origine souterraine » |
+| Tritium | **100** | Bq/L | … |
+
+**Les 0,10 et 1,0 Bq/L ne sont pas des seuils de conformité.** Ce sont des
+**déclencheurs d'investigation**, logés dans la colonne NOTES, colonnes
+« références » et « unités » vides. Leur franchissement n'ouvre pas une
+non-conformité : il ouvre une analyse complémentaire.
+
+**Ne rien prononcer dessus était donc le bon comportement.** En avoir fait
+69 000 verdicts aurait été le plus gros faux positif du projet — la leçon de
+l'ESA métolachlore (§9.3 b), transposée telle quelle.
+
+> **CE QUE ÇA OUVRE — une quatrième nature de valeur.** `nature_seuil` connaît
+> `limite`, `reference`, `vigilance`. Il manque **`investigation`** : un nombre
+> réel, publiable, opposable à personne. C'est une information citoyenne
+> légitime — « au-dessus de cette valeur, l'ARS doit pousser l'analyse » — et
+> elle ne se peint pas comme un dépassement.
+
+#### C11.6.2 Ce que les textes ne portent pas
+
+- **Aucun radionucléide individuel n'a de valeur.** Radium 226/228, plomb 210,
+  polonium 210, césium 134/137, strontium 90, iode 131, cobalt 60, carbone 14,
+  américium 241, plutonium : **zéro occurrence** dans les trois PDF. Ils
+  n'interviennent que par le renvoi collectif au calcul de la dose indicative.
+- **La bêta brute et le K40 n'ont aucun correspondant réglementaire.**
+  « potassium » : 1 occurrence dans REG-01 et REG-02, 0 dans REG-03 ; « K40 » et
+  « K-40 » : **zéro partout**. Seule la bêta **résiduelle** est nommée par les
+  textes.
+- **L'uranium n'est pas comparable.** Sa seule valeur est **30 µg/L, limite de
+  qualité chimique en masse** — pas en Bq/L, donc sans rapport direct avec nos
+  `Activité Uranium 234/238`, et aucun des textes ne donne le facteur de
+  conversion (§2.9 : deux unités non convertibles, aucun verdict).
+- **La directive (UE) 2020/2184 ne fixe AUCUNE valeur radiologique**, et le dit :
+  *« Directive 2013/51/Euratom lays down specific arrangements […] Therefore,
+  this Directive should not set out parametric values on radioactivity »*
+  (considérant 52, vérifié littéralement).
+
+#### C11.6.3 ⚠️ SECTION PÉRIMÉE LE JOUR MÊME — l'alarme des 51 verdicts était FAUSSE
+
+> **Lire d'abord C11.6.3 bis.** La directive a été récupérée dans la foulée et
+> elle infirme cette section **sur ses deux jambes**. Elle est conservée telle
+> quelle comme trace du raisonnement, pas comme état courant.
+
+#### C11.6.3 (texte d'origine, périmé) — la lacune documentaire, et elle coûte 51 verdicts
+
+**La directive 2013/51/Euratom est absente du dossier `Sources/`.** C'est
+pourtant elle qui porte tout le volet radiologique européen — la directive de
+2020 y renvoie explicitement.
+
+Conséquence immédiate et chiffrée. La ligne du référentiel :
+
+```
+Radon 222 | Bq/L | seuil_2016 = 100 | seuil_2026 = 100
+          | date_applicabilite_2026 = VIDE
+          | statut_2026 = « reference (valeur parametrique, directive 2013/51/Euratom) »
+          | sources RAD-01|REG-06 | fiabilite = verifie
+```
+
+Or **le radon est ABSENT de l'arrêté de 2007** et n'entre en droit français
+qu'au 1er janvier 2023 (source lue). Et nous prononçons :
+
+| année | quantifiées | dépassements | max |
+|---|---|---|---|
+| 2019 | 292 | **1** | 109,6 |
+| 2020 | 299 | **11** | 531,0 |
+| 2021 | 268 | **18** | 1 212,0 |
+| 2022 | 304 | **21** | 333,6 |
+| 2023-2025 | 1 144 | 79 | 454,7 |
+
+**51 dépassements de radon sont antérieurs au 1er janvier 2023.** Ils reposent
+entièrement sur `seuil_2016 = 100`, dont la seule justification invoquée est un
+texte que **le dépôt ne possède pas**. Deux issues, et rien ne permet de
+trancher aujourd'hui :
+
+- si 2013/51/Euratom fixait bien 100 Bq/L et était applicable avant 2016, la
+  ligne est juste et les 51 verdicts tiennent ;
+- sinon, `seuil_2016 = 100` est **un passé réglementaire fabriqué**, ce que le
+  §2.8 interdit explicitement, et les 51 sont des faux positifs.
+
+**C'est la plus grosse exposition trouvée à ce jour** — 51 verdicts contre 1 à 3
+pour les PFAS. Et la ligne est marquée `fiabilite = verifie`, ce qui la fait
+passer sans signalement dans toute sortie publique. **Récupérer 2013/51/Euratom
+est la première action du dossier.**
+
+#### C11.6.3 bis LA DIRECTIVE RÉCUPÉRÉE — les 51 verdicts tiennent
+
+Récupérée le 15 août 2026 sur EUR-Lex, version française, et archivée :
+`Sources/RAD_Radiologique/RAD-01_UE_directive-2013-51-Euratom_2013.md`.
+
+**Elle infirme l'alarme sur ses deux jambes.**
+
+**Jambe 1 — la date. Article 8 §1 :**
+
+> « Les États membres mettent en vigueur les dispositions […] nécessaires pour se
+> conformer à la présente directive au plus tard **28 novembre 2015** »
+
+**Antérieure à 2016.** La valeur de 100 Bq/L était exigible avant le premier
+prélèvement du corpus : `seuil_2016 = 100` n'est pas un passé réglementaire
+fabriqué. Les 51 verdicts antérieurs à 2023 **tiennent**.
+
+**Jambe 2 — la nature. Le moteur la traite DÉJÀ correctement**, vérifié en base :
+
+```
+radon : nature_seuil = reference | 9 321 mesures
+        130 depasse_applicable, dont 130 hors_reference
+sur les bulletins concernes : 155 depassements applicables, dont 7 sur une LIMITE
+```
+
+Les dépassements de radon **ne sont pas comptés comme des dépassements de limite**
+et ne déclenchent donc pas le rouge (§11.3). Le modèle faisait déjà la
+distinction que je croyais manquante.
+
+**Ce que je n'avais pas vu, et qui aurait dû m'arrêter** : `docs/INDEX_SOURCES.md`
+portait déjà, à la ligne RAD-01, la phrase *« un dépassement ne crée pas de
+non-conformité, il déclenche une enquête »*. **La réponse était dans le dépôt.**
+Coût de ne pas l'avoir lue : une alarme fausse annoncée comme « la plus grosse
+exposition trouvée à ce jour ».
+
+**Ce qui était vrai, en revanche, et qui est réparé** : le fichier annoncé par
+l'index **n'existait pas sur le disque**. Le référentiel se réclamait de RAD-01
+en `fiabilite = verifie` sans qu'aucun document ne soit consultable — le défaut
+même que le §2.7 existe pour empêcher. Il est désormais archivé.
+
+**Deux apports nets du relevé :**
+
+1. **Les seuils alpha 0,1 et bêta 1,0 Bq/L sont en ANNEXE III** (méthodes de
+   contrôle), **pas en annexe I** (valeurs paramétriques). La source européenne
+   confirme indépendamment ce que la colonne NOTES de l'arrêté français
+   indiquait : ce sont des seuils de dépistage. **Deux textes, même lecture.**
+2. **La restriction du radon aux eaux souterraines est une ADDITION FRANÇAISE.**
+   Aucune restriction de ce genre dans la directive — l'annexe II point 2 ne
+   conditionne que le *contrôle*, pas la valeur. À dire comme telle dans toute
+   sortie : c'est une condition nationale, pas européenne.
+
+**Reste ouvert** : le PDF officiel (ce relevé vient de la page HTML) ; l'art. 2
+pt 4 et l'art. 7 non relus littéralement ; l'exclusion du tritium du calcul de la
+dose, non retrouvée dans ce relevé ; et surtout **le texte français de
+transposition**, celui que l'arrêté du 30/12/2022 appelle « l'arrêté mentionné à
+l'article R. 1321-20 » — c'est lui qui porte les radionucléides individuels.
+
+#### C11.6.3 ter LE CHAÎNON MANQUANT TROUVÉ — arrêté du 12 mai 2004 [RAD-02]
+
+L'arrêté que REG-03 désignait sans le nommer — « l'arrêté mentionné à l'article
+R. 1321-20 » — est l'**arrêté du 12 mai 2004 fixant les modalités de contrôle de
+la qualité radiologique des EDCH**, modifié par l'**arrêté du 9 décembre 2015**.
+Relevé et archivé :
+`Sources/RAD_Radiologique/RAD-02_FR_arrete-2004-05-12_controle-radiologique.md`.
+
+**Il corrige DEUX affirmations que j'avais données comme établies.**
+
+**Correction 1 — « aucun radionucléide individuel n'a de valeur » est FAUX.**
+Le tableau 1 de son annexe porte **quatorze concentrations dérivées** —
+américium 241 à 0,7 Bq/L, polonium 210 à 0,1, radium 228 à 0,2, uranium 234 à
+2,8… — et **elles recouvrent exactement les radionucléides que le corpus
+mesure**. Elles étaient absentes des trois PDF lus parce qu'elles ne sont dans
+aucun des trois : elles vivent dans ce quatrième texte.
+
+> **Mais une concentration dérivée n'est PAS une limite**, et cette distinction
+> commande tout le dossier. C'est **le dénominateur d'une somme** : la
+> concentration qui, seule, produirait la DI de 0,1 mSv/an. Le verdict se rend
+> sur la DI, jamais sur un radionucléide isolé. Prononcer un dépassement parce
+> qu'un radium 226 franchit 0,5 Bq/L serait exactement la faute évitée sur les
+> quatre HAP — juger un composant à la valeur de sa somme. Le rapprochement à
+> faire est `juge_avec_son_groupe`, **jamais `juge`**.
+
+**Correction 2 — « le K40 n'a aucun correspondant réglementaire » est FAUX.**
+Article 2.1, cité : la DI se calcule « à l'**exclusion** du tritium, du
+potassium-40, du radon et de ses descendants ».
+
+**Le K40 est nommé par le texte, comme exclusion.** C'est précisément pourquoi le
+corpus le mesure : cette activité est mesurée **pour être retranchée**. Le
+libellé « Activité bêta attribuable au K40 » n'est pas orphelin — c'est un terme
+de soustraction, et il donne son sens à la bêta *résiduelle*.
+
+**Ce que le texte confirme, en revanche, et pour la troisième fois.** Article 3 :
+
+> « Lorsque l'activité alpha globale ou bêta globale résiduelle dépasse
+> respectivement les **valeurs guides** de 0,1 Bq/L et 1 Bq/L, il est procédé à
+> l'identification et à la quantification […] »
+
+Le mot du texte est **« valeurs guides »**. Après l'annexe III de la directive
+[RAD-01] et la colonne NOTES de l'arrêté de 2022 [REG-03], **trois sources
+indépendantes disent la même chose**. Et l'article 4.1 donne leur rôle exact :
+sous ces valeurs, « il est considéré que la DI est inférieure à la référence de
+qualité de 0,1 mSv/an » — ce sont des **présomptions de conformité**, pas des
+seuils.
+
+**Le radon aux eaux souterraines est une restriction ANCIENNE** : elle figure
+déjà à l'article 3 de la rédaction de 2004, bien avant l'arrêté de 2022 qui la
+reprend. Elle reste une addition française — la directive ne la porte pas.
+
+**Une réserve à tenir, et elle est importante.** L'arrêté du 9 décembre 2015
+(publié le 18, JO n° 293) tombe trois semaines après l'échéance de transposition
+du 28 novembre 2015. **Aucune mention de la directive 2013/51/Euratom n'a été
+trouvée dans son texte.** La coïncidence est frappante, elle n'est pas une preuve :
+ne pas écrire que cet arrêté transpose la directive tant qu'un texte ne le dit
+pas. Ce serait refaire l'erreur du §8 de `docs/REPRISE.md`, où un mécanisme
+plausible avait été pris pour une cause établie.
+
+**Réserves ouvertes** : le plutonium 238 est listé à l'article 5 mais absent du
+tableau ; et l'article 6 modifié en 2015 appelle **un cinquième texte**, l'arrêté
+sur les modalités de contrôle du radon, non identifié.
+
+#### C11.6.3 quater LES QUATORZE VALEURS SONT VÉRIFIÉES — et Légifrance est accessible
+
+**Double lecture concordante, 15 août 2026.** Les quatorze concentrations
+dérivées ont été relevées deux fois sur deux sources indépendantes — AIDA/INERIS,
+puis le texte consolidé de **Légifrance** (`LEGITEXT000005787501`, en vigueur au
+15/08/2026, dernière mise à jour des données au 19 décembre 2015). **Identiques
+ligne pour ligne**, valeurs et unités comprises ; les articles 2, 3 et 4
+concordent aussi. Elles passent de `a_verifier` à **`verifie`**. Le PDF du JO
+n'est toujours pas archivé : deux consolidés concordants valent mieux qu'un, ils
+ne valent pas le JO.
+
+> **LE RÉSULTAT LE PLUS UTILE DE LA JOURNÉE, ET IL DÉPASSE LE RADIOLOGIQUE.**
+>
+> `docs/INDEX_SOURCES.md` porte depuis le 10 août que « Légifrance répond 403 au
+> shell et oppose un contrôle anti-robot au navigateur ». **C'est vrai pour ces
+> deux canaux — et faux pour l'outil web, qui passe.** Le texte consolidé a été
+> lu intégralement, articles et annexes compris, sans blocage.
+>
+> **Trois conséquences à traiter :**
+> 1. **REG-06 — l'arrêté du 11 janvier 2007 consolidé — est lisible.** Sa lecture
+>    avait été renoncée le 10 août sur ce motif.
+> 2. **La ligne turbidité peut sortir de `a_verifier`** — réserve n° 1 du §12.3
+>    de `docs/REPRISE.md`, ouverte depuis cinq jours.
+> 3. **La règle d'accès du projet est à réécrire** : non pas « Légifrance est
+>    inaccessible », mais « inaccessible au shell et au navigateur, accessible à
+>    l'outil web ». La nuance décide de ce qui est vérifiable, donc de ce qui peut
+>    passer de `a_verifier` à `verifie`.
+>
+> C'est le §2.7 appliqué à nous-mêmes : **une impossibilité constatée sur un canal
+> avait été généralisée en impossibilité tout court**, et elle a coûté cinq jours
+> de `a_verifier` sur une ligne publiée.
+
+#### C11.6.4 Le contrôle arithmétique : la relation bêta ne tient pas
+
+`bêta globale − K40 = bêta résiduelle` est vérifiée à 5 % près dans
+**2 075 cas sur 6 882, soit 30,2 %.**
+
+Contrôle fait : restreindre aux mesures **toutes trois quantifiées** ne change
+**rien** — mêmes 6 882 cas, mêmes 2 075. Ce n'est donc pas un artefact de
+limite de quantification.
+
+**Ce qu'on peut en conclure, et pas plus** : ces trois libellés ne satisfont pas
+la relation que leurs noms suggèrent, dans 70 % des cas. **Ils ne sont donc pas
+interchangeables, et la bêta résiduelle ne se recalcule jamais** à partir des
+deux autres — elle se lit telle que le laboratoire la rend. La cause de l'écart
+n'est pas établie (aliquotes distinctes, conventions de laboratoire, K40 déduit
+d'un dosage de potassium) et **ne doit pas être devinée**.
+
+#### C11.6.5 L'inventaire, et une discipline à saluer
+
+24 libellés radiologiques, **195 576 mesures, 72 365 quantifications**,
+33 625 bulletins sur 40 745 (**82,5 %**), 30 départements sur 33. Le volet est
+cherché presque partout.
+
+4 libellés ont une ligne au référentiel (Radon 222, Tritium, Dose indicative,
+Dose totale indicative — noter le **doublon** des deux doses, à traiter) ;
+20 n'en ont aucune.
+
+**11 homonymes ont été écartés** par l'inventaire : dix isomères de pesticides
+portant « alpha » ou « béta » dans leur nom, et « Uranium en µg/l » (famille
+`metal`, masse chimique) distingué des `Activité Uranium` en Bq/L. Un tri par
+sous-chaîne sans ce filtre aurait mêlé des pesticides au volet radiologique.
+
+#### C11.6.6 Ce que le dossier laisse à faire
+
+1. **Récupérer la directive 2013/51/Euratom** — bloquant pour 51 verdicts.
+2. **Ajouter la nature `investigation`** et y ranger alpha globale et bêta
+   résiduelle avec leurs 0,10 et 1,0 Bq/L. Ce n'est pas une ligne de seuil,
+   c'est une quatrième colonne de sens.
+3. **Écrire les lignes `rien_ne_se_prononce_etabli`** pour les radionucléides
+   individuels : nous avons cherché, aucun texte ne leur oppose de valeur. C'est
+   une réponse, pas un vide — et elle les sort de « non instruit ».
+4. **Trancher le doublon** « Dose indicative » / « Dose totale indicative ».
+5. **Ne jamais recalculer la bêta résiduelle** (C11.6.4).
+
+---
+
+### C11.7 Dossier COV et solvants — instruit le 15 août 2026
+
+Livrables : `data/etudes/COV_source_reglementaire.md` et
+`data/etudes/COV_inventaire_corpus.md`. Quatre affirmations décisives vérifiées
+en session principale sur REG-03.
+
+#### C11.7.1 LE RÉSULTAT QUI DÉPASSE LE DOSSIER — l'arrêté français ne diffère RIEN
+
+**Vérifié : la chaîne « 2026 » apparaît ZÉRO fois dans tout l'arrêté du
+30 décembre 2022.** Aucune clause de report, aucune date différée, pour aucun
+paramètre. Le texte porte une seule date : « le texte entre en vigueur le
+1er janvier 2023 ».
+
+**Conséquence, et elle tranche une question ouverte depuis ce matin :** la
+directive diffère huit paramètres au 12 janvier 2026 (art. 25 §1) ; **la France
+ne transpose pas ce report**. En droit français, les huit s'appliquent depuis le
+**1er janvier 2023** — trois ans avant le plancher européen.
+
+**Ce que cela règle concrètement :**
+
+1. **Les cinq lignes sans `date_applicabilite_2026`** (bisphénol A, chlorates,
+   chlorites, somme des 20 PFAS, uranium — C11.5.4 défaut B) doivent recevoir
+   **`2023-01-01`**, pas `2026-01-12`.
+2. **Les dépassements PFAS se départagent proprement.** Sur les 4 bulletins
+   au-dessus de 0,10 µg/L : celui de **2022 est un faux positif** (antérieur au
+   1er janvier 2023) ; **ceux de 2025 et 2026 tiennent**. Ce n'est plus « entre
+   1 et 3 », c'est **1**.
+3. **UNE CORRECTION QUE JE ME DOIS.** J'avais signalé la ligne « acides
+   haloacétiques » comme suspecte, au motif que sa date `2023-01-01` « ne
+   correspond à rien de lu ». **Elle correspond exactement à l'entrée en vigueur
+   de l'arrêté, et elle était juste.** C'est la seule des six lignes de
+   l'article 25 qui était correctement datée, et j'ai jeté le doute dessus.
+
+> **Et c'est un motif éditorial de première force pour C12** : sur ces huit
+> paramètres, **la France applique trois ans plus tôt que ce que l'Europe
+> exige**. Le réétalonnage ne va pas toujours dans le sens du relâchement — ici
+> le droit national est plus strict que le plancher communautaire. À dire, parce
+> que c'est vrai et parce que ça protège le projet du soupçon de réquisitoire
+> (§2.1).
+
+#### C11.7.2 Les 91 libellés — aucune collision, aucun alias à poser
+
+Le périmètre réel est de **91 libellés**, pas 81 : l'inventaire a retenu en plus
+8 chlorophénols, 5 chloronaphtalènes et chloronitrobenzènes, 2 PCB et 1 PBDE,
+adjacents à la famille COV stricte et signalés pour arbitrage. Quatre faux
+positifs ont été écartés (chlorophycées, chlorophylle A, chloronèbe,
+forchlorfénuron).
+
+**Collision de numéro CAS avec le référentiel : ZÉRO. 91 sur 91 réellement
+absentes.** Vérifié par CAS *et* par `code_parametre`, dans les deux sens : nos
+82 CAS distincts ne recoupent aucun des 39 CAS du référentiel.
+
+**Ce n'est donc pas un défaut d'appariement** — contrairement au cas de mai 2026
+où cinq libellés avaient un seuil sans s'y rattacher. Ces substances ne sont
+nulle part dans le référentiel, et c'est un fait, pas un bug.
+
+**Le poids réel du groupe** : 245 541 mesures pour **616 quantifications**, soit
+un taux de 0,25 %. 22 311 bulletins, 28 départements. **62 des 91 libellés n'ont
+jamais été quantifiés une seule fois dans tout le corpus.**
+
+Les cinq plus trouvés : biphényle (104), trichloroéthane-1,1,1 (102), xylène
+ortho (65), dichloroéthylène-1,1 (52), xylènes ortho+para+méta (47).
+
+#### C11.7.3 Ce que les textes contiennent, et ce qu'ils ne contiennent pas
+
+**24 paramètres organiques** en droit en vigueur, la nature lue au titre de
+partie et non devinée : **16 limites de qualité** (annexe I partie I),
+2 références de qualité (COT et indice permanganate — aucun composé nommé),
+1 valeur indicative (métabolites non pertinents, 0,9 µg/L), 2 valeurs de
+vigilance (17-bêta estradiol, nonylphénol), 6 limites en eau brute (annexe II).
+
+**La catégorie « valeur guide » n'existe dans aucune annexe en vigueur** — elle
+ne subsiste que dans l'annexe III de 2007, abrogée. À ne pas confondre avec les
+« valeurs guides » radiologiques de l'arrêté du 12 mai 2004 [RAD-02], qui est un
+autre texte et reste en vigueur.
+
+**Sur les 91 : l'hypothèse est confirmée sur trois canaux concordants.** Ne sont
+encadrés par aucun texte : dichloroéthylènes, trichloroéthanes, tétrachloro-
+éthanes, tous les chlorobenzènes, xylènes, cumène, mésitylène, butylbenzènes,
+fréons, MTBE, ETBE, biphényle, hexachlorobutadiène, tétrachlorure de carbone,
+dichlorométhane, toluène, éthylbenzène, styrène, naphtalène. **Une dizaine
+seulement sont encadrés.**
+
+**C'est la réponse la plus utile du dossier** : la grande majorité des 91 relève
+de `rien_ne_se_prononce_etabli` — nous avons cherché, aucun texte ne leur oppose
+de valeur. Une réponse, pas un vide. Elles sortent de « non instruit » par une
+ligne de référentiel sans seuil, exactement comme le perchlorate en août.
+
+**Un seul numéro CAS figure dans les quatre textes** — 84852-15-3, nonylphénol.
+Le rapprochement devra donc se faire sur les noms, pas sur les CAS.
+
+#### C11.7.4 DEUX PÉRIMÈTRES SOUS UN MÊME SIGLE — le §2.14 pris sur le fait
+
+Vérifié littéralement dans REG-03, **le même arrêté porte deux sommes « HAP »
+différentes** :
+
+| où | valeur | périmètre littéral |
+|---|---|---|
+| p. 3 — **eau distribuée** | **0,10 µg/L** | benzo[b]fluoranthène, benzo[k]fluoranthène, benzo[ghi]pérylène, indéno[1,2,3-cd]pyrène — **4 composés, SANS benzo[a]pyrène** |
+| p. 7 — **eau brute** | **1 µg/L** | fluoranthène, benzo[b]fluoranthène, benzo[k]fluoranthène, **benzo[a]pyrène**, benzo[ghi]pérylène, indéno[1,2,3-cd]pyrène — **6 composés** |
+
+Et le **benzo[a]pyrène porte en outre sa propre limite**, 0,010 µg/L (p. 2) : il
+est jugé seul en eau distribuée, et dans la somme en eau brute.
+
+**Le risque pour le corpus est direct.** Nous mesurons deux libellés agrégés —
+« Hydrocarbures polycycliques aromatiques (6 subst.*) » (209 mesures) et
+« (16 subst.) » (57 mesures). **Le premier a le compte de la liste EAU BRUTE.**
+Le comparer à la limite de 0,10 µg/L de l'eau distribuée mêlerait deux
+périmètres et deux valeurs. **À trancher avant toute ligne de référentiel** :
+que mesure exactement ce libellé, et sur quelle eau ?
+
+**Autre somme confirmée** : « Tétrachloroéthylène et trichloroéthylène », 10 µg/L,
+note littérale « Somme des concentrations des paramètres spécifiés ». **Aucune
+valeur individuelle pour l'un ni pour l'autre** — ils relèvent de
+`juge_avec_son_groupe`, jamais de `juge`.
+
+#### C11.7.5 Ce qui reste ouvert
+
+1. **Le statut des chlorobenzènes** au titre de la définition « pesticides »
+   (REG-05) est **indéterminé**. S'ils y entrent, ils tombent sous la limite de
+   0,1 µg/L par substance et sortent entièrement de ce dossier.
+2. **Le périmètre réel du libellé « HAP (6 subst.*) »** — voir ci-dessus.
+3. **REG-04 (OMS)** est la piste directe pour les libellés orphelins : des
+   valeurs guides sanitaires existent probablement pour le toluène, les xylènes,
+   le styrène. **Aucune n'a été lue.** Elles ne seraient pas opposables, mais
+   elles alimenteraient `seuil_strict`.
+4. **Les 10 libellés adjacents** (chlorophénols, chloronaphtalènes, PCB, PBDE)
+   attendent un arbitrage de périmètre.
+
+---
+
+### C11.8 Dossier CALCO-CARBONIQUE — instruit le 15 août 2026
+
+Le plus gros bloc du chantier. Livrables : `data/etudes/CALCO_source_reglementaire.md`
+et `data/etudes/CALCO_inventaire_corpus.md`. Légifrance a répondu aux cinq
+requêtes de l'agent — **troisième confirmation** de son accessibilité par l'outil web.
+
+#### C11.8.1 L'exigence existe, et elle n'a AUCUN chiffre
+
+Vérifié en session principale sur REG-03, page 5, partie **« II. − Références de
+qualité »** :
+
+```
+PARAMÈTRES                  | RÉFÉRENCES DE QUALITÉ                      | UNITÉS | NOTES
+Equilibre calcocarbonique   | Les eaux doivent être à l'équilibre        | (vide) | (vide)
+                              calcocarbonique ou légèrement incrustantes
+pH                          | ≥ 6,5 et ≤ 9                    | Unité pH | Les eaux ne doivent pas être agressives.
+Conductivité                | (plage)                         |          | Les eaux ne doivent pas être corrosives.
+```
+
+**L'exigence est purement qualitative.** Rédaction identique de 2007 à 2026.
+L'agent a pris soin de vérifier que les tirets vus en mode `layout` étaient des
+césures typographiques (`cal-cocarbonique`, `incrus-tantes`) et non des cases —
+exactement la précaution que mon erreur de troncature de ce matin appelait.
+
+**Zéro des 17 libellés n'a de valeur.** TH, TA, TAC, calcium, carbonates,
+hydrogénocarbonates, silicates, CO2 libre, CO2 agressif, pH d'équilibre, essais
+marbre, indice de Leroy : NON TROUVÉ partout, dans les quatre textes.
+
+**Deux plages seulement dans toute l'annexe I**, toutes deux en références de
+qualité : pH `≥ 6,5 et ≤ 9`, et conductivité `≥ 180 et ≤ 1 000 µS/cm à 20 °C`
+(ou `≥ 200 et ≤ 1 100` à 25 °C). **La borne BASSE de conductivité est une
+spécificité française** : la directive ne fixe qu'un plafond de 2 500 µS/cm et
+tolère le pH jusqu'à 9,5. C'est un motif direct pour C12 — le droit national est
+ici plus exigeant que le plancher européen, comme sur les huit paramètres
+différés (C11.7.1).
+
+**Le siège réel de l'exigence n'est pas l'arrêté, c'est le code de la santé
+publique**, art. R. 1321-55 al. 2 : « À l'issue du traitement, l'eau distribuée
+ne doit pas être agressive, corrosive ou gêner la désinfection. »
+
+> **Nuance éditoriale décisive : cette exigence porte sur les INSTALLATIONS, pas
+> sur l'eau comme risque sanitaire.** Une eau agressive n'est pas une eau
+> dangereuse à boire — c'est une eau qui attaque les canalisations qu'elle
+> traverse. Le §11.3 l'avait déjà posé ; le texte le confirme. À écrire ainsi,
+> jamais autrement (§2.1, §2.2).
+
+#### C11.8.2 L'INDICE N'EST PAS NUMÉRIQUE — il est textuel, et c'est décisif
+
+**Le libellé « Equilibre calcocarbonique 0/1/2/3/4 » ne stocke aucun code
+chiffré.** `resultat_num` est NULL sur **la totalité de ses 37 402 mesures** ; la
+valeur vit en texte :
+
+| catégorie | mesures |
+|---|---|
+| À l'équilibre | 17 873 |
+| **Eau agressive** | **10 195** |
+| Eau incrustante | 3 823 |
+| Légèrement incrustante | 3 164 |
+| Légèrement agressive | 2 345 |
+
+**Conséquence immédiate** : la `reference_max` de 2,0 déclarée par la source ne
+peut s'appliquer à aucune de ces mesures. Elle est structurellement inopérante.
+
+**Et le codage n'est pas réglementaire.** C'est une convention SANDRE
+(paramètre 2968, unité « sans objet »). La table des cinq codes n'a pas été
+retrouvée, et l'agent ne l'a pas inventée. **Pire, il y a contradiction** : la
+fiche SANDRE écrit « la référence de qualité à respecter est <= 1 », quand notre
+source de données déclare 2. **À laisser en `indéterminé`** tant que ce n'est pas
+tranché.
+
+**Mais l'indice sépare des eaux réellement différentes.** Sur les 1 262 bulletins
+portant l'indice et ses cinq composants simultanément quantifiés, les médianes
+divergent nettement — TH médian **7,9** sous « Eau agressive » contre **22,35**
+sous « À l'équilibre ». **Le détail que Yannick voulait donner a donc un
+fondement mesurable**, et il ne vient pas du texte : il vient des données.
+
+#### C11.8.3 L'eau agressive, dénombrée — et elle pointe vers l'Alsace
+
+Écart entre pH initial et pH à l'équilibre : **1 079 mesures positives** (eau
+sous-saturée, donc agressive) contre **193 négatives**. Mais le paramètre n'est
+mesuré que sur **5 départements**, et deux portent l'essentiel : le **Bas-Rhin
+(67)** avec 864 mesures à 77,8 % d'écart positif, et le **Lot-et-Garonne (47)**
+avec 401 mesures à **100 %**.
+
+> **C'est le motif alsacien qui ressort par une autre porte.** Le 67 a été
+> collecté le 14 août pour l'angle « eau conforme et pourtant hors référence »
+> (C11.5 / §26.5 de `docs/REPRISE.md`), sur l'hypothèse des chlorures. C'est
+> l'agressivité qui répond. **À instruire — ce n'est pas encore un résultat**,
+> le paramètre n'étant mesuré que sur 5 départements sur 33 : l'écart entre
+> territoires mesurerait d'abord l'effort de recherche (§2.11).
+
+#### C11.8.4 Deux doublons apparents, non tranchés
+
+- **`Titre alcalimétrique` et `Titre alcalimétrique complet`** coexistent
+  systématiquement quand le premier est quantifié (86 sur 86) — mais le TA n'est
+  quasiment jamais quantifié : **86 fois sur 18 094 mesures**. Corrélation faible
+  (−0,11 sur n=86).
+- **`CO2 libre calculé` et `Anhydride carbonique libre`** partagent le **même
+  code SANDRE 1344** mais portent des unités déclarées différentes, ne coexistent
+  que partiellement (1 565 bulletins sur 6 510 + 4 240), et leur corrélation est
+  quasi nulle (0,04). **Les données ne tranchent pas** entre doublon de méthode
+  et grandeurs distinctes.
+
+**Un même code SANDRE pour deux objets : c'est le motif du §11.2** (sélénium
+1385, chlorates 1752, turbidité 1295). **Ne pas apparier par ce code avant
+d'avoir tranché.**
+
+#### C11.8.5 UN DÉFAUT QUE J'AI INTRODUIT CE MATIN, et sa mesure honnête
+
+La phase 2 a fait entrer la référence déclarée dans `notee`. Pour l'indice
+calcocarbonique, cela produit **37 402 mesures comptées comme « notées » alors
+qu'aucune comparaison n'est possible en principe** — la valeur est un texte, pas
+un nombre.
+
+**Portée réelle : 37 402 sur 14 188 024, soit 0,26 % du numérateur.** Réel, à
+corriger, sans urgence.
+
+> **ET UNE ERREUR DE CONTRÔLE, À NE PAS REFAIRE.** J'ai d'abord mesuré cela par
+> « combien de mesures notées n'ont pas de `resultat_num` » et trouvé
+> 13 555 860 sur 874 libellés, soit un écart de couverture de 87 points. **Ce
+> chiffre ne veut rien dire** : une mesure sous le seuil de quantification a
+> `resultat_num` NULL et reste parfaitement notée — glyphosate, atrazine, diuron
+> en tête de liste. Mon contrôle mesurait le taux de quantification du corpus, pas
+> un défaut.
+>
+> **La leçon : un contrôle qui rend un chiffre spectaculaire doit être suspecté
+> avant d'être publié.** C'est la règle du §22.5 — « un outil qui répond “rien à
+> faire” se vérifie » — dans l'autre sens : un outil qui répond « catastrophe »
+> se vérifie aussi.
+
+Le correctif juste est étroit : **exiger que la comparaison soit possible**, pas
+qu'un résultat soit quantifié. À écrire en phase 5.
+
+#### C11.8.6 Ce qui reste ouvert
+
+1. ~~L'arrêté du 21 janvier 2010~~ — **PISTE SUIVIE ET ABOUTIE le 15 août 2026,
+   voir C11.9 ci-dessous. La réponse est trouvée, et elle est meilleure que
+   l'hypothèse.**
+2. **La table des cinq codes SANDRE 2968**, introuvable, et la contradiction
+   `<= 1` (SANDRE) contre `2` (notre source).
+3. **Le doublon SANDRE 1344**, non tranché.
+4. **Une anomalie signalée, non corrigée** : un carbonate à **−1 124,4** sur le
+   bulletin `00700196491`. Une concentration négative n'existe pas.
+5. **L'angle éditorial le plus solide**, relevé par l'agent : la directive
+   (annexe IV) **impose de communiquer** dureté, calcium, magnésium et potassium
+   en les qualifiant expressément de « parameters not listed in Part C of
+   Annex I ». **Une information due précisément parce qu'elle n'est pas normée.**
+   C'est exactement le sujet de C12.
+
+---
+
+### C11.9 LA PISTE DE 2010 A ABOUTI — et elle renverse la question
+
+Instruite en direct le 15 août 2026, sans agent : un texte, des questions
+précises, **deux lectures indépendantes** de la même page pour se contrôler.
+Source archivée : `Sources/REG_Reglementation_et_seuils/REG-10_FR_arrete-2007-01-11_programme-analyses.md`.
+
+#### C11.9.1 Le texte cherché n'est pas celui de 2010 — et il y a DEUX arrêtés du 11 janvier 2007
+
+L'arrêté du 21 janvier 2010 ne fait que **modifier** un texte antérieur, et il
+n'apparaît même plus dans la liste des modificateurs de la version consolidée :
+il a été absorbé. Le texte qui compte est :
+
+**Arrêté du 11 janvier 2007 relatif au PROGRAMME de prélèvements et d'analyses**,
+`LEGITEXT000006055434` — **entièrement absent du dossier `Sources/`**, désormais
+catalogué **REG-10**.
+
+> **PIÈGE À GRAVER : il existe deux arrêtés du 11 janvier 2007.**
+> `JORFTEXT000000465574` porte les **limites et références de qualité** (nos
+> REG-02 et REG-06) ; `LEGITEXT000006055434` porte le **programme d'analyses**.
+> Même jour, objets différents. C'est le motif de REG-09 sur les arrêtés du
+> 30 décembre 2022, transposé de 2022 à 2007.
+
+#### C11.9.2 LA RÉPONSE AUX 191 752 MESURES — et elle est meilleure que l'hypothèse
+
+Annexe I, tableau 1, **note (3)**, confirmée mot pour mot par deux lectures :
+
+> « Les concentrations en **calcium, magnésium et potassium** doivent être
+> exprimées par le laboratoire d'analyses **concomitamment au calcul de
+> l'équilibre calcocarbonique**. »
+
+**L'hypothèse était « ces paramètres sont imposés au programme sans être
+normés ». La réalité est plus forte : le texte impose de les EXPRIMER, parce
+qu'ils sont les termes du calcul.** Ce ne sont pas des paramètres oubliés par la
+norme, ce sont des **supports de calcul** — exactement le statut des
+concentrations dérivées du volet radiologique (C11.6.3 ter), et le même piège
+si on les jugeait individuellement.
+
+> **Cela fonde la demande de Yannick sur le texte, et pas seulement sur les
+> données.** Il voulait « donner le détail » derrière le total calco-carbonique.
+> **Le détail est prescrit par l'arrêté** : le laboratoire doit l'exprimer. La
+> fiche peut donc l'afficher en s'appuyant sur une obligation, pas sur un choix
+> éditorial. C'est le meilleur socle possible pour la décision 4.
+
+#### C11.9.3 L'« analyse complète » a une définition réglementaire — inutilisable chez nous
+
+Six programmes : **RP** et **RS** (ressource, souterraine / superficielle),
+**RSadd**, **A** (routine), **B**, **Badd**. Et la définition littérale :
+
+> B = « programme d'analyses complémentaire par rapport à A **permettant
+> d'obtenir le programme d'analyses complet (A + B)** »
+
+**L'analyse complète, c'est A + B.** Le texte ne donne aucun nombre de paramètres.
+
+**Mais Hub'Eau n'expose pas le type de programme** — vérifié le 15 août sur le
+cache brut : aucun champ A/B/RP/RS parmi les 30 champs rendus par l'API.
+
+> **Conséquence pour `CLAUDE.md` §2.3.** `SEUIL_COMPLET = 200` reste le seul
+> critère disponible, et **il faut continuer de le présenter comme une convention
+> du projet** — jamais comme la définition réglementaire, qui existe et que nous
+> ne pouvons pas appliquer. C'est une limite à déclarer, pas à masquer (§2.8).
+
+#### C11.9.4 TROIS arrêtés du 30 décembre 2022, et un texte de 2026 que le dépôt ignore
+
+| texte | NOR | objet | entrée en vigueur |
+|---|---|---|---|
+| Arrêté du 30/12/2022 | `SPRP2221010A` | limites et références de qualité | 1er janvier 2023 |
+| Arrêté du 30/12/2022 | `SPRP2221012A` | modalités de dérogation | — |
+| **Arrêté du 30/12/2022** | **`SPRP2221017A`** | **programmes d'analyses** | **1er janvier 2026** |
+| **Arrêté du 28 juillet 2026** | — | article 3 du programme | **3 août 2026** |
+
+**Deux faits neufs :**
+
+1. **Ils sont trois, pas deux.** REG-09 en signalait deux ; voici le troisième.
+   Seul le NOR les sépare de façon fiable — et **leurs dates d'entrée en vigueur
+   diffèrent de trois ans** : la grille au 1er janvier 2023, les programmes au
+   1er janvier 2026.
+2. **Un arrêté du 28 juillet 2026 est en vigueur depuis le 3 août — il y a douze
+   jours.** Le dépôt n'en sait rien et son contenu n'a pas été lu. **À traiter :
+   c'est le texte le plus récent du corpus réglementaire du projet.**
+
+#### C11.9.5 Une contradiction entre mes deux lectures, non tranchée
+
+Sur le **titre hydrotimétrique** — 38 234 mesures au corpus — les deux lectures
+de la même page se contredisent : la première conclut qu'il n'apparaît **nulle
+part** dans le texte, la seconde le trouve sous « Dureté (ou Titre
+hydrotimétrique) » en RP/RS.
+
+**Aucune ne fait foi.** C'est une relecture humaine du tableau 1, et elle est
+courte. Je la signale plutôt que de choisir — choisir ici serait exactement ce
+que le §2.7 interdit.
+
+**Ce que cet épisode enseigne sur la méthode** : deux lectures d'une même source
+par le même outil ne sont pas redondantes. Elles ont concordé sur la note (3) —
+ce qui la solidifie — et divergé sur le TH, ce qui a évité d'écrire une
+affirmation fausse. **La double lecture est à garder pour toute source lue en
+ligne.**
+
+---
+
+### C11.10 Dossier DÉSINFECTION — instruit le 15 août 2026. Dernier des cinq.
+
+Livrables : `data/etudes/DESINFECTION_source_reglementaire.md` et
+`data/etudes/DESINFECTION_inventaire_corpus.md`.
+
+#### C11.10.1 LE TEXTE QUI FONDE LE DOSSIER — CSP art. R. 1321-23
+
+**C'est la trouvaille du dossier**, et elle répond exactement à la décision 12.
+Deux lectures en ligne mot pour mot identiques :
+
+> « Lorsque la préparation ou la distribution […] comprend un traitement de
+> désinfection, l'efficacité du traitement appliqué est vérifiée par la personne
+> responsable […], qui **s'assure que toute contamination par les sous-produits
+> de la désinfection est maintenue au niveau le plus bas possible sans
+> compromettre la désinfection**. »
+> — CSP art. R. 1321-23, en vigueur au 01/01/2023. Source : directive (UE)
+> 2020/2184, art. 9 § 3 (d).
+
+**L'arbitrage est écrit dans le droit lui-même** : le plus bas possible *sans
+compromettre la désinfection*. Le sujet de Yannick n'a donc pas besoin d'une
+affirmation sanitaire — **il est déjà posé par le texte**, et le corpus peut le
+documenter.
+
+Le même arbitrage est répété en note de tableau pour **bromates, chlorates,
+chlorites et THM** — **mais pas pour les acides haloacétiques**. Asymétrie
+constatée, non expliquée.
+
+#### C11.10.2 Le désinfectant résiduel n'a aucune valeur numérique
+
+Paramètre par paramètre, partie d'annexe lue et non devinée :
+
+| paramètre | valeur |
+|---|---|
+| Chlore libre, chlore total | **aucune valeur chiffrée** — une entrée qualitative en **II. − Références de qualité** : « Absence d'odeur ou de saveur désagréable et pas de changement anormal ». Identique depuis 2007 |
+| Chlore combiné, ClO₂, résiduel de ClO₂, ozone | **NON. Aucune entrée.** |
+
+Et **aucune obligation de désinfecter l'eau** : R. 1321-56 impose de désinfecter
+les **ouvrages** (avant mise en service, réservoirs une fois par an) ;
+R. 1321-55 al. 2 interdit à l'eau de « gêner la désinfection » ; R. 1321-23
+n'impose que de **vérifier** l'efficacité *si* la désinfection est pratiquée.
+
+**Le classement en `rien_ne_se_prononce_etabli` est donc justifié** pour les six :
+nous avons cherché, aucun texte ne leur oppose de valeur.
+
+#### C11.10.3 Les sous-produits, et un piège de date
+
+Tous en **I. – Limites de qualité**, en vigueur au 01/01/2023 : THM total
+100 µg/L (somme de 4, aucune valeur individuelle), acides haloacétiques 60 µg/L
+(somme de 5, **nouveau**), chlorates 0,25 mg/L (**nouveau**), chlorites
+0,25 mg/L (**nouveau**), bromates 10 µg/L.
+
+**Le seuil conditionnel, phrase exacte** :
+
+> « La limite de qualité est fixée à **0,70 mg/L** lorsqu'une méthode de
+> désinfection des eaux destinées à la consommation humaine **qui génère des
+> chlorates** est utilisée. »
+
+La condition porte sur **la méthode qui génère la substance**. Le texte français
+ne nomme aucun procédé ; la directive ajoute « in particular chlorine dioxide ».
+**Rien dans nos données ne dit quel procédé est employé** — d'où
+`indetermine_condition`, et l'asymétrie assumée du §2.13.
+
+**Piège de date signalé** : les chlorites portent en plus une **référence de
+qualité de 0,20 mg/L « qui s'applique jusqu'au 31 décembre 2025 »**. C'est le cas
+de seuil **daté par le haut** que le modèle ne sait pas exprimer (`CLAUDE.md` §8).
+
+> **Contrôlé en base — le défaut redouté NE SE PRODUIT PAS.** La référence de
+> 0,20 n'est plus déclarée par la source après 2020, et `reference_max` est NULL
+> sur toutes les mesures de 2026. **Nous n'appliquons aucune référence éteinte.**
+> Le trou du modèle est réel, il n'a pas de conséquence ici.
+
+#### C11.10.4 Ce que le corpus montre, et comment il faut le dire
+
+**17 libellés, 277 378 mesures, 151 411 quantifications, 38 679 bulletins,
+33 départements.** 31 594 bulletins portent à la fois un chlore et un
+sous-produit.
+
+**Le gradient, vérifié en session principale sur 21 779 bulletins :**
+
+| tranche de chlore libre | bulletins | chlore médian | THM médian | THM Q3 |
+|---|---|---|---|---|
+| non quantifié | 918 | — | **2,66** | 7,41 |
+| Q1 | 5 445 | 0,15 | 3,76 | 8,91 |
+| Q2 | 5 445 | 0,28 | 4,00 | 8,80 |
+| Q3 | 5 445 | 0,40 | 4,70 | 10,60 |
+| **Q4** | 5 444 | 0,60 | **6,70** | 13,50 |
+
+**Et la corrélation, qui tempère tout : r = 0,177, soit 3,1 % de variance
+expliquée.**
+
+> **LES DEUX ÉNONCÉS SONT VRAIS ET NE DISENT PAS LA MÊME CHOSE.** Au niveau du
+> bulletin, le chlore résiduel n'explique que 3 % de la variation des THM :
+> connaître le chlore d'une commune ne permet pas de prédire ses THM. Au niveau
+> des groupes, le gradient est net, monotone et vaut un facteur 2,5.
+>
+> **Écrire « le chlore fait monter les THM » sur un r de 0,18 serait un faux
+> positif.** La formulation qui tient : *« les bulletins du quart le plus chloré
+> portent une médiane de trihalométhanes 2,5 fois supérieure à ceux où le chlore
+> n'est pas quantifié — sur 21 779 bulletins »*. Un fait, son dénominateur, son
+> périmètre. C'est le §2.11 transposé du classement à la corrélation.
+
+**Dépassements réels des sous-produits** : bromates **74**, chlorite **136**,
+THM **25**, chloroforme 13, chlorate 3, plus **8 `indetermine_condition`**.
+Bromoforme, chlorodibromométhane, dichloromonobromométhane et acides
+haloacétiques : **zéro**. **Les bromates sont le premier poste, devant les THM.**
+
+**Un fait constaté et NON expliqué** : les dépassements de chlorite s'effondrent
+en 2023 — 26 en 2020, 18 en 2021, 17 en 2022, puis **2, 1, 1, 0**. Le seuil n'a
+pourtant pas bougé (0,25 dans les deux grilles). Changement de pratique, de
+procédé, de libellé porteur, ou effet du seuil conditionnel : **rien dans les
+données ne tranche, et il ne faut pas le deviner.**
+
+**Et la campagne d'hier a créé le dossier** : l'**ozone n'existe que dans la
+Loire (42)** et le **bioxyde de chlore est dominant en Isère (38)** — les deux
+départements collectés le 14 août. Sans eux, la variété des procédés de
+désinfection n'était pas dans le corpus.
+
+#### C11.10.5 LA VARIANCE DE LA CHLORATION — question de Yannick, mesurée le 15 août
+
+*« Peut-on mesurer la variance de la chloration entre deux bulletins ? »* Oui, et
+la réponse éclaire le gradient du C11.10.4. Deux questions à ne pas confondre :
+la variation **d'un même point d'eau dans le temps**, et celle **d'un point d'eau
+à l'autre**. Décomposition sur 28 737 mesures quantifiées, 3 553 installations,
+médiane 0,32 mg/L.
+
+```
+variance totale                    0,108
+  dont INTER-installations         0,039   ->  35,9 %
+  dont INTRA-installation          0,070   ->  64,1 %
+```
+
+**Le point d'eau n'explique que 36 % de la variation du chlore libre. Près des
+deux tiers se jouent à l'intérieur d'un même point d'eau.**
+
+Sur les 1 731 installations à ≥ 5 bulletins : coefficient de variation interne
+médian **0,358** (Q1 0,257 · Q3 0,493), étendue médiane max − min de
+**0,37 mg/L**, et **rapport médian max/min de × 4,0**. D'un bulletin au suivant
+(25 184 paires) : écart absolu médian 0,09 mg/L, **écart relatif médian 28 %**,
+9ᵉ décile 0,29 mg/L.
+
+> **CE QUE CELA CHANGE POUR LE GRADIENT DU §C11.10.4.** Si 64 % de la variation
+> se joue dans un point d'eau, alors **la valeur de chlore d'un bulletin est un
+> instantané, pas une caractéristique du lieu**. C'est très probablement une
+> partie de l'explication du r = 0,177 : on corrèle un instantané bruité avec un
+> cumul. Le découpage par tranches, lui, moyenne ce bruit — d'où sa netteté
+> malgré une corrélation faible. **Les deux résultats se complètent au lieu de
+> se contredire.**
+
+**Trois réserves, et elles portent la moitié de la réponse :**
+
+1. **Le chlore est mesuré au robinet, pas au point de dosage.** Il se dégrade
+   avec le temps de séjour, la température, la longueur et le matériau du
+   réseau. Une part de ces 64 % est de la physique de réseau, pas du pilotage.
+2. **« Même point d'eau » signifie « même installation amont »**, pas « même
+   robinet » : deux bulletins peuvent être prélevés à deux endroits du réseau.
+3. **La saison n'a pas été neutralisée** — le chlore se dégrade plus vite en été.
+
+**Et une variabilité n'est pas une faute** (§2.1). Il n'existe aucune valeur
+opposable sur le chlore résiduel (§C11.10.2) : il n'y a donc ni cible à tenir,
+ni écart à reprocher. Ce qui se dit : *le chlore résiduel au robinet n'est pas
+une propriété stable d'un point d'eau — il est dominé par ce qui se passe entre
+l'usine et le robinet.*
+
+**Anomalie signalée, non corrigée** : le maximum de chlore libre du corpus est de
+**31 mg/L**, valeur non plausible en eau distribuée. À ranger avec le carbonate à
+−1 124,4 du §C11.8.6 : deux valeurs à instruire, probablement des erreurs
+d'unité ou de saisie.
+
+#### C11.10.6 Trois réserves de l'agent, à ne pas publier en l'état
+
+1. **Les programmes d'analyses où le chlore est exigé donnent trois réponses
+   divergentes** (RP+RS+A / A+B / RP) — non tranché.
+2. **Le seuil de 0,5 mg/L déclenchant la mesure des THM** vient de lectures en
+   ligne non confirmées sur un JO.
+3. **Deux URL de section du CSP ont renvoyé 404** : la couverture du code n'est
+   pas exhaustive.
+
+---
+
+### C11.11 Phases 4 et 5 — FAITES le 15 août 2026
+
+#### C11.11.1 Phase 4 — les deux blocs, instruits
+
+Livrable : `data/etudes/CYANO_PCB_source_reglementaire.md`. Quatre requêtes
+Légifrance, **doubles lectures sans aucune divergence**.
+
+**Microcystines — la France ne nomme pas la LR, elle agrège.** La directive fixe
+la **microcystine-LR à 1,0 μg/l** (annexe I partie B, applicable au 12/01/2026,
+art. 25). Le droit français retient **« Total microcystines », 1,0 µg/L, en
+limite de qualité** — présent dès le JO du 6 février 2007, rédaction actuelle de
+l'arrêté du 30/12/2022 en vigueur au 1er janvier 2023, « ensemble des variants,
+intra et extracellulaires », « uniquement pour les eaux d'origine
+superficielle ». **La valeur n'a jamais bougé.** Aucun variant individuel n'est
+nommé.
+
+> **Lacune trouvée au passage** : le corpus porte **16 libellés de microcystines
+> dosées**, tous jugés en `juge_sur_valeur_declaree` — sur la seule foi de ce que
+> l'administration déclare, **sans aucune ligne de référentiel derrière**. Ni
+> date, ni source, ni fiabilité. Corrigé en phase 5.
+
+**Dénombrements — aucun seuil en EDCH.** La valeur de 100 000 cellules/mL existe,
+mais pour les **baignades artificielles** (arrêté du 15/04/2019), hors périmètre,
+et elle a été **supprimée le 19 décembre 2025**. Chlorophylle A et nodularine :
+nommées par aucun texte.
+
+**PCB — non, nettement.** Six recherches distinctes sur quatre textes, aucune
+occurrence. Et **absents du programme d'analyses** aussi. **219 043 mesures que
+ni une valeur ni une obligation de contrôle n'expliquent** — cause non
+identifiée, et non supposée. Fait remarquable pour C12.
+
+#### C11.11.2 Phase 5 — 363 lignes, UNE seule valeur
+
+Écrite par `src/ecrire_referentiel_c11.py`, reproductible, avec un mode
+`--essai`. **Un générateur et non une saisie** : 360 lignes à la main dans un CSV
+de 21 colonnes séparées par des points-virgules est exactement la façon dont
+l'erreur de décalage a été commise deux fois en août (`CLAUDE.md` §5).
+
+```
+référentiel          94 -> 457 lignes
+version_referentiel  9a2777400815 -> 4a4a38e2c622
+version_moteur       5a5473295577 -> b964e3b00ad6   (vue ajoutée)
+```
+
+| attribution | mesures | libellés |
+|---|---|---|
+| **`rien_ne_se_prononce_non_instruit`** | **0** | **0 — la catégorie a disparu** |
+| `rien_ne_se_prononce_etabli` | 1 343 844 | **334** (était 5) |
+| `juge_avec_son_groupe` | 62 987 | **46** (était 13) |
+| `hors_perimetre` | 21 358 | 5 |
+
+**Une seule valeur écrite** : « Total microcystines » 1,0 µg/L, limite, lue et
+sourcée. Plus quatre gestes ciblés : 16 PFAS et 14 radionucléides et les
+variants de microcystine en `dans somme`, et **`2023-01-01` posé sur les cinq
+lignes de l'article 25 qui n'avaient pas de date**.
+
+**`fiabilite` sépare honnêtement ce qui a été lu de ce qui ne l'a pas été** :
+`verifie` pour les sept dossiers instruits, **`a_verifier` pour les quatre que
+personne n'a lus contre un texte** — paramètres généraux (15), microbiologie
+(14), organoleptique (8), spéciation métaux (1). Écrire « nous avons cherché »
+sans avoir cherché aurait été invisible et faux.
+
+#### C11.11.3 DEUX TESTS ONT ÉCHOUÉ, ET ILS AVAIENT RAISON
+
+`test_verdict.py` et `test_figer.py` prenaient tous deux **le calcium** pour
+incarner « ce que le référentiel ignore ». Le dossier calco-carbonique lui a
+donné une ligne : les montages ont cessé de tester ce qu'ils annonçaient.
+
+Basculés sur un libellé **volontairement fictif**, qui ne peut plus se périmer.
+
+> **Piège de conception à retenir : un test qui prend une VRAIE substance pour
+> exemple d'absence devient faux le jour où l'on comble l'absence.** Le montage
+> doit être fictif quand il incarne un manque.
+
+#### C11.11.4 La vue de diagnostic était devenue menteuse — corrigée
+
+En ajoutant 363 lignes sans valeur, la phase 5 a rompu une identité tacite :
+
+```
+v_parametres_non_apparies (aucune LIGNE)   :    5 libellés   (était 362)
+sans aucun SEUIL de comparaison            :  380 libellés
+```
+
+`v_parametres_non_apparies` filtre sur l'appariement, pas sur le seuil. Tant que
+le référentiel était pauvre, les deux questions avaient la même réponse.
+**Un diagnostic qui sous-compte par 75 est pire qu'absent** — il fait croire le
+problème résolu.
+
+**Vue `v_parametres_sans_seuil` ajoutée** (décision de Yannick), et les deux sont
+gardées parce qu'elles ne disent pas la même chose : l'une est un **défaut
+d'appariement** à corriger, l'autre une **absence de valeur** qui peut être un
+fait établi. `CLAUDE.md` §4 est corrigé — sa description attribuait à la première
+ce que seule la seconde rend.
+
+Ce qu'elle montre, et c'est la photographie du chantier :
+
+| attribution | fiabilité | libellés | mesures | quantifiées |
+|---|---|---|---|---|
+| instruit, aucune valeur opposable | `verifie` | **294** | 1 097 819 | 463 731 |
+| jugé avec son groupe | `verifie` | **46** | 62 987 | 5 087 |
+| non instruit | `a_verifier` | **40** | 246 025 | 25 146 |
+| **TOTAL** | | **380** | 1 406 831 | 493 964 |
+
+**Les 46 « jugés avec leur groupe » sont l'entrée la plus utile** : ils n'ont
+aucun seuil individuel et ne sont pourtant pas ignorés — PFAS, radionucléides et
+variants de microcystine sont jugés par leur somme. Sans cette colonne, on les
+compterait comme des angles morts.
+
+---
+
+## C12 — LA CHAÎNE NORMATIVE : comment se fabrique la notion de potabilité
+
+**Ouvert le 15 août 2026. Dossier ÉDITORIAL, à traiter plus tard.**
+Décision de Yannick : *« c'est un super dossier éditorial. On le traitera plus
+tard, mais il fera partie des dossiers : expliquer comment fonctionne la chaîne
+normative pour définir la notion de potabilité. »*
+
+**Rien n'est à coder ici.** C'est un dossier de prose, du même étage que les
+dossiers de substance (`sortie/dossier_substance.py`), mais son objet n'est pas
+une molécule : c'est **la norme elle-même**.
+
+### C12.1 La thèse
+
+Le projet démontre depuis l'origine que **le verdict bouge quand le seuil bouge**.
+Ce dossier déplace la démonstration d'un cran : **le seuil lui-même n'est pas un
+objet unique.** Pour savoir si une eau est potable sur un paramètre donné, il
+faut souvent remonter quatre ou cinq textes qui se renvoient l'un à l'autre — et
+le premier de la chaîne ne contient aucun chiffre.
+
+> Ce n'est pas l'eau qui est devenue potable, c'est la limite qui a bougé.
+> **Et cette limite n'est écrite nulle part en un seul endroit.**
+
+**Précaution de ton, non négociable (§2.1)** : le sujet est la *construction* de
+la règle, jamais son illisibilité présentée comme une faute, et jamais
+l'administration. Une chaîne de renvois est le fonctionnement normal du droit,
+pas une dissimulation. Écrire « voici comment la règle se construit », **jamais**
+« on vous noie sous les textes ».
+
+### C12.2 La matière déjà établie — tout est daté et cité
+
+Elle a été produite les 14 et 15 août en instruisant les dossiers PFAS et
+radiologique. **Tout est vérifié en session principale, citations littérales
+disponibles dans les fichiers indiqués.**
+
+**a) La chaîne radiologique, quatre sauts, aucun chiffre dans le premier texte :**
+
+```
+REG-03  arrêté du 30/12/2022
+   └─ « les radionucléides spécifiques définis dans l'arrêté mentionné à
+      l'article R. 1321-20 »          ← il ne le NOMME même pas
+        └─ RAD-02  arrêté du 12 mai 2004 — porte les 14 concentrations dérivées
+             └─ art. 6 (rédaction 2015) : « les modalités de contrôle du radon
+                sont fixées par un arrêté du ministre chargé de la santé »
+                                        ← 5ᵉ texte, non identifié à ce jour
+
+REG-01  directive (UE) 2020/2184, considérant 52
+   └─ « this Directive should not set out parametric values on radioactivity »
+        └─ RAD-01  directive 2013/51/Euratom
+```
+
+**b) Deux textes, deux dates, même substance.** La directive diffère huit
+paramètres au **12 janvier 2026** (art. 25 §1) — bisphénol A, chlorate, chlorite,
+acides haloacétiques, microcystine-LR, PFAS Total, somme des PFAS, uranium.
+L'arrêté français porte : *« le texte entre en vigueur le 1er janvier 2023 »*,
+sans aucune date différée. Sur les 4 bulletins du corpus qui dépassent la somme
+des 20 PFAS, **entre 1 et 3 changent de verdict selon le texte qu'on retient.**
+
+**c) Une condition française absente du texte européen.** Le radon n'est encadré
+« Uniquement pour les eaux d'origine souterraine » que par le droit français —
+la directive 2013/51/Euratom ne porte aucune restriction de ce genre. La
+restriction est même **antérieure** : elle figure déjà à l'article 3 de l'arrêté
+de 2004.
+
+**d) Cinq degrés de valeur, à l'intérieur même des textes contraignants :**
+
+| degré | ce qu'un dépassement produit | exemple établi |
+|---|---|---|
+| limite de qualité | non-conformité | somme des 20 PFAS, 0,10 µg/L |
+| référence de qualité | non-conformité aux références | radon 100 Bq/L, dose indicative 0,1 mSv/an |
+| valeur indicative | actions correctives, **pas** de non-conformité | métabolites non pertinents, 0,9 µg/L |
+| valeur de vigilance | suivi | 17-bêta estradiol |
+| **valeur guide / seuil de dépistage** | **une analyse complémentaire, rien d'autre** | alpha 0,1 et bêta résiduelle 1,0 Bq/L |
+
+Le dernier degré est le plus démonstratif : **trois textes indépendants**
+concordent pour dire que ces nombres ne jugent rien — annexe III de la directive
+Euratom, colonne NOTES de l'arrêté de 2022 (colonnes « références » et « unités »
+vides), et l'article 3 de l'arrêté de 2004 qui écrit le mot **« valeurs
+guides »**. Un lecteur qui verrait « 0,1 Bq/L » sans cette clé croirait à un
+seuil.
+
+**e) Un nombre qui n'est pas un seuil mais un dénominateur.** Les 14
+concentrations dérivées des radionucléides ne sont pas des limites : chacune est
+la concentration qui, **seule**, produirait la dose indicative de 0,1 mSv/an. Le
+verdict se rend sur la somme, jamais sur un terme. Même figure que les quatre
+HAP et que le « total pesticides ».
+
+**f) Le corpus de sources lui-même est hétérogène.** 53 sources, 9 familles. Le
+référentiel s'appuie 108 fois sur `REG`, 3 fois sur `RAD`, 1 fois sur `CIRC`. Et
+une bonne part du catalogue n'est **pas** de la norme : valeurs guides de l'OMS,
+valeurs de gestion de la DGS (famille `GEST`, créée exprès pour les distinguer),
+réglementations étrangères qui alimentent `seuil_strict`, avis d'agences.
+
+### C12.3 Ce qui manque pour l'écrire
+
+1. **Le 5ᵉ texte radiologique** — l'arrêté sur les modalités de contrôle du
+   radon, appelé par l'article 6 de RAD-02, jamais identifié.
+2. **Le lien de transposition** entre l'arrêté du 9 décembre 2015 et la directive
+   2013/51/Euratom : la coïncidence de dates est frappante (échéance au
+   28 novembre 2015, arrêté du 9 décembre), **le texte n'en dit rien**, et
+   l'écrire sans preuve serait refaire l'erreur du §8 de `docs/REPRISE.md`.
+3. **Un schéma**. Ce dossier est le premier du projet qui se lit mieux en image
+   qu'en prose : la chaîne des renvois demande à être vue.
+4. **Le fichier `referentiel/sources.csv`** (voir C11) — sans lui, aucun renvoi
+   n'est cliquable depuis une fiche.
+
+### C12.4 Pourquoi ce dossier est solide
+
+Il ne demande **aucune donnée nouvelle** et ne dépend d'aucun refigeage : tout
+repose sur des textes lus et cités. Il ne prononce aucun verdict sur aucune eau,
+donc il ne peut produire aucun faux positif. Et il répond à la question que pose
+tout lecteur arrivé sur une fiche — **« d'où sort ce chiffre ? »** — au niveau
+où elle mérite d'être posée.
