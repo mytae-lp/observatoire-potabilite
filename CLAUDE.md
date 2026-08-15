@@ -21,11 +21,55 @@ commité, l'historique git ne le porte donc pas.
 | pourquoi toute substance mesurée reçoit une attribution, même « rien ne se prononce » | `docs/METHODE_ATTRIBUTION.md` |
 | le mélange de réseaux et la dilution | `docs/METHODE_DILUTION.md` |
 | la forme — couleurs, typographie, espacements, et ce que la méthode y impose | `docs/CHARTE_GRAPHIQUE.md` |
+| **le serveur** — accès, scripts, sauvegarde, ce que la machine vaut | **`docs/EXPLOITATION.md`** |
 | l'état du chantier, ce qui est en cours | `docs/REPRISE.md` puis `docs/CHANTIERS.md` |
 | une source documentaire | `docs/INDEX_SOURCES.md` |
 
 Le **mode opératoire général** (modèles, délégation, traitement par lot, économie
 de contexte) est dans `~/.claude/CLAUDE.md`, chargé automatiquement lui aussi.
+
+---
+
+## 0. Où le travail se fait — trois lieux, un seul sens de circulation
+
+Depuis le 15 août 2026, le projet ne vit plus sur une seule machine. Savoir où
+l'on est change ce qu'on a le droit de faire.
+
+```
+LOCAL (l'atelier)  ──git──▶  VPS (la production)  ──FTPS──▶  VITRINE (le public)
+      ▲                            │                          eau.yannick-mytae.fr
+      └────── sauvegarde ──────────┘
+```
+
+| | ce qu'on y fait | ce qui en sort |
+|---|---|---|
+| **LOCAL** — le PC de Yannick | référentiel, méthode, dossiers, forme, analyse | des **commits** |
+| **VPS** — `169.58.181.231` | moisson, ingestion, figeage, construction, publication | des **processus** et le site |
+| **VITRINE** — hébergement Hostinger | rien : elle reçoit | ce que le public lit |
+
+**La règle qui tient tout : une seule autorité sur les données, et c'est le
+VPS.** Il détient la base, le cache brut et le site construit. La copie locale
+est une **sauvegarde**, jamais une seconde production — deux bases qui
+divergeraient seraient exactement ce que `version_moteur()` existe pour
+empêcher.
+
+**Le dépôt est le seul canal de l'atelier vers la production.** Rien ne passe
+par une copie de fichier : ce qui n'est pas commité n'atteint pas le serveur.
+
+Conséquences pratiques, et elles ne se devinent pas :
+
+- **en local, on ne fige plus et on ne publie plus.** On écrit du code, du
+  référentiel et de la prose, on commite, on pousse. Un figeage local
+  produirait une base concurrente de celle du serveur ;
+- **sur le VPS, on ne modifie jamais un fichier à la main.** Il tire ce que
+  git lui donne — sa clé de déploiement est d'ailleurs en lecture seule ;
+- **plusieurs sessions travaillent en parallèle sur le même disque local**, et
+  elles ne se voient pas. Un propriétaire par domaine, et personne n'édite un
+  fichier qu'un autre a en cours. `figer.py`, `build_db.py` et `common.py` sont
+  les plus dangereux : les toucher force un refigeage complet de plusieurs
+  heures, et ça se voit longtemps après.
+
+Accès, scripts, commandes, sauvegarde et durées mesurées : **`docs/EXPLOITATION.md`**.
 
 ---
 
