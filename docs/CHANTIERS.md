@@ -4088,6 +4088,48 @@ résidu** comme l article R. 1321-23 du CSP relie la désinfection à ses
 sous-produits (C11.10.1). Si un tel texte existe, le dossier a le même socle
 réglementaire que la chloration.
 
+#### C11.12.1 LE TEXTE EXISTE — R. 1321-50, et sa logique n est PAS celle de la desinfection
+
+Question posee le 15 aout 2026 : existe-t-il pour le coagulant l equivalent de
+l article R. 1321-23, qui relie la desinfection a ses sous-produits ?
+**Reponse : oui, et la difference est le resultat.** Source archivee **REG-11**,
+deux lectures concordantes.
+
+**Ce que R. 1321-50 dit** (I, 1°) :
+
+> « Ils ne soient pas susceptibles, intrinsequement ou **par l intermediaire de
+> leurs residus** : a) D etre a l origine, directement ou indirectement, d un
+> risque pour la sante humaine ; b) D alterer la couleur, l odeur ou la saveur
+> de l eau ; c) De favoriser involontairement le developpement de la flore
+> microbienne ; d) **De liberer des contaminants dans les eaux a des niveaux
+> pouvant engendrer un non-respect des exigences de qualite**. »
+
+Et l exigence d efficacite (I, 2°) : « Ils soient efficaces au regard de l usage
+auquel ils sont destines ».
+
+**LA DIFFERENCE, et elle est structurelle :**
+
+| | R. 1321-23 desinfection | R. 1321-50 produits de traitement |
+|---|---|---|
+| s adresse a | la personne responsable de la **distribution** | le responsable de la **mise sur le marche** |
+| moment | **a l exploitation**, en continu | **en amont**, avant commercialisation |
+| **arbitrage ecrit** | **OUI** — « au niveau le plus bas possible sans compromettre la desinfection » | **NON**, verifie explicitement |
+| controle | analyse de l eau distribuee | attestation de conformite |
+
+> **Et cela explique enfin la phrase du ministere de 2011** [CIV-06]. Si le
+> produit a ete valide AVANT d etre vendu, alors ce qu on mesure ensuite dans
+> l eau — l aluminium residuel — ne dit pas si le produit est dangereux : il dit
+> **si l installation est bien reglee**. « Indicateur de fonctionnement des
+> installations de traitement » n est pas une formule commode, c est la
+> consequence exacte de l architecture du droit.
+
+**Ce qu il ne faut pas lui faire dire** : il ne fixe aucune valeur (renvoi a un
+arrete **non lu, a identifier**) ; il n emploie ni « sous-produit » ni
+« degradation » ni « reaction », seulement « residus » — ne pas transposer le
+vocabulaire de la desinfection ; et il **exclut les produits biocides** du
+reglement (UE) 528/2012, ce qui laisse le partage a etablir pour le chlore.
+
+
 ---
 
 ## C12 — LA CHAÎNE NORMATIVE : comment se fabrique la notion de potabilité
