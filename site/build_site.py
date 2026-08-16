@@ -396,9 +396,19 @@ def page(titre, corps, page_courante, description, version, calcule_le,
     # Les pages qui n'en ont pas — fiches communales, briefs de substance —
     # gardent l'accroche sobre, et c'est une décision éditoriale, pas un
     # manque (cf. BANDEAUX).
+    # `cle_bandeau` distingue TROIS états, et l'idiome `or` n'en distinguait que
+    # deux — c'est ce qui a mis la photographie de la page Communes en tête des
+    # 4 919 fiches communales et des 1 255 briefs de substance, publiées ainsi
+    # le 16 août :
+    #   None  -> non précisé, on prend la clé de la page (comportement par défaut)
+    #   ""    -> refus explicite : pas de photographie, accroche sobre
+    #   "xxx" -> emprunt d'une autre clé (cf. la page de contact)
+    # La chaîne vide étant fausse en Python, `cle_bandeau or page_courante`
+    # transformait le refus explicite en défaut silencieux. Le test doit porter
+    # sur `is None`, jamais sur la véracité.
+    cle_photo = page_courante if cle_bandeau is None else cle_bandeau
     photo = ("" if titre_dans_corps
-             else bandeau(cle_bandeau or page_courante, titre, sous_titre, fil,
-                          prefixe, formule))
+             else bandeau(cle_photo, titre, sous_titre, fil, prefixe, formule))
     if photo:
         accroche, fil_hors_bandeau = photo, ""
     else:
@@ -2791,6 +2801,11 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None):
                 f'à quoi ce paramètre est comparé, depuis quand, et dans '
                 f'combien de bulletins elle est recherchée.',
                 version, calcule_le, prefixe="../", formule=False,
+                # Refus explicite de photographie, comme la fiche communale :
+                # une photographie par page de NAVIGATION, pas une photographie
+                # répétée en tête de 1 255 briefs. Sans ce refus, la clé de page
+                # `substances.html` leur donnait le cliché du répertoire.
+                cle_bandeau="",
                 fil=[("Accueil", "index.html"),
                      ("Substances", "substances.html"), (f["libelle"], None)]))
 
