@@ -41,10 +41,32 @@ declare(strict_types=1);
 /** Où arrivent les messages. */
 const DESTINATAIRE = 'eau@mytae.fr';
 
-/** L'expéditeur technique. DOIT appartenir à un domaine hébergé ici, sinon
- *  SPF/DKIM échouent et le message part en indésirable. Ce n'est jamais
- *  l'adresse du visiteur : elle va en `Reply-To`. */
-const EXPEDITEUR     = 'no-reply@mytae.fr';
+/** L'expéditeur technique. DOIT appartenir à un domaine dont le SPF autorise
+ *  le serveur qui envoie — ici Hostinger. Ce n'est jamais l'adresse du
+ *  visiteur : elle va en `Reply-To`.
+ *
+ *  CORRIGÉ LE 16 AOÛT 2026, sur relevé DNS et non sur supposition. La valeur
+ *  d'origine était `no-reply@mytae.fr`, et elle aurait envoyé chaque message
+ *  en indésirable :
+ *
+ *    mytae.fr           SPF  include:_spf.protonmail.ch (+ autorépondeur)
+ *                       MX   protonmail          DMARC  p=quarantine, pct=100
+ *    yannick-mytae.fr   SPF  include:_spf.mail.hostinger.com
+ *                       MX   hostinger           DMARC  p=none
+ *
+ *  La messagerie de `mytae.fr` est chez Proton, le site est chez Hostinger.
+ *  Un envoi PHP depuis Hostinger au nom de `mytae.fr` échoue SPF, n'a aucun
+ *  DKIM aligné, et tombe donc sous le `p=quarantine` que le domaine publie
+ *  lui-même. Créer la boîte chez Proton n'y change rien : elle autorise à
+ *  écrire DEPUIS Proton, pas depuis un serveur web tiers.
+ *
+ *  `yannick-mytae.fr` autorise déjà Hostinger — c'est le domaine du site.
+ *  Le message part de là et arrive sur `eau@mytae.fr` chez Proton, qui le
+ *  reçoit sans difficulté : recevoir n'a jamais demandé d'autorisation SPF.
+ *
+ *  À FAIRE CÔTÉ HÉBERGEUR : créer `no-reply@yannick-mytae.fr` dans hPanel,
+ *  même sans boîte associée, pour que les rejets aient où retomber. */
+const EXPEDITEUR     = 'no-reply@yannick-mytae.fr';
 const EXPEDITEUR_NOM = 'Observatoire de la potabilite reglementaire';
 
 /** Le domaine du site, sans barre finale. Sert au contrôle d'origine. */
