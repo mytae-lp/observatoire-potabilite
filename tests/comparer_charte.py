@@ -30,6 +30,7 @@ Usage :
     comparer_charte.py --seuil 0.85         durcit l'exigence
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -37,6 +38,19 @@ import sys
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHARTE_DEFAUT = os.path.join(
     os.path.dirname(os.path.dirname(RACINE)), "Charte_graphique_v2")
+
+# LE VOCABULAIRE ATTENDU, VERSIONNÉ — ajouté le 16 août 2026.
+#
+# Les maquettes vivent hors du dépôt, sur le PC de Yannick. Ce contrôle ne
+# pouvait donc pas tourner sur le VPS, c'est-à-dire À L'ENDROIT MÊME OÙ LA
+# PUBLICATION SE DÉCIDE : il y répondait « charte introuvable » et rendait 0.
+# Une barrière qui ne se lève que là où personne ne passe n'est pas une
+# barrière — c'est exactement ce qui a laissé partir la publication de 14 h 54.
+#
+# On ne commite pas les 300 ko de maquettes pour autant : seul le vocabulaire
+# attendu est extrait, régénéré par `--extraire` quand les maquettes bougent.
+# Les maquettes restent la source ; ce fichier en est l'empreinte datée.
+VOCABULAIRE = os.path.join(RACINE, "tests", "vocabulaire_charte.json")
 
 # maquette de référence -> comment retrouver la page produite correspondante
 CORRESPONDANCES = [
@@ -69,33 +83,64 @@ def classes(chemin):
     return s
 
 
+def extraire(charte):
+    """Le vocabulaire de chaque maquette, figé dans un fichier versionné."""
+    attendu = {}
+    for maquette, _page in CORRESPONDANCES:
+        m = os.path.join(charte, maquette)
+        if os.path.exists(m):
+            attendu[maquette] = sorted(classes(m))
+    return attendu
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--sortie", default=os.path.join(RACINE, "site", "public"))
     p.add_argument("--charte", default=CHARTE_DEFAUT)
     p.add_argument("--seuil", type=float, default=0.80,
                    help="part minimale du vocabulaire de la maquette (défaut 0.80)")
+    p.add_argument("--extraire", action="store_true",
+                   help="régénère tests/vocabulaire_charte.json depuis les "
+                        "maquettes, puis s'arrête")
     a = p.parse_args()
 
-    if not os.path.isdir(a.charte):
-        print(f"  charte introuvable : {a.charte}")
-        print("  contrôle ignoré — il ne bloque pas ce qu'il ne peut pas voir.")
+    if a.extraire:
+        if not os.path.isdir(a.charte):
+            print(f"  charte introuvable : {a.charte} — rien à extraire.")
+            return 1
+        attendu = extraire(a.charte)
+        with open(VOCABULAIRE, "w", encoding="utf-8") as fh:
+            json.dump(attendu, fh, ensure_ascii=False, indent=1, sort_keys=True)
+        print(f"  {len(attendu)} maquette(s), "
+              f"{sum(len(v) for v in attendu.values())} classes -> {VOCABULAIRE}")
         return 0
 
-    print(f"  charte  : {a.charte}")
+    # Les maquettes d'abord — elles font foi. Le fichier versionné prend le
+    # relais là où elles ne sont pas, c'est-à-dire sur le serveur.
+    if os.path.isdir(a.charte):
+        attendu, source = extraire(a.charte), a.charte
+    elif os.path.exists(VOCABULAIRE):
+        attendu = json.load(open(VOCABULAIRE, encoding="utf-8"))
+        source = VOCABULAIRE + " (maquettes absentes)"
+    else:
+        print("  ni maquettes ni vocabulaire extrait — contrôle impossible.")
+        print("  ce n'est pas un succès : lancer --extraire là où les "
+              "maquettes existent, et commiter le résultat.")
+        return 1
+
+    print(f"  charte  : {source}")
     print(f"  produit : {a.sortie}")
     print(f"  seuil   : {a.seuil:.0%} du vocabulaire de la maquette\n")
     print(f"  {'page':<26} {'maquette':>9} {'produit':>8} {'commun':>7} {'part':>7}")
 
     echecs, examinees = [], 0
     for maquette, page in CORRESPONDANCES:
-        m = os.path.join(a.charte, maquette)
         q = os.path.join(a.sortie, page)
-        if not os.path.exists(m) or not os.path.exists(q):
+        if maquette not in attendu or not os.path.exists(q):
             print(f"  {page:<26} {'—':>9} {'—':>8}   (absente, non contrôlée)")
             continue
         examinees += 1
-        cm = {c for c in classes(m) if not VARIABLES.search(c)}
+        cm = {c for c in attendu[maquette] if not VARIABLES.search(c)}
         cq = classes(q)
         commun = cm & cq
         part = len(commun) / len(cm) if cm else 1.0
