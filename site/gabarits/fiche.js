@@ -399,11 +399,22 @@ function renderHero(d){
    limite » dit tout. Chaque indicateur porte donc sa valeur, son seuil, et une
    barre qui situe l'une par rapport à l'autre.
    --------------------------------------------------------------------------- */
+/* `proche` — décision D9. Une mesure entre 85 % et 100 % de sa limite est
+   CONFORME, et l'étiquette le dit : « sous le seuil, dans la zone d'approche ».
+   Elle n'annonce pas un problème, elle refuse de présenter comme confortable
+   un écart que l'incertitude de mesure et la limite de quantification du
+   laboratoire rendent illisible.
+
+   Ce n'est pas un quatrième verdict. Le projet en a trois — conforme,
+   dépassement, indéterminé — et `proche` n'apparaît ni dans `analyses_figees`,
+   ni dans une conclusion, ni dans une métadonnée. C'est la couleur d'une
+   barre. */
 const ETATS = {
   depassement: ["dep", "dépasse le seuil"],
   bascule:     ["bas", "bascule"],
   indetermine: ["ind", "indéterminé"],
   hors_plage:  ["amb", "hors de la référence"],
+  proche:      ["amb", "sous le seuil, dans la zone d'approche"],
   conforme:    ["ok", "sous le seuil"],
   sous_lq:     ["lq", "sous la limite de quantification"],
   absent:      ["abs", "non recherché"],
@@ -1011,14 +1022,37 @@ byId("btnSig").addEventListener("click", function(){
    son adresse : il n'y a rien à commuter. */
 const sw = byId("switch");
 if(sw){
+  /* Les bulletins sont regroupés par POINT D'EAU, pas alignés par date.
+     Une commune en a souvent plusieurs, et ils ne donnent pas la même eau :
+     aux Arcs, Sainte Cécile est autour de 300 mg/L de sulfates et Les Cambres
+     autour de 150. Tant que les 33 boutons portaient tous « Les Arcs · date »,
+     rien ne le disait — la page se lisait comme si la commune n'avait qu'une
+     eau, et le §8bis n° 5 n'était pas tenu.
+     Le nom de la commune ne revient sur le bouton que si la fiche en réunit
+     plusieurs, ce qui n'arrive que sur la fiche autonome. */
+  const multiCommune = new Set(ORDER.map(k => C[k].name)).size > 1;
+  const groupes = [];
   ORDER.forEach(k => {
-    const d = C[k];
-    const b = el("button");
-    b.dataset.k = k;
-    b.appendChild(el("span", "sdot " + d.dot));
-    b.appendChild(document.createTextNode(d.name + " · " + d.date_courte));
-    b.addEventListener("click", () => render(k));
-    sw.appendChild(b);
+    const lib = C[k].pt || "Point d'eau non déclaré";
+    let g = groupes.find(x => x.lib === lib);
+    if(!g){ g = {lib: lib, cles: []}; groupes.push(g); }
+    g.cles.push(k);
+  });
+  groupes.forEach(g => {
+    /* txt() et non el() : le libellé vient de la base, il ne s'injecte pas
+       comme du HTML. */
+    if(groupes.length > 1) sw.appendChild(txt("span", "swlabel", g.lib));
+    g.cles.forEach(k => {
+      const d = C[k];
+      const b = el("button");
+      b.dataset.k = k;
+      b.title = (d.pt ? d.pt + " — " : "") + d.date;
+      b.appendChild(el("span", "sdot " + d.dot));
+      b.appendChild(document.createTextNode(
+        (multiCommune ? d.name + " · " : "") + d.date_courte));
+      b.addEventListener("click", () => render(k));
+      sw.appendChild(b);
+    });
   });
 }
 render(ORDER[0]);

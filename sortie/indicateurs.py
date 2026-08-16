@@ -21,15 +21,23 @@ Les valeurs de comparaison viennent de `verdicts_figes` — donc du référentie
 daté — ou de la limite que la source déclare avec la mesure. Ce module ne fait
 que rapprocher une mesure de ses seuils et en tirer un état.
 
-Quatre états, pas deux
-----------------------
+Les états d'affichage, et les trois verdicts
+--------------------------------------------
     conforme      quantifié, sous le seuil applicable à la date
+    proche        quantifié, entre 85 % et 100 % du seuil. **Conforme aussi**
     depassement   quantifié, au-dessus
     bascule       sous le seuil d'aujourd'hui, au-dessus de celui de 2016
     indetermine   la limite de quantification est au-dessus du seuil auquel on
                   voudrait comparer — on ne sait pas, et ça ne se peint pas en
                   vert (CLAUDE.md §2.4)
     absent        le paramètre n'a pas été recherché. Ce n'est pas un résultat.
+
+Ce sont des états d'AFFICHAGE. Le projet a **trois verdicts** — conforme,
+dépassement, indéterminé — et il n'en aura pas un quatrième. `proche` (décision
+D9) ne figure ni dans `analyses_figees`, ni dans une conclusion, ni dans une
+métadonnée : il change la couleur d'une barre, parce qu'entre l'incertitude de
+mesure et la finesse du laboratoire, le dernier pour cent avant une limite ne
+veut plus rien dire.
 
 Le plafond analytique
 ---------------------
@@ -108,6 +116,22 @@ def _mesures(con, code_prel, version):
     return {norm(r[0]): r for r in rows}
 
 
+# La zone d'approche — décision D9 de `docs/CHARTE_GRAPHIQUE.md`, prise par
+# Yannick le 14 août 2026.
+#
+# Une eau à 99 % d'une limite est conforme, et le restera. Mais entre
+# l'incertitude de mesure et la limite de quantification du laboratoire, ce
+# dernier pour cent ne veut plus rien dire : la barre change donc de couleur
+# **avant** la limite, pas au moment où elle est franchie.
+#
+# **`proche` est un état d'AFFICHAGE, pas un verdict.** Il ne doit apparaître
+# nulle part dans `analyses_figees`, ni dans un texte de conclusion, ni dans une
+# métadonnée. Le projet a trois états de verdict — conforme, dépassement,
+# indéterminé — et il n'en aura pas un quatrième. Ce qui se joue ici est la
+# couleur d'une barre, rien d'autre.
+SEUIL_APPROCHE = 0.85
+
+
 def _etat(quantifie, valeur, lq, seuil, seuil_2016, seuil_strict,
           plage, depasse, bascule, indetermine):
     """L'état d'un indicateur, du plus fort au plus rassurant."""
@@ -133,6 +157,12 @@ def _etat(quantifie, valeur, lq, seuil, seuil_2016, seuil_strict,
         if cible is not None and cible > 0 and lq is not None and lq > cible:
             return "indetermine"
         return "sous_lq"
+    # Quantifié, sous la limite : conforme — mais la zone d'approche se dit.
+    # `seuil > 0` pour la même raison qu'au-dessus : sur une exigence d'absence,
+    # il n'y a pas de « 85 % du seuil » à approcher.
+    if (seuil is not None and seuil > 0 and valeur is not None
+            and valeur / seuil >= SEUIL_APPROCHE):
+        return "proche"
     return "conforme"
 
 
@@ -719,7 +749,7 @@ def plafond_analytique(con, a, version):
     }
 
 
-def decomposition_danger(con, a, version, maxi=6):
+def decomposition_danger(con, a, version, maxi=None):
     """
     De quoi l'indice de danger est fait.
 
@@ -727,8 +757,21 @@ def decomposition_danger(con, a, version, maxi=6):
     chlorothalonil R471811 occupe 1,85 fois sa propre limite, l'atrazine
     déséthyl 1,10 fois la sienne, et ainsi de suite. L'indice est la somme de
     ces fractions (cf. docs/METHODE_EFFET_COCKTAIL.md, indicateur C).
+
+    **Toutes les contributions, depuis le 16 août 2026.** Le plafond valait 6,
+    et il était muet : l'indice affichait un total dont on ne voyait pas les
+    termes, alors qu'il n'a de sens que décomposé. Mesuré au moment de le
+    retirer : sur 28 557 bulletins portant une décomposition, **1 214 étaient
+    tronqués**, jusqu'à 30 contributions. C'est le §2.8 — aucun chiffre sans ce
+    qui le compose — appliqué à une somme dont le total était publié et les
+    termes cachés.
+
+    Le repli au-delà de six est affaire de gabarit, pas de requête : la liste
+    part entière, et `fiche.js` la plie dans un `<details>` dont le résumé
+    **annonce le compte exact**. Tronquer ici aurait rendu ce compte impossible
+    à écrire.
     """
-    rows = con.execute("""
+    rows = con.execute(f"""
         SELECT libelle_parametre, resultat_num, unite, seuil_applicable,
                resultat_num / NULLIF(seuil_applicable, 0) AS part
         FROM verdicts_figes
@@ -737,8 +780,8 @@ def decomposition_danger(con, a, version, maxi=6):
           AND famille IN ('pesticide','metabolite','PFAS','organique')
           AND seuil_applicable IS NOT NULL
         ORDER BY part DESC NULLS LAST
-        LIMIT ?
-    """, [a["code_prelevement"], version, maxi]).fetchall()
+        {"LIMIT " + str(int(maxi)) if maxi else ""}
+    """, [a["code_prelevement"], version]).fetchall()
 
     return [{"p": r[0], "v": _nb(r[1]), "u": r[2] or "", "s": _nb(r[3]),
              "part": round(r[4], 3) if r[4] is not None else None}
