@@ -476,12 +476,29 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 DEPTS_PUBLIES = None
 
 
+# « 99 » est la convention INSEE pour l'étranger. Le corpus en porte une
+# commune — VENTIMILLE ITALIE, prélevée le 26 novembre 2025 —, entrée par une
+# unité de distribution transfrontalière. Elle comptait comme un département
+# dans les totaux de couverture et n'apparaissait sur aucune carte, le fond
+# n'ayant pas de contour « 99 ».
+#
+# **Écartée de la vitrine, décision de Yannick du 16 août 2026 : la carte est
+# française.** Écartée de l'AFFICHAGE seulement — la mesure reste en base, elle
+# a été faite et elle est vraie. C'est la règle du projet : on ne supprime pas
+# une donnée parce qu'elle dérange une carte, on dit pourquoi on ne la montre
+# pas.
+DEPTS_HORS_FRANCE = ("99",)
+
+
 def _filtre_dept(colonne="dept"):
     """Fragment SQL restreignant aux départements publiables, et ses paramètres."""
+    hors = (f" AND {colonne} NOT IN "
+            f"({','.join('?' * len(DEPTS_HORS_FRANCE))})")
+    args = list(DEPTS_HORS_FRANCE)
     if not DEPTS_PUBLIES:
-        return "", []
-    return (f" AND {colonne} IN ({','.join('?' * len(DEPTS_PUBLIES))})",
-            list(DEPTS_PUBLIES))
+        return hors, args
+    return (f" AND {colonne} IN ({','.join('?' * len(DEPTS_PUBLIES))})" + hors,
+            list(DEPTS_PUBLIES) + args)
 
 
 def corpus(con, version):
