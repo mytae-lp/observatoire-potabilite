@@ -32,6 +32,7 @@ Garde-fous applicables (CLAUDE.md §2) :
   - aucune comparaison entre communes sans l'effort de recherche (§2.11).
 """
 import argparse
+import html as _html
 import json
 import os
 import re
@@ -278,11 +279,13 @@ def _resume_depassements(n):
         return "Aucun dépassement à la date"
     bouts = []
     if n["limite"]:
-        bouts.append(f"{n['limite']} limite(s) de qualité")
+        bouts.append(f"{n['limite']} {_accord(n['limite'], 'limite')} de qualité")
     if n["reference"]:
-        bouts.append(f"{n['reference']} référence(s) de qualité")
+        bouts.append(f"{n['reference']} {_accord(n['reference'], 'référence')} "
+                     "de qualité")
     if n["vigilance"]:
-        bouts.append(f"{n['vigilance']} valeur(s) de vigilance")
+        bouts.append(f"{n['vigilance']} {_accord(n['vigilance'], 'valeur')} "
+                     "de vigilance")
     if not n["limite"]:
         # Le cas qui demandait la correction : rien de sanitaire n'est franchi.
         return "Aucune limite de qualité dépassée — " + ", ".join(bouts)
@@ -312,6 +315,926 @@ def niveau(nb_depassements, nb_bascules, nb_indetermines, nb_depasse_limite=None
     if nb_bascules or nb_indetermines:
         return "ambre"
     return "vert"
+
+
+# ---------------------------------------------------------------------------
+# La tête de fiche — rendue en Python, et non plus dans le navigateur
+# ---------------------------------------------------------------------------
+# Écrit le 16 août 2026, passe 1 du portage de la forme v2.
+#
+# POURQUOI CE BLOC EST ICI. La fiche était bâtie dans le navigateur par
+# `fiche.js` : le fichier publié ne portait qu'une coquille vide. Les deux
+# contrôles de forme le disaient chacun à sa manière, et personne ne les
+# écoutait — `tests/comparer_charte.py` mesurait 21 % du vocabulaire de la
+# maquette (il retire les `<script>` avant de compter, donc il ne voit que ce
+# qui est réellement dans le fichier), et `outils/mesure_sans_js.py` relevait
+# 2 817 caractères lisibles là où il en attend 6 000. Une page dont le contenu
+# n'apparaît qu'une fois un moteur exécuté n'est pas le « dossier de fichiers
+# statiques » que `site/build_site.py` revendique.
+#
+# LE TEXTE DU VERDICT EST COMPOSÉ ICI, pas dans le gabarit ni en JavaScript,
+# et c'est la même raison que pour l'alerte de panel : ce qui est écrit en
+# Python est relisible par `tests/test_sorties.py` — prescription, comparaison
+# anonyme, affirmation d'absence. Ce qui est écrit en JavaScript ne l'est pas.
+#
+# Les formulations viennent des quatre maquettes, une par état, et non d'une
+# rédaction nouvelle : Saintes donne le conforme, Montech la bascule, Thiville
+# le dépassement, Tramayes l'indéterminé.
+
+MOIS_COURT = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.",
+              "août", "sept.", "oct.", "nov.", "déc."]
+
+
+def h(s):
+    """Échappement HTML. Un nom de réseau porte des apostrophes et des « & »,
+    et il vient de la source, pas de nous."""
+    return _html.escape("" if s is None else str(s), quote=True)
+
+
+def _date_courte(d):
+    """« 2026-01-14 » -> « 14 janv. 2026 ». Employé quand la série défile : à
+    vingt-et-un prélèvements, la date pleine ne tient pas sur une ligne."""
+    try:
+        an, m, j = str(d)[:10].split("-")
+        return f"{int(j)} {MOIS_COURT[int(m) - 1]} {an}"
+    except (ValueError, IndexError):
+        return str(d)
+
+
+def _accord(n, singulier, pluriel=None):
+    """L'accord se fait ici plutôt que par un « (s) » collé au mot : la fiche
+    est lue par un habitant."""
+    return singulier if abs(n) <= 1 else (pluriel or singulier + "s")
+
+
+def _lecture_faite(a):
+    """Le dénominateur, dans la phrase même du verdict (§2.8 et §8bis n° 1).
+
+    Jamais un « conforme » sans ce qui a été noté et sur combien. C'est la
+    seule partie de la phrase qui ne change pas d'un état à l'autre."""
+    notes, lues = a["nb_mesures_notees"] or 0, a["nb_mesures_lues"] or 0
+    pct = a["pct_couverture"]
+    return (f" Lecture faite sur <b>{notes} paramètres notés parmi les "
+            f"{lues} mesurés</b>"
+            + (f", soit {_nb(pct)} % du bulletin." if pct is not None else "."))
+
+
+def verdict_tete(a, natures):
+    """Ce que dit ce bulletin — le bloc de droite de l'en-tête.
+
+    Quatre états, quatre modificateurs, et l'ordre dans lequel ils sont testés
+    est une règle de méthode, pas une commodité :
+
+    1. **le rouge est réservé à la limite de qualité** (§2.1 et la leçon de
+       Paulinet) — `nb_depasse_applicable` mélange trois natures que
+       l'administration sépare elle-même ;
+    2. un franchissement qui ne porte sur aucune limite sanitaire ne se peint
+       donc pas en rouge. La charte n'a que quatre modificateurs et aucun
+       « attention » : ce cas prend le gris de l'indéterminé, avec un titre qui
+       dit explicitement qu'aucune limite de qualité n'est dépassée. **À
+       confirmer par Yannick** — l'autre issue serait d'ajouter
+       `.verdict-bloc--attention` à la charte, ce qui est une décision de
+       forme et se prend dans `docs/CHARTE_GRAPHIQUE.md` d'abord ;
+    3. la bascule ensuite : c'est la thèse du projet, et elle ne s'annonce que
+       si rien n'est dépassé à la date ;
+    4. l'indéterminé enfin — il colore, il n'est jamais un conforme (§2.4).
+    """
+    basc = a["nb_bascules"] or 0
+    indet = a["nb_indetermines"] or 0
+    lim, vig, ref = natures["limite"], natures["vigilance"], natures["reference"]
+
+    if lim:
+        autres = []
+        if vig:
+            autres.append(f"{vig} {_accord(vig, 'mesure')} au-dessus d'une "
+                          f"{_accord(vig, 'valeur')} de vigilance")
+        if ref:
+            autres.append(f"{ref} {_accord(ref, 'mesure')} au-dessus d'une "
+                          f"{_accord(ref, 'référence')} de qualité")
+        suite = ""
+        if autres:
+            suite = (f" S'y {_accord(vig + ref, 'ajoute', 'ajoutent')} "
+                     f"<b>{' et '.join(autres)}</b>, qui n'"
+                     f"{_accord(vig + ref, 'est', 'sont')} pas une "
+                     f"non-conformité sanitaire.")
+        return {
+            "mod": "depassement",
+            "titre": (f"{lim} {_accord(lim, 'dépassement')} de limite de "
+                      f"qualité, à la date du prélèvement"),
+            "texte": ("Le verdict est rendu contre <b>la grille en vigueur le "
+                      "jour du prélèvement</b> : un reclassement n'est pas "
+                      "rétroactif." + suite + _lecture_faite(a)),
+        }
+
+    if vig or ref:
+        quoi = []
+        if vig:
+            quoi.append(f"{vig} {_accord(vig, 'valeur')} de vigilance")
+        if ref:
+            quoi.append(f"{ref} {_accord(ref, 'référence')} de qualité")
+        return {
+            "mod": "indetermine",
+            "titre": "Aucune limite de qualité dépassée",
+            "texte": (f"Ce bulletin franchit <b>{' et '.join(quoi)}</b>. Ni "
+                      "l'une ni l'autre n'est une limite sanitaire opposable : "
+                      "l'écart est réel, il se lit, il n'est pas une "
+                      "non-conformité." + _lecture_faite(a)),
+        }
+
+    if basc:
+        return {
+            "mod": "bascule",
+            "titre": "Conforme aujourd'hui. Ne l'aurait pas été il y a dix ans.",
+            "texte": (f"<b>{basc} {_accord(basc, 'mesure')} "
+                      f"{_accord(basc, 'a', 'ont')} changé de statut sans que "
+                      "l'eau change.</b> Ce n'est pas la ressource qui s'est "
+                      "améliorée : c'est la limite qui a bougé. Aucun "
+                      "dépassement à la date du prélèvement."
+                      + _lecture_faite(a)),
+        }
+
+    if indet:
+        return {
+            "mod": "indetermine",
+            "titre": (f"Aucun dépassement, et {indet} "
+                      f"{_accord(indet, 'paramètre')} "
+                      f"{_accord(indet, 'indéterminé')}"),
+            "texte": ("Aucune bascule réglementaire non plus. Mais pour "
+                      f"{indet} {_accord(indet, 'paramètre')}, <b>la limite de "
+                      "quantification du laboratoire se situe au-dessus du "
+                      "seuil de comparaison</b> : on ne peut pas affirmer que "
+                      "le seuil est respecté. <b>Un indéterminé n'est pas un "
+                      "conforme.</b>" + _lecture_faite(a)),
+        }
+
+    # Annoncer « aucun dépassement » alors qu'une part de l'analyse ne pouvait
+    # pas conclure serait exactement la demi-vérité que le projet dénonce
+    # (§8bis n° 11, chantier C4). Ce cas n'est dans aucune des quatre
+    # maquettes ; il vient du bandeau qu'écrivait `fiche.js` et il ne se perd
+    # pas au passage en Python.
+    aveugles = a["nb_aveugles"] or 0
+    if aveugles:
+        return {
+            "mod": "indetermine",
+            "titre": (f"Aucun dépassement — et {aveugles} "
+                      f"{_accord(aveugles, 'paramètre')} que l'analyse ne "
+                      f"pouvait pas trancher"),
+            "texte": ("Pour ceux-là, la limite de quantification du "
+                      "laboratoire se situe au-dessus de <b>la limite "
+                      "réglementaire elle-même</b> : sous cette valeur "
+                      "l'analyse ne voit rien, là précisément où la conformité "
+                      "se joue. <b>Ce n'est ni un conforme, ni un "
+                      "dépassement.</b>" + _lecture_faite(a)),
+        }
+
+    return {
+        "mod": "conforme",
+        "titre": "Aucun dépassement, aucune bascule",
+        "texte": ("Sur ce qui a été cherché. Une eau n'est jamais déclarée pure "
+                  "ici : elle est déclarée conforme <b>aux paramètres "
+                  "recherchés ce jour-là</b>." + _lecture_faite(a)),
+    }
+
+
+def tete_donnees(a, natures, nom_dept=None, emprunt=None):
+    """L'en-tête d'un bulletin, sous forme de données — un dictionnaire par
+    prélèvement, que le rendu Python pose et que `fiche.js` repose à
+    l'identique quand le lecteur change de prélèvement.
+
+    Il n'y a donc qu'un seul compositeur, et il est ici : le navigateur ne
+    fabrique aucune phrase, il déplace celles qui ont été écrites.
+    """
+    # La source sépare les réseaux par une barre sans espaces : « THIVILLE
+    # (100 %)|ABA THIVILLE (100 %) » se lit mal et se coupe mal en fin de
+    # ligne. On ne touche pas aux noms, seulement à ce qui les sépare.
+    reseau = (a["noms_reseaux"] or "").replace("|", " | ")
+    uge = a["nom_uge"] or ""
+    chapo = nom_dept or a["dept"]
+    if reseau:
+        chapo += f" · réseau {reseau}"
+    elif uge:
+        chapo += f" · unité de distribution {uge}"
+
+    # « — » n'est pas une valeur : une ligne sans contenu ne s'affiche pas.
+    # Saintes le montre, sa maquette n'a pas de ligne « Gestionnaire ».
+    identite = []
+    if uge:
+        identite.append(["Gestionnaire", h(uge)])
+    if a["nom_distributeur"]:
+        identite.append(["Distributeur", h(a["nom_distributeur"])])
+    if a["nom_installation_amont"]:
+        identite.append(["Ressource", h(a["nom_installation_amont"])])
+    d_iso = str(a["date_prelevement"])[:10]
+    # §8bis n° 5 : quand l'analyse est empruntée au réseau, dire où elle a été
+    # prélevée. Ce n'est pas une note de bas de page, c'est dans l'identité.
+    identite.append(["Prélèvement",
+                     f'<time datetime="{h(d_iso)}">{h(_date_fr(d_iso))}</time>'
+                     + (f" · prélevé à {h(emprunt)}" if emprunt else "")])
+    # « panel intermédiaire » dans une ligne intitulée « Panel » se répète :
+    # la maquette écrit « 398 paramètres · intermédiaire · complet ».
+    effort = (a["classe_effort"] or "").removeprefix("panel ")
+    identite.append(["Panel",
+                     f"{a['nb_parametres']} paramètres · {h(effort)}"
+                     + (" · <b>complet</b>" if a["est_complet"]
+                        else " · <b>INCOMPLET</b>")])
+
+    return {
+        "surtitre": (f"Commune · INSEE {h(a['code_insee'])} · prélèvement du "
+                     f"{h(_date_fr(d_iso))}"),
+        "titre": h(a["commune"]),
+        "chapo": h(chapo),
+        "identite": identite,
+        "verdict": verdict_tete(a, natures),
+    }
+
+
+def prelevements_html(commune_par_cle, ordre, courant, fichier=None):
+    """La série des prélèvements complets, et la phrase qui interdit de la
+    moyenner.
+
+    Groupée par POINT D'EAU et non alignée par date : une commune en a souvent
+    plusieurs et ils ne donnent pas la même eau (§8bis n° 5, le cas des Arcs).
+    C'est la logique que `fiche.js` portait ; elle remonte ici, où elle est
+    rendue une fois pour toutes dans le fichier.
+
+    `--serie` dès cinq prélèvements : la ligne cesse alors de passer à la ligne
+    et défile. Les maquettes bornent le seuil sans le fixer — Thiville en a
+    trois et ne défile pas, Tramayes en a six et défile.
+    """
+    if len(ordre) < 2:
+        return ""
+    # La fiche autonome peut réunir plusieurs communes ; la vitrine, jamais.
+    # Quand elle en réunit plusieurs, le nom revient sur chaque groupe, sans
+    # quoi deux communes alignent des dates indiscernables.
+    multi = len({commune_par_cle[k]["name"] for k in ordre}) > 1
+    groupes = []
+    for k in ordre:
+        d = commune_par_cle[k]
+        lib = d.get("pt") or "Point d'eau non déclaré"
+        if multi:
+            lib = f"{d['name']} · {lib}"
+        for g in groupes:
+            if g["lib"] == lib:
+                g["cles"].append(k)
+                break
+        else:
+            groupes.append({"lib": lib, "cles": [k]})
+
+    serie = len(ordre) >= 5
+    bouts = []
+    for g in groupes:
+        # Un seul point d'eau : on annonce le compte, comme la maquette.
+        # Plusieurs : chaque groupe porte le nom de son point d'eau, sans quoi
+        # les dates s'alignent comme si la commune n'avait qu'une eau.
+        if len(groupes) == 1:
+            bouts.append(f'<span class="lib">{len(ordre)} prélèvements '
+                         f'complets</span>')
+        else:
+            bouts.append(f'<span class="lib">{h(g["lib"])}</span>')
+        for k in g["cles"]:
+            d = commune_par_cle[k]
+            libelle = _date_courte(d["date_iso"]) if serie else d["date"]
+            ici = ' aria-current="page"' if k == courant else ""
+            # Sur la vitrine, `fichier` donne l'adresse de chaque bulletin :
+            # le lien navigue, il ne commute pas. Sans lui — la fiche autonome,
+            # qui réunit tout dans un seul fichier transmissible —, on retombe
+            # sur la commutation par `data-k`.
+            cible = (f'href="{h(fichier(k))}"' if fichier
+                     else f'href="#bulletin" data-k="{h(k)}"')
+            bouts.append(f"<a {cible}{ici}>{h(libelle)}</a>")
+
+    return (f'<div class="prelevements{" prelevements--serie" if serie else ""}">'
+            + "".join(bouts) + "</div>\n"
+            '<p class="note">Chacun est <b>un point dans le temps, sur un point '
+            "d'eau donné</b> : ils se lisent l'un après l'autre, jamais "
+            "moyennés — une moyenne de bulletins n'a ni date ni grille, et ne "
+            "peut donc être notée contre aucune.</p>")
+
+
+def tete_html(tete, prelevements=""):
+    """L'en-tête complet : l'identité à gauche, le verdict à droite.
+
+    Les identifiants posés ici sont ceux que `fiche.js` repose quand on change
+    de prélèvement. Ils ne servent à rien d'autre — pas de style, pas de
+    sélecteur de feuille.
+    """
+    lignes = "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>"
+                     for k, v in tete["identite"])
+    v = tete["verdict"]
+    return f"""{prelevements}
+  <div class="fiche-tete">
+    <div>
+      <p class="surtitre" id="f-surtitre">{tete['surtitre']}</p>
+      <h1 id="f-titre">{tete['titre']}</h1>
+      <p class="chapo" id="f-chapo">{tete['chapo']}</p>
+      <dl class="identite" id="f-identite">{lignes}</dl>
+    </div>
+    <div class="verdict-bloc verdict-bloc--{v['mod']}" id="f-verdict">
+      <p class="surtitre">Ce que dit ce bulletin</p>
+      <h2 id="f-verdict-titre">{v['titre']}</h2>
+      <p id="f-verdict-texte">{v['texte']}</p>
+    </div>
+  </div>"""
+
+
+# ---------------------------------------------------------------------------
+# La thèse et la double lecture — passe 2 du portage
+# ---------------------------------------------------------------------------
+# Ces trois sections existaient déjà, écrites en JavaScript : `jauge()` et
+# `renderHero()` de `fiche.js` produisaient DÉJÀ le vocabulaire v2 — `.piste`,
+# `.piste-rail`, `.piste-zone--bascule`. Elles n'étaient simplement nulle part
+# dans le fichier. Ce qui suit est une transcription, pas une invention : la
+# règle d'échelle, les trois zones et l'ordre des cas sont ceux du JavaScript,
+# et les formulations sont celles des quatre maquettes.
+
+CHIFFRES = ["zéro", "une", "deux", "trois", "quatre", "cinq", "six", "sept",
+            "huit", "neuf", "dix"]
+
+
+def _en_lettres(n, feminin=True):
+    """« Huit mesures », pas « 8 mesures » : un titre se lit, il ne se compte
+    pas. Au-delà de dix, le chiffre reprend la main.
+
+    Le genre est un paramètre parce qu'un seul mot le porte — « une mesure »
+    mais « un paramètre » —, et qu'un titre publié qui écrit « Une paramètre »
+    décrédibilise tout ce qu'il y a en dessous."""
+    if n == 1 and not feminin:
+        return "un"
+    return CHIFFRES[n] if 0 <= n <= 10 else str(n)
+
+
+def _f(x):
+    """« 0,14 » -> 0.14. Les valeurs circulent déjà formatées à la française."""
+    try:
+        return float(str(x).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+def piste_html(valeur, s16, s_applicable, unite):
+    """La piste : une règle, trois zones, et les repères posés dessus.
+
+    ÉCHELLE. La limite d'aujourd'hui se pose à 90 % de la largeur, et c'est
+    elle qui fixe tout le reste. Ce n'est pas un choix graphique : il faut
+    qu'une mesure qui DÉPASSE cette limite ait encore de la place pour se
+    montrer à droite, sinon elle se plaque contre le bord et l'ampleur du
+    dépassement disparaît au moment où elle compte le plus.
+
+    TROIS ZONES, et elles portent la thèse à elles seules : sous la limite de
+    2016, conforme aux deux grilles ; entre les deux, la bascule — tout ce qui
+    tombe là était non conforme hier et ne l'est plus ; au-delà de la limite
+    d'aujourd'hui. **Quand les deux limites sont égales il n'y a pas de zone de
+    bascule** : rien ne s'est déplacé, et en dessiner une inventerait un écart.
+    """
+    v, b = _f(valeur), _f(s_applicable)
+    a16 = _f(s16)
+    if v is None or b is None or b <= 0:
+        return ""
+    u = f" {unite}" if unite else ""
+    maxi = b / 0.9
+    pc = lambda x: max(0.0, min(98.0, (x / maxi) * 100.0))  # noqa: E731
+    pb = pc(b)
+    pa = pc(a16) if a16 is not None else None
+    bascule = pa is not None and pa < pb
+
+    zones = []
+    def zone(cls, gauche, largeur):
+        if largeur > 0:
+            zones.append(f'<div class="piste-zone piste-zone--{cls}" '
+                         f'style="left:{gauche:.4g}%;width:{largeur:.4g}%"></div>')
+    zone("deux", 0, pa if bascule else pb)
+    if bascule:
+        zone("bascule", pa, pb - pa)
+    zone("hors", pb, 100 - pb)
+
+    reperes = []
+    if bascule:
+        reperes.append(f'<div class="piste-lim" style="left:{pa:.4g}%">'
+                       f'<em>{h(s16)} — limite 2016</em></div>')
+    # « limite d'aujourd'hui » et non « limite 2026 » comme l'écrit la
+    # maquette : ce repère est le seuil APPLICABLE à la date du prélèvement
+    # (§2.10), et sur un bulletin de 2018 ce n'est pas celui de 2026.
+    reperes.append(f'<div class="piste-lim" style="left:{pb:.4g}%"><em>'
+                   f'{h(s_applicable)} — limite '
+                   f'{"d\'aujourd\'hui" if bascule else "de qualité"}</em></div>')
+    reperes.append(f'<div class="piste-mes" style="left:{pc(v):.4g}%">'
+                   f'<em>{h(valeur)}{h(u)}</em></div>')
+
+    alt = (f"Mesure {valeur}{u} : "
+           + (f"au-dessus de la limite de {s16} de 2016, "
+              if a16 is not None and a16 < b and v > a16 else "")
+           + ("au-dessus de" if v > b else "sous")
+           + f" la limite de {s_applicable} d'aujourd'hui")
+    return (f'<div class="piste" role="img" aria-label="{h(alt)}">'
+            '<div class="piste-rail"></div>'
+            + "".join(zones) + "".join(reperes) + "</div>")
+
+
+LEGENDE_PISTE = (
+    '<div class="piste-lg">'
+    '<span><i style="background:var(--vert)"></i> conforme aux deux grilles</span>'
+    '<span><i style="background:var(--bascule)"></i> a changé de statut</span>'
+    '<span><i style="background:var(--rouge)"></i> dépasse les deux</span>'
+    "</div>")
+
+
+def _section(surtitre, titre, chapo, contenu):
+    """Une section de la fiche : son surtitre, son titre, son chapô, sa
+    matière. `main` est nu et chaque section porte sa zone — c'est ce qui
+    permet à la bande alternée de la charte d'aller d'un bord à l'autre."""
+    return (f'<section class="section"><div class="zone zone-large">'
+            f'<p class="surtitre">{surtitre}</p><h2>{titre}</h2>'
+            + (f'<p class="chapo">{chapo}</p>' if chapo else "")
+            + contenu + "</div></section>")
+
+
+def bascules_html(d):
+    """Les mesures qui ont changé de statut sans que l'eau change.
+
+    C'est la thèse du projet, montrée plutôt qu'écrite : sur chaque piste la
+    limite de 2016, celle qui s'applique, et la mesure entre les deux.
+    """
+    cas = (d.get("hero") or {}).get("bascules") or []
+    if not cas:
+        return ""
+    cartes = []
+    for c in cas:
+        # La DATE du déplacement n'est pas dans ce que rend
+        # `bascules_en_tete()` — seulement le fait qu'il soit daté. On dit donc
+        # qu'il l'est, sans écrire une date qu'on n'a pas lue (§2.5, §2.7).
+        date = ('<span class="basc-date">Déplacement daté : la même valeur, la '
+                "veille, n'était pas conforme.</span>" if c.get("datee") else "")
+        ds = c.get("ds") or {}
+        lien = (f'<p><a href="{h(ds["u"])}">Ce que cette substance démontre à '
+                f"l'échelle du corpus →</a></p>" if ds.get("u") else "")
+        cartes.append(
+            '<div class="basc">'
+            f'<div class="basc-tete"><span class="basc-nom">{h(c["p"])}</span>'
+            f'<span class="basc-val">{h(c["v"])} {h(c["u"])}</span></div>'
+            + piste_html(c["v"], c["s16"], c["s"], c["u"]) + LEGENDE_PISTE
+            + f'<p><b>Au-dessus de la limite de {h(c["s16"])} {h(c["u"])} en '
+            f'vigueur en 2016, sous celle de {h(c["s"])} {h(c["u"])} appliquée '
+            "aujourd'hui.</b></p>" + date + lien + "</div>")
+
+    n = len(cas)
+    titre = (f"{_en_lettres(n).capitalize()} mesure{'s' if n > 1 else ''}, deux "
+             "verdicts opposés, une seule eau")
+    return _section(
+        "Le réétalonnage", titre,
+        "Sur chaque piste : la limite en vigueur en 2016, celle qui s'applique "
+        "aujourd'hui, et la mesure entre les deux.",
+        f'<div class="bascules">{"".join(cartes)}</div>')
+
+
+NATURE_SEUIL = {"limite": ("", "limite de qualité"),
+                "reference": ("dep--vigilance", "référence de qualité"),
+                "vigilance": ("dep--vigilance", "valeur de vigilance")}
+
+
+def depassements_html(d):
+    """Ce qui dépasse — une jauge par mesure, et la nature de ce qui est
+    franchi écrite dessus.
+
+    Sans cette étiquette, la carte d'un métabolite reclassé « non pertinent »
+    est indiscernable de celle d'un plomb au-dessus de sa limite : c'est
+    l'erreur des cinq bulletins de Paulinet, et elle disait au lecteur
+    l'inverse de ce que conclut l'ARS.
+    """
+    cas = (d.get("hero") or {}).get("depassements") or []
+    if not cas:
+        return ""
+    cartes = []
+    for c in cas:
+        mod, nom_nature = NATURE_SEUIL.get(c.get("nat"), ("", ""))
+        v, s = _f(c["v"]), _f(c["s"])
+        maxi = max(v or 0, s or 0) or 1
+        fois = ""
+        if v and s:
+            fois = f"<b>× {_nb(round(v / s, 2))}</b>"
+        etat = (f' <span class="etat etat--attention">{nom_nature}</span>'
+                if mod else "")
+        ds = c.get("ds") or {}
+        lien = (f' <a href="{h(ds["u"])}">Ce que cette substance démontre à '
+                f"l'échelle du corpus →</a>" if ds.get("u") else "")
+        cartes.append(
+            f'<div class="dep{" " + mod if mod else ""}">'
+            f'<div class="dep-tete"><span class="dep-nom">{h(c["p"])}{etat}'
+            f'</span><span class="dep-val">{h(c["v"])} {h(c["u"])}</span></div>'
+            f'<div class="jauge"><i style="width:{(v or 0) / maxi * 100:.4g}%">'
+            f'</i><b style="left:{(s or 0) / maxi * 100:.4g}%"></b></div>'
+            f'<div class="jauge-lg"><span>seuil applicable : '
+            f'<b>{h(c["s"])} {h(c["u"])}</b></span><span>{fois}</span></div>'
+            f'<p><b>La règle en vigueur le jour du prélèvement</b> est celle '
+            f'contre laquelle la mesure est notée — un reclassement n\'est pas '
+            f'rétroactif.{lien}</p></div>')
+
+    n = len(cas)
+    titre = (f"{_en_lettres(n).capitalize()} mesure{'s' if n > 1 else ''} "
+             f"au-dessus de {'leur' if n > 1 else 'son'} seuil")
+    return _section(
+        "Ce qui dépasse", titre,
+        "Le trait sur chaque jauge marque le seuil applicable le jour du "
+        "prélèvement. La barre le franchit d'autant plus qu'elle en est loin.",
+        f'<div class="depassements">{"".join(cartes)}</div>')
+
+
+def lectures_html(d, a):
+    """Le même prélèvement, noté deux fois : ce que l'administration en dit, et
+    ce que disent les grilles datées. Deux colonnes de même poids — c'est la
+    comparaison qui est l'objet du projet, pas la substitution.
+    """
+    axes = (d.get("official") or {}).get("axes") or []
+    # L'état de la colonne officielle se lit sur les trois axes rendus par
+    # l'ARS, pas sur le seul axe « limites » : un bulletin conforme aux limites
+    # et non conforme aux références n'est ni vert ni rouge.
+    manques = [n for n, val, lvl in axes if lvl not in ("vert", None)]
+    if not axes:
+        etat_off, mod_off = "Conclusion non renseignée", "indetermine"
+    elif not manques:
+        etat_off, mod_off = "Conforme", "conforme"
+    else:
+        etat_off = "Conforme aux limites · non " + " et ".join(
+            f"conforme aux {n.lower()}" for n in manques)
+        mod_off = "attention"
+        if any("limite" in n.lower() for n in manques):
+            etat_off = "Non " + " et ".join(f"conforme aux {n.lower()}"
+                                            for n in manques)
+            mod_off = "depassement"
+    detail_axes = " ".join(f"{h(n)} : {h(val)}." for n, val, lvl in axes)
+    concl = (d.get("official") or {}).get("concl") or "—"
+
+    notes, lues = a["nb_mesures_notees"] or 0, a["nb_mesures_lues"] or 0
+    sans = a["nb_sans_seuil"] or 0
+    basc, indet = a["nb_bascules"] or 0, a["nb_indetermines"] or 0
+    total_dep = a["nb_depasse_applicable"] or 0
+
+    etat_cit = (d.get("cit") or {}).get("v") or ""
+    if basc:
+        etat_cit += f" · {basc} {_accord(basc, 'bascule')}"
+        titre_cit = (f"Mais {basc} {_accord(basc, 'mesure')} "
+                     f"{_accord(basc, 'aurait', 'auraient')} dépassé la limite "
+                     "en vigueur en 2016")
+    elif total_dep:
+        titre_cit = (f"{total_dep} {_accord(total_dep, 'paramètre')} au-dessus "
+                     "du seuil applicable ce jour-là")
+    else:
+        titre_cit = "Aucun dépassement à la date, aucune bascule"
+    if indet:
+        etat_cit += f" · {indet} {_accord(indet, 'indéterminé')}"
+    mod_cit = {"rouge": "depassement", "ambre": "attention",
+               "vert": "conforme"}.get((d.get("cit") or {}).get("level"),
+                                       "indetermine")
+
+    detail_cit = (f"Chaque mesure est comparée au seuil en vigueur <b>le "
+                  f"{h(_date_fr(a['date_prelevement']))}</b>, puis à celui de "
+                  "2016 et au repère le plus protecteur identifié."
+                  + _lecture_faite(a)
+                  + (f" Les {sans} autres n'ont aucun seuil de comparaison, ni "
+                     "au référentiel ni dans la limite déclarée par la source."
+                     if sans else ""))
+
+    return _section(
+        "La double lecture", "Le même prélèvement, noté deux fois", None,
+        '<div class="lectures">'
+        '<div class="lecture">'
+        '<p class="surtitre">Lecture officielle — telle qu\'elle a été rendue</p>'
+        f'<span class="etat etat--{mod_off}">{h(etat_off)}</span>'
+        f'<h3>{h(_extrait(concl, 90))}</h3>'
+        f'<p>« {h(concl)} » <i>— conclusion sanitaire telle que rendue par '
+        f'l\'ARS.</i> {detail_axes}</p>'
+        "</div>"
+        '<div class="lecture">'
+        '<p class="surtitre">Lecture datée — grilles 2016, 2026, et la plus '
+        'stricte identifiée</p>'
+        f'<span class="etat etat--{mod_cit}">{h(etat_cit)}</span>'
+        f"<h3>{h(titre_cit)}</h3><p>{detail_cit}</p>"
+        "</div></div>")
+
+
+# ---------------------------------------------------------------------------
+# Les indicateurs — passe 3 du portage
+# ---------------------------------------------------------------------------
+# Six tuiles fixes, et « non recherché » est un état plein, avec sa couleur et
+# son explication. Jamais un blanc : une case vide se lit comme une absence de
+# substance alors qu'elle est une absence de recherche (§2.11).
+
+# L'état calculé par `indicateurs._etat()` -> le modificateur de la charte.
+# La table est explicite plutôt que déduite : `hors_plage` et `proche` n'ont
+# pas de modificateur à eux, et les rabattre silencieusement sur « conforme »
+# effacerait précisément ce qu'ils signalent.
+IND_MOD = {
+    "depassement": "depassement",
+    "hors_plage": "attention",
+    "proche": "attention",
+    "bascule": "bascule",
+    "indetermine": "indetermine",
+    "sous_lq": "conforme",
+    "conforme": "conforme",
+    "absent": "vide",
+    "neutre": "",
+}
+JG_MOD = {
+    "depassement": "depasse", "hors_plage": "proche", "proche": "proche",
+    "bascule": "proche", "indetermine": "indet", "sous_lq": "souslq",
+    "conforme": "ok",
+}
+# Le surtitre nomme le rayon, le titre dit ce qu'on y a trouvé : les deux ne
+# se répètent pas. Les titres et les chapôs, eux, viennent de
+# `indicateurs.GROUPES` — ils sont écrits une fois, là où ils sont relus.
+SURTITRE_GROUPE = {"polluants": "Ce qu'il y a dans cette eau",
+                   "eau": "Le caractère de la ressource",
+                   "lecture": "Ce que vaut cette lecture"}
+
+
+def _jauge_ind(i):
+    """La barre d'une tuile : où se situe la mesure par rapport à son seuil.
+
+    C'est ce qui rend un nombre lisible d'un coup d'œil — « 0,493 » ne dit
+    rien, « 99 % de la limite » dit tout. Pas de barre quand il n'y a pas de
+    seuil : dessiner une jauge sans terme de comparaison inventerait le terme.
+    """
+    if i["etat"] in ("absent", "neutre") or i.get("seuil") is None:
+        return ""
+    unite = i.get("unite") or ""
+    if i["etat"] == "sous_lq":
+        # Sous la limite de quantification, la barre ne mesure rien : elle
+        # marque seulement que l'analyse a regardé et n'a rien vu au-dessus de
+        # ce que son instrument distingue. Un dixième de piste, et c'est dit.
+        pct, droite = 10, "sous la LQ"
+    else:
+        part = i.get("part")
+        if part is None:
+            return ""
+        pct = max(0, min(100, round(part * 100)))
+        droite = f"{pct} % de la limite"
+    return (f'<div class="jauges"><div class="jg jg--{JG_MOD.get(i["etat"], "neutre")}"'
+            f' style="--pct:{pct}%"><div class="jg-lg">'
+            f'<span>limite réglementaire <b>{h(_nb(i["seuil"]))} {h(unite)}</b>'
+            f'</span><b>{h(droite)}</b></div>'
+            '<div class="jg-piste"><em></em></div></div></div>')
+
+
+def _tuile(i, a):
+    """Une tuile d'indicateur : le libellé, la valeur, l'état, la barre, la
+    lecture. Et le dénominateur quand la valeur est un compte — un nombre de
+    substances quantifiées ne veut rien dire sans ce qui a été cherché (§2.8).
+    """
+    unite = i.get("unite") or ""
+    texte = i.get("texte") or "—"
+    # L'unité passe en `small` : la valeur doit rester lisible d'un coup, et
+    # « 12,4 mg/L » écrit d'un seul poids se lit moins vite que « 12,4 » suivi
+    # de son unité.
+    if unite and texte.endswith(" " + unite):
+        valeur = (f'{h(texte[:-len(unite) - 1])} <small>{h(unite)}</small>')
+    else:
+        valeur = h(texte)
+
+    etats = []
+    if i["etat"] == "absent":
+        etats.append('<span class="etat etat--gris">non recherché</span>')
+    elif i["etat"] == "sous_lq":
+        etats.append('<span class="etat etat--conforme">sous la limite de '
+                     "quantification</span>")
+    elif i["etat"] == "indetermine":
+        etats.append('<span class="etat etat--indetermine">indéterminé</span>')
+    elif i["etat"] == "depassement":
+        etats.append('<span class="etat etat--depassement">au-dessus du '
+                     "seuil applicable</span>")
+    elif i["etat"] == "bascule":
+        etats.append('<span class="etat etat--bascule">bascule</span>')
+    # §2.7 et §8bis n° 8 : une valeur en `a_verifier` est signalée comme telle,
+    # partout, et ne s'arrondit jamais en « vérifié ».
+    if i.get("a_verifier"):
+        etats.append('<span class="etat etat--averifier">seuil à vérifier</span>')
+
+    denom = ""
+    if i.get("cle") == "pesticides_nb" and a.get("nb_parametres"):
+        denom = (f'<span class="denominateur">sur {a["nb_parametres"]} '
+                 "paramètres recherchés</span>")
+
+    detail = (f'<p class="note">{h(i["detail"])}</p>'
+              if i.get("detail") else "")
+    # §8bis n° 11 : quand la LQ dépasse le seuil, la tuile le dit et le
+    # chiffre. Une tuile verte au-dessus d'une analyse aveugle serait le pire
+    # mensonge de la fiche.
+    lq = (f'<p class="note">{h(i["lq_mention"])}</p>'
+          if i.get("lq_mention") else "")
+    mod = IND_MOD.get(i["etat"], "")
+    return (f'<div class="ind{" ind--" + mod if mod else ""}">'
+            f'<h4>{h(i["libelle"])}</h4>'
+            f'<span class="val">{valeur}</span>'
+            + "".join(etats) + denom + _jauge_ind(i) + detail + lq
+            + (f'<p>{h(i["lecture"])}</p>' if i.get("lecture") else "")
+            + "</div>")
+
+
+def indicateurs_html(d, a):
+    """Les trois rayons d'indicateurs, dans l'ordre du fichier versionné."""
+    ind = d.get("ind") or {}
+    out = []
+    for cle, titre, chapo in (d.get("groupes") or []):
+        tuiles = ind.get(cle) or []
+        if not tuiles:
+            continue
+        out.append(_section(
+            SURTITRE_GROUPE.get(cle, "Les indicateurs"), h(titre), chapo,
+            '<div class="indicateurs">'
+            + "".join(_tuile(i, a) for i in tuiles) + "</div>"))
+    return "".join(out)
+
+
+# ---------------------------------------------------------------------------
+# Les trois registres, la LQ, les PFAS et le cumul — passe 4 du portage
+# ---------------------------------------------------------------------------
+
+REGISTRES = [
+    ("avere", "avere", "Avérés au sens réglementaire",
+     "Reconnus comme perturbateurs endocriniens par le droit européen."),
+    ("suspecte", "suspect", "Suspectés par la littérature",
+     "Des travaux publiés le rapportent, sans reconnaissance réglementaire."),
+    ("non_documente", "nondoc", "Statut non documenté",
+     "Quantifiés dans cette eau, sans statut établi dans l'un ou l'autre "
+     "registre. Ce n'est pas un blanc-seing : c'est une absence d'instruction."),
+]
+
+
+def registres_html(d):
+    """Trois registres, jamais fusionnés (§2.15).
+
+    `pe_reglementaire`, `pe_scientifique`, `cancerogenicite_circ` disent trois
+    choses différentes, et aucun ne se déduit des autres. Les afficher côte à
+    côte sans les fondre est la forme même de la règle : dire « c'est un
+    perturbateur endocrinien » sans préciser le registre est une faute.
+    """
+    pe = d.get("pe") or {}
+    if not any(pe.get(cle) for cle, _, _, _ in REGISTRES):
+        return ""
+    blocs = []
+    for cle, mod, titre, sous in REGISTRES:
+        subs = pe.get(cle) or []
+        if subs:
+            items = "".join(
+                f'<li><b>{h(s["libelle"])}</b> <span>{h(s.get("texte") or "")}'
+                f"</span></li>" for s in subs)
+        else:
+            items = ('<li class="vide">Aucune substance quantifiée dans ce '
+                     "registre</li>")
+        blocs.append(
+            f'<div class="registre registre--{mod}">'
+            f'<div class="registre-tete"><span class="registre-n">{len(subs)}'
+            f"</span><h4>{titre}</h4></div><p>{sous}</p>"
+            f'<ul class="substances">{items}</ul></div>')
+    return _section(
+        "Les trois registres",
+        "Trois listes qui ne disent pas la même chose et ne se remplacent pas",
+        "Un statut réglementaire, une suspicion de la littérature et une "
+        "absence d'instruction sont trois faits distincts. Les fondre en un "
+        "seul chiffre serait la seule manière de se tromper à coup sûr.",
+        f'<div class="registres">{"".join(blocs)}</div>')
+
+
+def lq_html(d):
+    """Quand la limite de quantification passe au-dessus du seuil (§8bis n° 11).
+
+    Sous cette valeur, l'analyse ne voit rien — là précisément où la
+    conformité se joue. Et une LQ élevée est une **capacité d'instrument**,
+    jamais une négligence (§2.1) : l'échelle situe celle-ci parmi celles du
+    corpus, et affiche la base sur laquelle elle est située, car elle se
+    déplace.
+    """
+    plafond = d.get("plafond") or {}
+    lignes = plafond.get("lignes") or []
+    if not lignes:
+        return ""
+    blocs = []
+    for l in lignes:
+        b = l.get("bareme") or {}
+        echelle = ""
+        if b.get("min") and b.get("ici"):
+            pos = max(0, min(100, round((b.get("position") or 0) * 100)))
+            echelle = (
+                '<div class="echelle" aria-hidden="true">'
+                '<div class="echelle-piste"></div>'
+                '<div class="echelle-pt echelle-pt--debut" style="left:0">'
+                f'<span>{h(b["min"])} {h(l.get("unite") or "")} — la plus fine '
+                "relevée</span></div>"
+                f'<div class="echelle-pt echelle-pt--ici'
+                f'{" echelle-pt--fin" if pos >= 100 else ""}" '
+                f'style="left:{pos}%"><span>ici : {h(b["ici"])} '
+                f'{h(l.get("unite") or "")}</span></div></div>')
+        # La base est affichée avec le classement, sans quoi « la plus fine
+        # relevée » ne veut rien dire : elle se déplace avec le corpus.
+        base = ""
+        if b.get("nb_bulletins"):
+            base = (f'<p class="note">Comparaison faite sur '
+                    f'{b["nb_bulletins"]} bulletins, '
+                    f'{b.get("nb_departements", "?")} départements — la plus '
+                    "fine <b>identifiée</b>, pas la plus fine possible.</p>")
+        blocs.append(
+            '<div class="lq"><div class="lq-tete">'
+            f'<b>{h(l["libelle"])}</b>'
+            f'<span class="lq-mult">× {h(_nb(l.get("rapport")))}</span></div>'
+            f'<p>{h(l.get("mention") or "")}</p>{echelle}{base}</div>')
+
+    n = len(lignes)
+    return _section(
+        "Ce que le laboratoire ne pouvait pas voir",
+        (f"{_en_lettres(n, feminin=False).capitalize()} "
+         f"paramètre{'s' if n > 1 else ''} "
+         f"cherché{'s' if n > 1 else ''} avec un instrument qui ne peut pas "
+         "conclure"),
+        "La limite de quantification du laboratoire se situe au-dessus du "
+        "seuil de comparaison. Ce n'est ni un conforme, ni un dépassement.",
+        "".join(blocs))
+
+
+def pfas_html(d):
+    """Chaînes longues et chaînes courtes — la mesure existe, la norme ne la
+    regarde pas.
+
+    La somme réglementaire de 4 ne vise que les chaînes longues ; les courtes
+    sont mesurées et restent hors de son assiette. **Une somme ne se compare
+    jamais sans son périmètre** (§2.13, §2.14) : c'est ce que ce bloc montre.
+    """
+    pfas = d.get("pfas") or {}
+    if pfas.get("rien_de_cherche") or not pfas.get("cherchees_total"):
+        return ""
+    blocs = []
+    for cle, mod, titre, sous in (
+            ("longue", "vise", "Chaînes longues",
+             "celles que vise la somme de 4"),
+            ("courte", "hors", "Chaînes courtes",
+             "mesurées, hors de l'assiette de la somme de 4")):
+        f = pfas.get(cle) or {}
+        subs = f.get("substances") or []
+        if not subs:
+            continue
+        items = "".join(
+            f'<li class="pf{" pf--quant" if s.get("quantifie") else ""}">'
+            f'<b>{h(s.get("sigle") or s.get("libelle"))}</b>'
+            f'<span>C{s.get("carbones")} · {h(s.get("type") or "")}</span></li>'
+            for s in subs)
+        blocs.append(
+            f'<div class="pfas-fam pfas-fam--{mod}"><h4>{titre}</h4>'
+            f'<p>{sous} · <b>{f.get("quantifiees", 0)} quantifiée(s) sur '
+            f'{f.get("cherchees", 0)} recherchées</b></p>'
+            f'<ul class="pf-liste">{items}</ul></div>')
+    if not blocs:
+        return ""
+    return _section(
+        "Le périmètre de la somme",
+        "La mesure existe. La norme ne la regarde pas.",
+        "La somme réglementaire de 4 ne porte que sur les chaînes longues. "
+        "Les courtes sont cherchées, parfois trouvées, et ne comptent dans "
+        "aucun total opposable — <b>même valeur, assiette différente</b>.",
+        f'<div class="pfas-familles">{"".join(blocs)}</div>')
+
+
+def barres_html(d):
+    """Ce qui pèse dans l'indice de danger, mesure par mesure.
+
+    Trois contraintes non négociables du §7.1, et elles sont dans le code
+    plutôt que dans une consigne : l'indice **n'est jamais nommé « risque »**,
+    il n'est **jamais publié sans le nombre de substances qui le composent**,
+    et il ne vaut pas verdict de potabilité. Au-delà de six lignes, le reste se
+    replie — il ne se coupe pas : un compteur et une liste qui se contredisent
+    sur le même écran est ce que le §2.8 interdit.
+    """
+    danger = d.get("danger") or {}
+    parts = danger.get("parts") or []
+    if not parts or danger.get("total") is None:
+        return ""
+
+    def ligne(p):
+        part = p.get("part")
+        largeur = max(0.0, min(100.0, (part or 0) * 100 / 3))
+        return (f'<li><div><div class="nom">{h(p["p"])}</div>'
+                f'<div class="det">{h(p["v"])} {h(p.get("u") or "")} pour une '
+                f'limite de {h(p.get("s") or "—")}</div>'
+                f'<div class="jauge"><i style="width:{largeur:.4g}%"></i>'
+                f'<b style="left:33.3%"></b></div></div>'
+                f'<div class="mult{" inf" if (part or 0) < 1 else " sup"}">'
+                f'× {h(_nb(round(part, 3)) if part is not None else "—")}'
+                "</div></li>")
+
+    tete = parts[:6]
+    reste = parts[6:]
+    liste = f'<ul class="barres">{"".join(ligne(p) for p in tete)}</ul>'
+    if reste:
+        liste += (f'<details class="plus"><summary>Afficher les {len(reste)} '
+                  "autres substances qui composent l'indice</summary>"
+                  f'<ul class="barres">{"".join(ligne(p) for p in reste)}</ul>'
+                  "</details>")
+    total = _nb(round(danger["total"], 2))
+    n = danger.get("n") or len(parts)
+    return _section(
+        "Le cumul",
+        f"{total} — et voici les {_en_lettres(min(len(tete), 6))} mesures qui "
+        "y pèsent le plus",
+        f"Indice de danger calculé sur <b>{n} substances de synthèse</b>. "
+        "Ce n'est pas une estimation de risque sanitaire et il ne vaut pas "
+        "verdict de potabilité : il sert à classer des bulletins entre eux.",
+        liste)
 
 
 # ---------------------------------------------------------------------------
@@ -416,7 +1339,7 @@ def non_documentees(con, version, insees=None):
 
 
 def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
-                 proposee=None, accroches=None):
+                 proposee=None, accroches=None, nom_dept=None):
     """Une ligne de `analyses_figees` -> le dictionnaire attendu par le gabarit.
 
     **Décision de Yannick du 10 août 2026 : la fiche communale ne porte plus
@@ -500,6 +1423,11 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
     return {
         "name": a["commune"],
         "insee": a["code_insee"],
+        # L'en-tête, composé en Python pour CE prélèvement. Il est rendu tel
+        # quel dans le fichier pour le prélèvement affiché, et `fiche.js` va
+        # rechercher celui-ci quand le lecteur change de date : une seule
+        # plume, deux endroits où elle se pose.
+        "tete": tete_donnees(a, natures, nom_dept, emprunt),
         # Le point d'eau qui a produit CE bulletin. Il ne suffit pas qu'il
         # descende dans les métadonnées : c'est lui qui étiquette le sélecteur
         # de bulletins, sans quoi une commune alimentée par plusieurs captages
@@ -885,7 +1813,10 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
         rattachees = rattachements(con, version, insees)
         empruntes = {r["code_prelevement"] for r in rattachees.values()}
 
-        C, PARAMS, ORDER = {}, {}, []
+        # `A` garde la ligne brute de chaque bulletin : les sections rendues en
+        # Python la lisent (dénominateurs, décomptes), et elle n'est pas dans
+        # le dictionnaire d'affichage.
+        C, PARAMS, ORDER, A = {}, {}, [], {}
         for ligne in lignes:
             a = dict(zip(cols, ligne))
             # Un bulletin emprunté par une commune voisine n'apparaît pas
@@ -900,6 +1831,7 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             cle = a["code_prelevement"]
             d_iso = str(a["date_prelevement"])
             C[cle] = bloc_commune(con, ligne, cols, None, version)
+            A[cle] = a
             PARAMS[cle] = bloc_parametres(con, a["code_prelevement"], version)
             ORDER.append(cle)
 
@@ -917,6 +1849,7 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             cle = f"{insee}-rattachee"
             C[cle] = bloc_commune(con, ligne, cols, None, version,
                                   rattachement=rat)
+            A[cle] = dict(zip(cols, ligne))
             PARAMS[cle] = bloc_parametres(con, rat["code_prelevement"], version)
             ORDER.append(cle)
 
@@ -949,6 +1882,22 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             # dans chaque fiche coûterait plus que ça ne rapporte.
             .replace("/*__CSS__*/",
                      lire("polices.css") + "\n" + lire("observatoire-v2.css"))
+            # L'en-tête est rendu ici, pas dans le navigateur — la fiche
+            # autonome est justement l'artefact qu'on transmet d'un bloc et
+            # qu'on ouvre sans rien d'autre. Le nom du département n'y est pas
+            # résolu (`geo_departements()` appartient à la vitrine) : le chapô
+            # y porte donc le code, et c'est le seul écart assumé entre les
+            # deux artefacts.
+            .replace("<!--__TETE__-->",
+                     (tete_html(C[ORDER[0]]["tete"],
+                                prelevements_html(C, ORDER, ORDER[0]))
+                      + bascules_html(C[ORDER[0]])
+                      + depassements_html(C[ORDER[0]])
+                      + lectures_html(C[ORDER[0]], A[ORDER[0]])
+                      + indicateurs_html(C[ORDER[0]], A[ORDER[0]])
+                      + pfas_html(C[ORDER[0]]) + registres_html(C[ORDER[0]])
+                      + lq_html(C[ORDER[0]]) + barres_html(C[ORDER[0]]))
+                     if ORDER else "")
             .replace("<!--__CORPS__-->", lire("corps_fiche.html"))
             .replace("/*__FICHE_JS__*/", lire("fiche.js"))
             .replace("/*__KPI_LABELS__*/", "const KPI_LABELS=" + j(KPI_LABELS) + ";")

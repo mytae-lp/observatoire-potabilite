@@ -389,7 +389,12 @@ def page(titre, corps, page_courante, description, version, calcule_le,
     recherche, l'autre arrête le défilement dans un fil social. Ne pas les
     fusionner (consigne §4.1 de la communication).
     """
-    zone = {"prose": "zone-prose", "std": "zone-std", "large": "zone-large"}[largeur]
+    # « pleine » : `main` reste NU et chaque section porte sa propre zone.
+    # C'est ce que demande la charte v2 d'une page en sections — la règle
+    # `main > section.section:nth-of-type(even)` y pose un fond alterné qui va
+    # d'un bord à l'autre, ce qu'un `main` centré et borné rend impossible.
+    zone = {"prose": "zone-prose", "std": "zone-std", "large": "zone-large",
+            "pleine": ""}[largeur]
 
     # Le bandeau photographique, quand la page en a un. Il porte alors le fil
     # d'Ariane et le `h1` : les deux sont dedans, sur la photo, pas au-dessus.
@@ -451,7 +456,7 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 {barre(page_courante, prefixe)}
 {fil_hors_bandeau}
 {accroche}
-<main class="zone {zone} accroche-suite">
+<main class="{f'zone {zone} accroche-suite' if zone else 'accroche-suite'}">
 {corps}
 </main>
 
@@ -2987,7 +2992,9 @@ def fiches_communes(con, version, lignes, public, communes=None):
             lignes_c = [(r, cols, None) for r in rows]
             code_prel = None
 
-        C, PARAMS, ORDER = {}, {}, []
+        # `A` garde la ligne brute de chaque bulletin : les sections rendues en
+        # Python y lisent les dénominateurs et les décomptes figés.
+        C, PARAMS, ORDER, A = {}, {}, [], {}
         for ligne, cols, rattachement in lignes_c:
             a = dict(zip(cols, ligne))
             # La clé est le code de prélèvement, jamais la date (§2.3) : deux
@@ -2997,49 +3004,90 @@ def fiches_communes(con, version, lignes, public, communes=None):
             d_iso = str(a["date_prelevement"])
             C[cle] = BF.bloc_commune(
                 con, ligne, cols, None, version,
-                rattachement=rattachement, accroches=accroches)
+                rattachement=rattachement, accroches=accroches,
+                # Le chapô de l'en-tête nomme le département, il n'en donne
+                # pas le code : « Tarn-et-Garonne · réseau FINHAN », pas
+                # « 82 · réseau FINHAN ».
+                nom_dept=_nom_dept(c["dept"]))
             PARAMS[cle] = BF.bloc_parametres(con, a["code_prelevement"], version)
+            A[cle] = a
             ORDER.append(cle)
         # Le plus récent d'abord : c'est ce que l'habitant vient chercher.
         ORDER.sort(key=lambda k: C[k]["date_iso"], reverse=True)
 
-        d0 = C[ORDER[0]]
         j = lambda x: json.dumps(x, ensure_ascii=False)  # noqa: E731
-        switch = ('<div class="switch" id="switch" role="group" '
-                  'aria-label="Choisir un prélèvement"></div>' if len(ORDER) > 1 else "")
-        rappel_series = (
-            '<div class="rappel">Plusieurs prélèvements complets sont disponibles pour '
-            'cette commune. Chacun est un point dans le temps, sur un point d\'eau '
-            'donné : ils se lisent l\'un après l\'autre, jamais moyennés — une moyenne '
-            'de bulletins n\'a ni date ni grille, et ne peut donc être notée contre '
-            'aucune.</div>' if len(ORDER) > 1 else "")
-
         situation = bloc_situation(c, groupes.get(c["dept"], []),
                                    rat["commune_prelevement"] if rat else None)
 
-        html = page(
-            d0["name"],
-            f'{switch}{rappel_series}\n{corps}\n{situation}',
-            "communes.html",
-            f"Bulletin d'analyse complet de l'eau du robinet à {d0['name']} "
-            f"({d0['insee']}), noté contre les grilles de 2016, d'aujourd'hui et la "
-            f"plus stricte au monde.",
-            version, calcule_le=d0["calcule_le"],
-            sous_titre=f"{h(d0['sub'])} — bulletin du {h(d0['date'])}",
-            formule=False, prefixe="../", cle_bandeau="",
-            fil=[("Accueil", "index.html"),
-                 ("Les communes du corpus", "communes.html"),
-                 (f"{_nom_dept(c['dept'])} ({c['dept']})",
-                  f"departement/{c['dept']}.html"),
-                 (d0["name"], None)],
-            scripts=("<script>\n"
-                     f"const KPI_LABELS={j(BF.KPI_LABELS)};\n"
-                     f"{BF.js_donnees(C, PARAMS)}\n"
-                     f"const ORDER={j(ORDER)};\n</script>\n"
-                     f'<script src="../assets/{empreinte("fiche.js")}"></script>'))
+        # UNE PAGE PAR PRÉLÈVEMENT — décision de Yannick, 16 août 2026.
+        #
+        # La fiche est maintenant écrite dans le fichier plutôt que fabriquée
+        # au chargement ; un sélecteur qui change de bulletin sans recharger la
+        # page ne peut donc plus fonctionner. Plutôt que de renvoyer la
+        # composition dans le navigateur, chaque bulletin reçoit son adresse —
+        # ce qui le rend CITABLE, et c'est cohérent avec un projet dont l'objet
+        # est la traçabilité.
+        #
+        # Le nom du fichier est bâti sur le CODE DE PRÉLÈVEMENT, jamais sur la
+        # date (§2.3) : une commune a souvent plusieurs prélèvements le même
+        # jour sur des points d'eau différents, et deux pages datées à
+        # l'identique s'écraseraient l'une l'autre, silencieusement.
+        #
+        # L'adresse du plus récent NE CHANGE PAS — `commune/82125.html` reste
+        # ce que servent la carte, la liste des communes et les liens déjà
+        # publiés. Ce sont les bulletins anciens qui gagnent une adresse.
+        def fichier(cle):
+            return f"{insee}.html" if cle == ORDER[0] else f"{insee}-{cle}.html"
 
-        ecrire(os.path.join(public, "commune", f"{insee}.html"), html)
-        n += 1
+        for cle in ORDER:
+            d, a = C[cle], A[cle]
+            tete = BF.tete_html(
+                d["tete"], BF.prelevements_html(C, ORDER, cle, fichier))
+            sections = (BF.bascules_html(d) + BF.depassements_html(d)
+                        + BF.lectures_html(d, a) + BF.indicateurs_html(d, a)
+                        + BF.pfas_html(d) + BF.registres_html(d)
+                        + BF.lq_html(d) + BF.barres_html(d))
+
+            html = page(
+                d["name"],
+                # `main` est nu : la tête et chaque section portent leur zone.
+                # Ce qui n'est pas encore porté reste enveloppé d'un bloc
+                # unique pour ne pas s'étaler sur toute la largeur.
+                f'<div class="zone zone-large">{tete}</div>\n{sections}\n'
+                f'<section class="section"><div class="zone zone-large">'
+                f'{corps}\n{situation}</div></section>',
+                "communes.html",
+                f"Bulletin d'analyse complet de l'eau du robinet à {d['name']} "
+                f"({d['insee']}) prélevé le {d['date']}, noté contre les "
+                f"grilles de 2016, d'aujourd'hui et la plus stricte "
+                f"identifiée.",
+                version, calcule_le=d["calcule_le"],
+                sous_titre=f"{h(d['sub'])} — bulletin du {h(d['date'])}",
+                # Le `h1` est dans le corps, avec le verdict à côté de lui :
+                # c'est la composition de la maquette, l'identité à gauche et
+                # ce que dit le bulletin à droite.
+                titre_dans_corps=True, largeur="pleine",
+                formule=False, prefixe="../", cle_bandeau="",
+                fil=[("Accueil", "index.html"),
+                     ("Les communes du corpus", "communes.html"),
+                     (f"{_nom_dept(c['dept'])} ({c['dept']})",
+                      f"departement/{c['dept']}.html"),
+                     (d["name"], None if cle == ORDER[0] else fichier(ORDER[0])),
+                     *([] if cle == ORDER[0] else [(f"Bulletin du {d['date']}",
+                                                    None)])],
+                # La page ne porte QUE son bulletin. Elle embarquait ceux de
+                # toute la commune pour alimenter le sélecteur — 338 ko sur
+                # Montech, dont l'essentiel pour 20 bulletins qu'on ne
+                # regardait pas.
+                scripts=("<script>\n"
+                         f"const KPI_LABELS={j(BF.KPI_LABELS)};\n"
+                         f"{BF.js_donnees({cle: d}, {cle: PARAMS[cle]})}\n"
+                         f"const ORDER={j([cle])};\n</script>\n"
+                         f'<script src="../assets/{empreinte("fiche.js")}">'
+                         "</script>"))
+
+            ecrire(os.path.join(public, "commune", fichier(cle)), html)
+            n += 1
     return n
 
 

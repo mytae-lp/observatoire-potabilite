@@ -4,42 +4,22 @@
      Il ne contient aucune donnée : fiche.js le remplit depuis les tables
      figées.
      ======================================================================= -->
+  <!-- L'EN-TÊTE N'EST PLUS ICI. Depuis le 16 août 2026 il est rendu en Python
+       — `build_fiche.tete_html()` — et injecté AVANT ce corps : identité,
+       série des prélèvements et verdict daté sont donc présents dans le
+       fichier, sans exécution de JavaScript. Ce qui reste ci-dessous attend
+       encore d'être porté de la même façon (passes 2 à 5). -->
+  <!-- CE QUI ÉTAIT ICI ET N'Y EST PLUS, retiré le 16 août 2026 : la conclusion
+       de l'ARS (`#concl`, `#axes`), le bandeau de tête (`#hero`), la double
+       lecture (`.double`) et les indicateurs (`#secIndicateurs`). Les quatre
+       sont désormais rendus en Python et se trouvaient donc DEUX FOIS dans la
+       page — une fois écrits dans le fichier, une fois réécrits par
+       `fiche.js` au chargement. Le défaut ne se voyait pas en relisant le
+       code : il fallait compter les occurrences dans la page produite.
+       Ce qui reste ci-dessous n'est pas encore porté. -->
   <div class="identity">
-    <div class="eyebrow" id="idEyebrow">Commune</div>
-    <h2 id="communeName"></h2>
-    <div class="sub" id="communeSub"></div>
-    <div class="meta" id="meta"></div>
-    <div class="official">
-      <div class="lab">Conclusion sanitaire officielle — telle que rendue par l'ARS</div>
-      <div class="concl" id="concl"></div>
-      <div class="axes" id="axes"></div>
-    </div>
     <div id="bandeaux"></div>
   </div>
-
-  <!-- LE BANDEAU DE TÊTE, juste après l'identité de la commune. Le projet tient
-       en une phrase — « ce n'est pas l'eau qui est devenue potable, c'est la
-       limite qui a bougé » — et cette phrase doit être démontrée sur place, pas
-       cherchée au milieu d'un tableau de trois cents lignes. -->
-  <div id="hero"></div>
-
-  <section><h3 class="sec">La double lecture</h3>
-    <div class="double">
-      <div class="lect admin">
-        <div class="side"><span class="tag">Lecture administrative</span><span class="who">Contrôle sanitaire — France</span></div>
-        <div class="body"><span class="pill" id="adminPill"><span class="dot"></span><span></span></span><p id="adminDetail"></p></div>
-      </div>
-      <div class="delta"><span class="arrow">↓</span><span id="deltaText"></span></div>
-      <div class="lect">
-        <div class="side"><span class="tag">Lecture citoyenne</span><span class="who">Grilles datées et normes les plus strictes</span></div>
-        <div class="body"><span class="pill" id="citPill"><span class="dot"></span><span></span></span><p id="citDetail"></p></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="secIndicateurs"><h3 class="sec">Ce qu'il y a dans cette eau</h3>
-    <div id="indicateurs"></div>
-  </section>
 
   <section><h3 class="sec">L'analyse</h3><div class="analyse" id="analyse"></div></section>
 

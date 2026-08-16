@@ -66,6 +66,28 @@ function el(t, c, h){ const e = document.createElement(t); if(c) e.className = c
 function txt(t, c, s){ const e = document.createElement(t); if(c) e.className = c;
   e.textContent = s == null ? "" : s; return e; }
 function byId(i){ return document.getElementById(i); }
+
+/* L'EN-TÊTE SE REPOSE, IL NE SE RECOMPOSE PAS.
+   Depuis le 16 août 2026 l'en-tête est écrit en Python — surtitre, identité,
+   verdict daté et son dénominateur — et rendu dans le fichier pour le
+   prélèvement affiché. Le navigateur n'en fabrique aucune phrase : quand le
+   lecteur change de date, il remplace le bloc écrit pour un prélèvement par
+   celui écrit pour un autre. La règle vaut au-delà de l'esthétique : ce qui
+   est composé en Python est relu par `tests/test_sorties.py`, ce qui serait
+   composé ici ne le serait pas.
+   `innerHTML` et non `textContent` : ces chaînes sont déjà échappées côté
+   Python et portent leur mise en forme (`<b>`, `<time>`). */
+function poserTete(t){
+  if(!t || !byId("f-titre")) return;
+  byId("f-surtitre").innerHTML = t.surtitre;
+  byId("f-titre").innerHTML = t.titre;
+  byId("f-chapo").innerHTML = t.chapo;
+  byId("f-identite").innerHTML = t.identite
+    .map(([k, v]) => "<div><dt>" + k + "</dt><dd>" + v + "</dd></div>").join("");
+  byId("f-verdict").className = "verdict-bloc verdict-bloc--" + t.verdict.mod;
+  byId("f-verdict-titre").innerHTML = t.verdict.titre;
+  byId("f-verdict-texte").innerHTML = t.verdict.texte;
+}
 function setPill(id, level, s){ const p = byId(id);
   p.className = "pill " + (level || "gris");
   p.querySelector("span:last-child").textContent = s; }
@@ -904,30 +926,15 @@ function renderDanger(d, zone){
 function render(k){
   CUR = k; detOnly = false; sigOnly = false;
   const d = C[k];
-  document.querySelectorAll("#switch button")
-    .forEach(b => b.setAttribute("aria-pressed", b.dataset.k === k));
+  document.querySelectorAll(".prelevements a[data-k]").forEach(a => {
+    if(a.dataset.k === k) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current"); });
 
-  byId("communeName").textContent = d.name;
-  byId("communeSub").textContent = d.sub;
-  byId("idEyebrow").textContent =
-    "Commune · INSEE " + d.insee + " · prélèvement du " + d.date;
+  poserTete(d.tete);
 
-  const meta = byId("meta");
-  meta.innerHTML = "";
-  d.meta.forEach(([kk, v]) => { const c = el("div");
-    c.appendChild(txt("span", "k", kk)); c.appendChild(txt("span", "v", v));
-    meta.appendChild(c); });
-
-  byId("concl").textContent = d.official.concl;
-  const axes = byId("axes");
-  axes.innerHTML = "";
-  d.official.axes.forEach(([n, val, lvl]) => {
-    const a = el("div", "axe " + (lvl || "gris"));
-    a.appendChild(el("span", "d"));
-    a.appendChild(txt("span", "n", n + " :"));
-    a.appendChild(txt("b", null, val));
-    axes.appendChild(a);
-  });
+  /* La conclusion de l'ARS n'est plus posée ici : elle est écrite en Python,
+     dans la colonne gauche de la double lecture. Elle y était rendue une
+     seconde fois, sous une autre forme, sur la même page. */
 
   /* Bandeaux — ce que l'habitant doit savoir avant de lire les chiffres. */
   const bx = byId("bandeaux");
@@ -973,20 +980,9 @@ function render(k){
      et la page Méthode le dit une fois pour toutes. Un bandeau qui répète sur
      678 fiches une phrase toujours identique cesse d'être une information. */
 
-  setPill("adminPill", d.admin.level, d.admin.v);
-  byId("adminDetail").textContent = d.admin.d || "";
-  byId("adminDetail").style.display = d.admin.d ? "" : "none";
-  /* La bande de bascule entre les deux lectures est la phrase de Yannick qui
-     dit ce qui SÉPARE le verdict administratif du verdict citoyen. Sans texte,
-     il n'y a rien à séparer : on retire la bande plutôt que d'afficher une
-     flèche seule, qui laisserait croire à un contenu manquant. */
-  byId("deltaText").innerHTML = d.delta || "";
-  byId("deltaText").closest(".delta").style.display = d.delta ? "" : "none";
-  setPill("citPill", d.cit.level, d.cit.v);
-  byId("citDetail").textContent = d.cit.d;
-
-  renderHero(d);
-  renderIndicateurs(d);
+  /* La double lecture, le bandeau de tête et les indicateurs sont écrits en
+     Python depuis le 16 août 2026. Les appels qui étaient ici les rendaient
+     une seconde fois dans la même page. */
 
   const an = byId("analyse");
   an.innerHTML = "";
@@ -1039,39 +1035,15 @@ byId("btnSig").addEventListener("click", function(){
 /* Le sélecteur de commune n'existe que sur la fiche autonome, qui rassemble
    plusieurs bulletins dans un seul fichier. Sur la vitrine, chaque commune a
    son adresse : il n'y a rien à commuter. */
-const sw = byId("switch");
-if(sw){
-  /* Les bulletins sont regroupés par POINT D'EAU, pas alignés par date.
-     Une commune en a souvent plusieurs, et ils ne donnent pas la même eau :
-     aux Arcs, Sainte Cécile est autour de 300 mg/L de sulfates et Les Cambres
-     autour de 150. Tant que les 33 boutons portaient tous « Les Arcs · date »,
-     rien ne le disait — la page se lisait comme si la commune n'avait qu'une
-     eau, et le §8bis n° 5 n'était pas tenu.
-     Le nom de la commune ne revient sur le bouton que si la fiche en réunit
-     plusieurs, ce qui n'arrive que sur la fiche autonome. */
-  const multiCommune = new Set(ORDER.map(k => C[k].name)).size > 1;
-  const groupes = [];
-  ORDER.forEach(k => {
-    const lib = C[k].pt || "Point d'eau non déclaré";
-    let g = groupes.find(x => x.lib === lib);
-    if(!g){ g = {lib: lib, cles: []}; groupes.push(g); }
-    g.cles.push(k);
-  });
-  groupes.forEach(g => {
-    /* txt() et non el() : le libellé vient de la base, il ne s'injecte pas
-       comme du HTML. */
-    if(groupes.length > 1) sw.appendChild(txt("span", "swlabel", g.lib));
-    g.cles.forEach(k => {
-      const d = C[k];
-      const b = el("button");
-      b.dataset.k = k;
-      b.title = (d.pt ? d.pt + " — " : "") + d.date;
-      b.appendChild(el("span", "sdot " + d.dot));
-      b.appendChild(document.createTextNode(
-        (multiCommune ? d.name + " · " : "") + d.date_courte));
-      b.addEventListener("click", () => render(k));
-      sw.appendChild(b);
-    });
-  });
-}
+/* La série des prélèvements est désormais rendue en Python
+   (`build_fiche.prelevements_html`) : elle est dans le fichier, donc lisible
+   sans JavaScript et visible du contrôle de charte. Il n'y a plus de boutons à
+   fabriquer ici, seulement à écouter.
+   Le groupement par POINT D'EAU a suivi le balisage et n'a pas été perdu :
+   une commune en a souvent plusieurs et ils ne donnent pas la même eau — aux
+   Arcs, Sainte Cécile tourne autour de 300 mg/L de sulfates et Les Cambres
+   autour de 150 (§8bis n° 5). */
+document.querySelectorAll(".prelevements a[data-k]").forEach(a => {
+  a.addEventListener("click", ev => { ev.preventDefault(); render(a.dataset.k); });
+});
 render(ORDER[0]);

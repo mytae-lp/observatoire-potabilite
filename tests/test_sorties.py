@@ -197,6 +197,24 @@ def prose_des_pages():
         return
     for f in sorted(os.listdir(dossier)):
         contenu = open(os.path.join(dossier, f), encoding="utf-8").read()
+
+        # CE QUE LE LECTEUR LIT, et pas seulement ce que la charge utile
+        # transporte. Ajouté le 16 août 2026, avec le portage de la fiche.
+        #
+        # Ces contrôles ne lisaient que le bloc JSON, parce que la fiche était
+        # entièrement fabriquée par `fiche.js` à partir de lui : la page, elle,
+        # était vide. Depuis que l'en-tête, la thèse, la double lecture, les
+        # indicateurs et les registres sont écrits en Python DANS la page, ce
+        # texte-là n'est plus dans la charge utile — et il sortait donc du
+        # champ des §2.2 et §2.11 au moment même où il devenait lisible.
+        #
+        # Les `<script>` sont retirés d'abord : le bloc JSON y figure et serait
+        # compté deux fois, avec ses échappements en prime.
+        visible = _sans_balises(re.sub(r"<script.*?</script>", "", contenu,
+                                       flags=re.S))
+        if visible.strip():
+            yield f, "page", "derive", visible
+
         bloc = BF.lire_commune_dans_page(contenu)
         if bloc is None:
             prose_des_pages.pages_illisibles += 1
