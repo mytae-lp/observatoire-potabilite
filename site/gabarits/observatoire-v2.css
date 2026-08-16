@@ -1178,6 +1178,18 @@ th[aria-sort="descending"] .th-tri::after { content: "↓"; opacity: 1; }
   border-radius: var(--r-md); padding: var(--e-6);
 }
 .piece--fournie { border-left-color: var(--eau); }
+/* L'étiquette des deux lectures de la fiche — « Lecture administrative » et
+   « Lecture citoyenne ». Elle portait sa couleur EN DUR dans le balisage,
+   `style="color:var(--eau-deep)"`, et `--eau-deep` reste sombre dans les deux
+   thèmes : sur fond sombre, le texte tombait à 1,04 de contraste, c'est-à-dire
+   invisible. C'est la décision D1 — aucune couleur hors jetons — et la raison
+   pour laquelle elle existe : une couleur posée à la main ne suit pas le thème.
+   `--eau` bascule, lui. */
+.lect .tag {
+  font-size: var(--t-xs); letter-spacing: .09em; text-transform: uppercase;
+  font-weight: 700; color: var(--eau);
+}
+
 .piece .tag {
   display: inline-flex; align-self: flex-start; gap: var(--e-2);
   font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;

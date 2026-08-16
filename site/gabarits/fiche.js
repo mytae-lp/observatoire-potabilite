@@ -188,51 +188,70 @@ function toCsv(){
    ce qui a été cherché, pas sur ce qui existe.
    --------------------------------------------------------------------------- */
 function jauge(valeur, s16, sApplicable, unite){
-  /* Trois repères sur une même règle : la limite de 2016, la mesure, la limite
-     d'aujourd'hui. L'échelle va jusqu'à 1,15 fois la plus grande des trois,
-     pour que le déplacement se voie sans écraser la mesure contre le bord.
+  /* La piste : une règle, trois zones, et les repères posés dessus.
 
-     La même jauge sert aux bascules ET aux dépassements. Pour un dépassement,
-     elle montre de combien la mesure franchit son seuil — et souvent, de
-     beaucoup plus loin encore, l'ancienne limite. */
+     ÉCHELLE. La limite d'aujourd'hui se pose à 90 % de la largeur, et c'est
+     elle qui fixe tout le reste. Ce n'est pas un choix graphique : il faut
+     qu'une mesure qui DÉPASSE cette limite ait encore de la place pour se
+     montrer à droite, sinon elle se plaque contre le bord et l'ampleur du
+     dépassement disparaît au moment où elle compte le plus. Une mesure très
+     au-delà est ramenée à 98 %, et son étiquette dit la vraie valeur.
+
+     TROIS ZONES, et elles portent la thèse du projet à elles seules :
+       vert     — sous la limite de 2016 : conforme aux DEUX grilles ;
+       violet   — entre les deux limites : c'est la bascule. Tout ce qui tombe
+                  là était non conforme hier et ne l'est plus ;
+       rouge    — au-delà de la limite d'aujourd'hui.
+     Quand les deux limites sont égales, il n'y a pas de zone violette : rien
+     ne s'est déplacé, et en dessiner une inventerait un écart.
+
+     La même piste sert aux bascules ET aux dépassements — pour un dépassement,
+     elle montre de combien la mesure franchit son seuil, et souvent de combien
+     plus loin encore elle franchissait l'ancien. */
   const v = parseFloat(String(valeur).replace(",", ".")),
         a = s16 == null ? NaN : parseFloat(String(s16).replace(",", ".")),
         b = parseFloat(String(sApplicable).replace(",", "."));
   if(!isFinite(v) || !isFinite(b) || b <= 0) return null;
   const u = unite ? " " + unite : "";
 
-  const bornes = [v, b].concat(isFinite(a) ? [a] : []);
-  const max = Math.max.apply(null, bornes) * 1.15;
-  const pc = x => Math.max(0, Math.min(100, (x / max) * 100));
+  const max = b / 0.9;
+  const pc = x => Math.max(0, Math.min(98, (x / max) * 100));
+  const pb = pc(b), pa = isFinite(a) ? pc(a) : null;
 
-  const g = el("div", "jauge" + (v > b ? " depasse" : ""));
-  const piste = el("div", "piste");
-  if(isFinite(a) && a < b){
-    /* La zone violette est l'écart entre les deux grilles : tout ce qui tombe
-       dedans était non conforme hier et ne l'est plus. */
-    const zone = el("div", "zone-bascule");
-    zone.style.left = pc(a) + "%";
-    zone.style.width = Math.max(0, pc(b) - pc(a)) + "%";
-    piste.appendChild(zone);
-  }
-  if(v > b){
-    const excede = el("div", "zone-depasse");
-    excede.style.left = pc(b) + "%";
-    excede.style.width = Math.max(0, pc(v) - pc(b)) + "%";
-    piste.appendChild(excede);
-  }
-  g.appendChild(piste);
+  const g = el("div", "piste");
+  g.setAttribute("role", "img");
+  g.setAttribute("aria-label",
+    "Mesure " + valeur + u + " : "
+    + (isFinite(a) && a < b && v > a
+        ? "au-dessus de la limite de " + s16 + " de 2016, "
+        : "")
+    + (v > b ? "au-dessus de" : "sous") + " la limite de " + sApplicable
+    + " d'aujourd'hui");
 
-  const rep = (x, cls, lab) => {
-    const m = el("div", "repere " + cls);
+  g.appendChild(el("div", "piste-rail"));
+
+  const zone = (cls, gauche, largeur) => {
+    if(largeur <= 0) return;
+    const z = el("div", "piste-zone piste-zone--" + cls);
+    z.style.left = gauche + "%";
+    z.style.width = largeur + "%";
+    g.appendChild(z);
+  };
+  const bas = pa !== null && pa < pb;      /* les deux limites diffèrent */
+  zone("deux", 0, bas ? pa : pb);
+  if(bas) zone("bascule", pa, pb - pa);
+  zone("hors", pb, 100 - pb);
+
+  const marque = (cls, x, lab) => {
+    const m = el("div", cls);
     m.style.left = pc(x) + "%";
-    m.appendChild(el("i"));
-    m.appendChild(txt("span", null, lab));
+    m.appendChild(txt("em", null, lab));
     g.appendChild(m);
   };
-  if(isFinite(a) && a !== b) rep(a, "s16", s16 + " en 2016");
-  rep(b, "sapp", sApplicable + " aujourd'hui");
-  rep(v, "mesure", valeur + u);
+  if(bas) marque("piste-lim", a, s16 + " — limite 2016");
+  marque("piste-lim", b, sApplicable + " — limite "
+         + (bas ? "d'aujourd'hui" : "de qualité"));
+  marque("piste-mes", v, valeur + u);
   return g;
 }
 

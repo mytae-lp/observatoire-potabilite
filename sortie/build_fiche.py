@@ -932,7 +932,23 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
     gabarit = open(os.path.join(ICI, "_template.html"), encoding="utf-8").read()
     j = lambda x: json.dumps(x, ensure_ascii=False)  # noqa: E731
     html = (gabarit
-            .replace("/*__CSS__*/", lire("observatoire.css"))
+            # La feuille v2, et les polices avec elle. La fiche autonome
+            # partage `fiche.js` avec la vitrine : elles produisent donc le
+            # MÊME balisage, et il leur faut la même feuille. Tant que celle-ci
+            # inlinait la v1, tout composant v2 y arrivait sans style — le
+            # `.piste` des bascules s'y affichait en trois blocs empilés sans
+            # rail ni couleur, alors qu'il était juste sur la vitrine. Le défaut
+            # ne se voyait pas en relisant le code : il fallait ouvrir le
+            # fichier produit.
+            #
+            # Les polices sont inlinées en second, avant la feuille, parce
+            # qu'un `@font-face` doit précéder ce qui l'emploie. Leurs `url()`
+            # restent relatives : dans un fichier transmis seul, la police
+            # retombe sur la pile système, et c'est le comportement voulu —
+            # `font-display: swap` le prévoit, et embarquer 121 ko de base64
+            # dans chaque fiche coûterait plus que ça ne rapporte.
+            .replace("/*__CSS__*/",
+                     lire("polices.css") + "\n" + lire("observatoire-v2.css"))
             .replace("<!--__CORPS__-->", lire("corps_fiche.html"))
             .replace("/*__FICHE_JS__*/", lire("fiche.js"))
             .replace("/*__KPI_LABELS__*/", "const KPI_LABELS=" + j(KPI_LABELS) + ";")
