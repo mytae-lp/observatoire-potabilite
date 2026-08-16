@@ -89,8 +89,18 @@ def main():
         page = ctx.new_page()
         for chemin in pages:
             page.goto(f"{base}/{chemin}", wait_until="load")
+            # Un `<details>` fermé garde son contenu dans le document — le
+            # navigateur l'y trouve au Ctrl+F, et un lecteur d'écran le lit en
+            # dépliant. Mais `innerText` ne le rend pas, et la mesure annonçait
+            # « repère absent » sur un texte parfaitement présent. On les ouvre
+            # le temps de lire, puis on les referme : le repli est un confort
+            # de lecture, pas une condition de présence.
+            page.evaluate("() => document.querySelectorAll('details')"
+                          ".forEach(d => d.open = true)")
             n = page.evaluate(TEXTE_VISIBLE)
             corps = page.inner_text("body")
+            page.evaluate("() => document.querySelectorAll('details')"
+                          ".forEach(d => d.open = false)")
 
             manquants = [m for m in _reperes_de(chemin) if m.lower() not in corps.lower()]
             if manquants:

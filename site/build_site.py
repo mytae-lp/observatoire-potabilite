@@ -255,6 +255,71 @@ def barre(page_courante, prefixe):
 </header>"""
 
 
+# Une photographie par page de navigation, et **la même à chaque visite**. Une
+# image tirée au hasard donnerait à la page une humeur variable ; la page
+# Méthode a *sa* photographie.
+#
+# Les fiches communales et les briefs de substance n'en ont aucune, et ce n'est
+# pas un oubli : une fiche rend un verdict sur l'eau de quelqu'un, elle s'ouvre
+# sur le nom de la commune et sur le verdict. Un brief sera tiré à plus de mille
+# exemplaires — une photographie par page en ferait une galerie, et coûterait
+# 200 ko à chaque ouverture pour une image qui ne dit rien de la molécule.
+#
+# Le crédit se lit **comme une source** — titre, date, heure, auteur, œuvre —
+# parce que c'est la grammaire du site : rien n'est publié sans sa provenance.
+# Les dates viennent de l'EXIF des originaux, pas du nom de fichier.
+BANDEAUX = {
+    "index.html":         ("bandeau-fils-rayonnants", "Fils de rosée", "29 juin 2022, 7 h 23"),
+    "carte.html":         ("bandeau-fil-unique", "Un fil, au matin", "9 juin 2022, 8 h 11"),
+    "communes.html":      ("bandeau-brin-perle", "Brin perlé", "1er juin 2022, 7 h 29"),
+    "substances.html":    ("bandeau-toile-grosses", "Toile chargée", "9 juin 2022, 8 h 14"),
+    "reclassements.html": ("bandeau-toile-doree", "Toile dorée", "13 juin 2022, 8 h 11"),
+    "methode.html":       ("bandeau-fil-lumiere", "Fil dans la lumière", "25 mai 2022, 7 h 51"),
+    "sources.html":       ("bandeau-plume", "Plume et rosée", "26 mai 2022, 9 h 15"),
+    "departement":        ("bandeau-serie-gouttes", "Sept gouttes sur une tige", "20 juin 2022, 12 h 05"),
+}
+
+
+def bandeau(cle, titre, sous_titre, fil, prefixe, formule=False):
+    """
+    Le bandeau photographique : la photo en fond, le texte par-dessus.
+
+    **La lisibilité tient à un filtre, pas à un dégradé.** C'est écrit dans la
+    feuille (`brightness(.52) saturate(1.25)` plus un voile uniforme léger), et
+    il ne faut pas y revenir : trois autres approches ont été essayées et
+    rejetées, dont un dégradé opaque qui produisait « un gros pâté bleu » et
+    faisait disparaître l'image.
+
+    `alt=""` : l'image est décorative, l'information est dans le crédit.
+    """
+    ref = BANDEAUX.get(cle)
+    if not ref:
+        return ""
+    fichier, oeuvre, quand = ref
+    return f"""<div class="accroche bandeau bandeau--photo">
+  <div class="bandeau-fond" aria-hidden="true">
+    <picture>
+      <source srcset="{prefixe}assets/{fichier}.webp" type="image/webp">
+      <img src="{prefixe}assets/{fichier}.jpg" alt="">
+    </picture>
+  </div>
+  <div class="bandeau-texte">
+    <div class="zone zone-large bandeau-i">
+      {fil_ariane(fil, prefixe)}
+      <div class="bandeau-txt">
+        <p class="surtitre">Observatoire de la potabilité réglementaire</p>
+        <h1>{h(titre)}</h1>
+        {f'<p class="chapo">{sous_titre}</p>' if sous_titre else ''}
+        {'<p class="formule">« Ce n\'est pas l\'eau qui est devenue potable. C\'est la limite qui a bougé. »</p>' if formule else ''}
+      </div>
+      <p class="bandeau-credit"><b>{h(oeuvre)}</b> — {h(quand)}.
+        Photographie Maude&nbsp;Mytae, série <em>Quand l'eau rencontre la terre</em>,
+        Éditions Mytae. Tous droits réservés.</p>
+    </div>
+  </div>
+</div>"""
+
+
 def pied(version, calcule_le, corpus=None):
     """Le pied : l'avertissement, les licences, et la traçabilité.
 
@@ -295,7 +360,7 @@ def pied(version, calcule_le, corpus=None):
 def page(titre, corps, page_courante, description, version, calcule_le,
          scripts="", sous_titre=None, formule=True, prefixe="", fil=None,
          largeur="std", titre_dans_corps=False, og_titre=None,
-         og_description=None, corpus=None):
+         og_description=None, corpus=None, cle_bandeau=None):
     """
     Le squelette commun, forme v2.
 
@@ -325,7 +390,19 @@ def page(titre, corps, page_courante, description, version, calcule_le,
     """
     zone = {"prose": "zone-prose", "std": "zone-std", "large": "zone-large"}[largeur]
 
-    accroche = "" if titre_dans_corps else f"""
+    # Le bandeau photographique, quand la page en a un. Il porte alors le fil
+    # d'Ariane et le `h1` : les deux sont dedans, sur la photo, pas au-dessus.
+    # Les pages qui n'en ont pas — fiches communales, briefs de substance —
+    # gardent l'accroche sobre, et c'est une décision éditoriale, pas un
+    # manque (cf. BANDEAUX).
+    photo = ("" if titre_dans_corps
+             else bandeau(cle_bandeau or page_courante, titre, sous_titre, fil,
+                          prefixe, formule))
+    if photo:
+        accroche, fil_hors_bandeau = photo, ""
+    else:
+        fil_hors_bandeau = fil_ariane(fil, prefixe)
+        accroche = "" if titre_dans_corps else f"""
 <div class="accroche">
   <div class="zone {zone}">
     <p class="surtitre">Observatoire de la potabilité réglementaire</p>
@@ -361,7 +438,7 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 </head>
 <body>
 {barre(page_courante, prefixe)}
-{fil_ariane(fil, prefixe)}
+{fil_hors_bandeau}
 {accroche}
 <main class="zone {zone} accroche-suite">
 {corps}
@@ -838,113 +915,321 @@ def carte_svg(lignes, largeur=920, depts=None, lien_dept=None, prefixe="",
 # ---------------------------------------------------------------------------
 # Les pages
 # ---------------------------------------------------------------------------
+REFUS = [
+    ("Interroger la norme, jamais accuser les acteurs.",
+     "Le sujet est la construction réglementaire du seuil — jamais l'agence de "
+     "santé, le distributeur, le maire ou l'agriculteur."),
+    ("Outil de conscience, pas de prescription.",
+     "Aucune marque, aucun produit, aucun conseil individuel, nulle part, pas "
+     "même en note."),
+    ("Aucune valeur écrite sans sa source,",
+     "et une source qui porte sur la substance d'à côté n'est pas une source."),
+    ("Aucun verdict sans son dénominateur.",
+     "« 323 substances notées sur 383 » accompagne toute conclusion."),
+    ("Aucune comparaison sans l'effort de recherche de chaque terme,",
+     "et un département se compare d'abord à lui-même."),
+    ("Aucune série dans le temps à liste variable",
+     "— sinon une baisse des recherches passe pour une baisse des détections."),
+    ("Un faux positif coûte plus cher qu'un faux négatif.",
+     "Dans le doute, le verdict n'est pas prononcé : il est listé comme "
+     "indéterminé."),
+    ("Un effet n'est jamais attribué à un texte qui lui est postérieur.",
+     "Une cause écrite après le fait qu'elle prétend expliquer n'est pas une "
+     "cause."),
+]
+
+# Les huit dossiers. Le chiffre de tête et le titre viennent de
+# COMMUNICATION_OBSERVATOIRE §2.6 ; l'ordre est le sien — le plus fort en tête,
+# l'erreur du projet en clôture, parce qu'annoncer l'aveu vaut mieux que de le
+# cacher au milieu.
+DOSSIERS = [
+    ("dossier--phare", "18 communes",
+     "Une conformité peut s'obtenir en cessant de mesurer",
+     "49 substances étaient en dépassement à la dernière analyse complète, et "
+     "n'ont plus été mesurées depuis au moins deux ans. Le « total des "
+     "pesticides » est une limite opposable, et c'est une somme : cesser d'en "
+     "mesurer les termes rend l'agrégat incalculable.",
+     "sujet le plus avancé · ouvert le 12 août 2026"),
+    ("dossier--bascule", None,
+     "Le déplacement des seuils",
+     "Des bulletins déclarés conformes aujourd'hui qui ne l'auraient pas été il "
+     "y a dix ans. Cas d'école : le chlorothalonil R471811, dont un "
+     "reclassement déplace deux verdicts le même jour — sa propre limite, et le "
+     "périmètre du total des pesticides dont il sort.",
+     "sujet fondateur"),
+    ("dossier--eau", "200 vs 700",
+     "On ne trouve que ce qu'on cherche",
+     "Une eau « correcte » sur 200 substances est une information plus faible "
+     "qu'une eau « moyenne » sur 700. Le nombre de substances recherchées n'est "
+     "pas un indicateur de qualité : c'est un indicateur d'effort. Sans cette "
+     "précaution, un territoire qui cherche bien passe pour un territoire qui "
+     "va mal.",
+     "effort de recherche"),
+    ("dossier--ambre", "627 → 344",
+     "La liste change, pas l'eau",
+     "Dans le Tarn, 298 substances disparaissent de la liste en trois semaines. "
+     "Mais la lecture naïve est fausse, et le projet l'a écartée lui-même : à "
+     "liste constante, le Tarn est plat sur onze ans. Le mécanisme est "
+     "administratif — la liste est régionale, et figée par les marchés "
+     "pluriannuels d'analyses.",
+     "rupture du panel 2019-2020"),
+    ("dossier--gris", None,
+     "Ce sur quoi rien ne se prononce",
+     "Des substances effectivement recherchées, effectivement mesurées, "
+     "qu'aucun texte ne compare à quoi que ce soit. Ce n'est pas un défaut du "
+     "projet : c'est un fait sur la norme. Une part massive de ce que les "
+     "laboratoires mesurent n'a aucune limite opposable en face.",
+     "trouvé le 12 août 2026"),
+    ("dossier--gris", "0 ≠ 0",
+     "Zéro n'est pas zéro",
+     "Un résultat à zéro signifie « en dessous de ce que le laboratoire sait "
+     "mesurer », jamais « absent ». Un laboratoire qui ne trouve rien ne mesure "
+     "pas zéro. Et il y a trois états, jamais deux : conforme, dépassement, et "
+     "<b>indéterminé</b>.",
+     "règle d'affichage"),
+    ("dossier--rouge", "6 / 6",
+     "Des substances sans aucune règle au monde",
+     "Six enquêtes de sourçage, six fois la même réponse : il n'existe nulle "
+     "part de valeur opposable à laquelle comparer cette mesure. Le projet a "
+     "refusé d'en choisir une — choisir une valeur, c'est produire le verdict "
+     "au lieu de le constater.",
+     "enquêtes rendues"),
+    ("dossier--aveu", "2 653 communes",
+     "Le mot employé fait partie du résultat",
+     "Le site écrivait « eau du réseau X » en désignant en réalité le "
+     "gestionnaire. Un même gestionnaire exploite souvent plusieurs réseaux, "
+     "qui ne distribuent pas la même eau. La phrase était sur 2 829 fiches ; "
+     "135 regroupements réunissaient des communes qui ne boivent pas la même "
+     "eau. Corrigé le jour même — et raconté ici.",
+     "erreur du projet, corrigée le 13 août 2026"),
+]
+
+
 def page_accueil(lignes, these, version, calcule_le, con):
-    n_analysees = sum(1 for c in lignes if c["statut"] == "analysee")
+    """
+    L'accueil : la question du lecteur, la réponse chiffrée, puis les portes.
+
+    La réécriture du lot 4 tient à un constat de la communication : le site
+    énonçait une méthode, puis faisait défiler avant de montrer qu'elle produit
+    quelque chose. **Une méthode sans résultat se lit comme une intention.** Le
+    résultat chiffré est donc dans le premier écran.
+
+    Tous les nombres sont **calculés**. Les maquettes les portaient en dur, et
+    ils étaient justes au 13 août 2026 ; ils ont vieilli en trois jours — le
+    corpus est passé de 25 284 à 34 823 analyses. Un chiffre d'accueil écrit à
+    la main est un chiffre faux à retardement.
+    """
     n_rattachees = sum(1 for c in lignes if c["statut"] == "rattachee_reseau")
     n_nondoc = sum(1 for c in lignes if c["statut"] == "non_documentee")
-    n_bascules = sum(c["nb_bascules"] or 0 for c in lignes)
-    n_depasse = sum(c["nb_depasse_applicable"] or 0 for c in lignes)
-    n_bulletins = con.execute(
-        "SELECT COUNT(*) FROM analyses_figees WHERE version_referentiel = ?"
-        + _filtre_dept()[0],
-        [version] + _filtre_dept()[1]).fetchone()[0]
+    n_documentees = sum(1 for c in lignes if c["statut"] != "non_documentee")
+
+    # Les totaux du CORPUS, pas de la dernière ligne de chaque commune. La
+    # version d'avant sommait `lignes`, qui ne porte qu'un bulletin par
+    # commune : elle sous-comptait tout ce que le corpus contient d'historique.
+    ou, args = _filtre_dept()
+    tot = con.execute(f"""
+        SELECT COUNT(*), COALESCE(SUM(nb_bascules), 0),
+               COALESCE(SUM(nb_depasse_applicable), 0),
+               COUNT(*) FILTER (WHERE est_complet AND nb_depasse_applicable = 0
+                                  AND nb_bascules > 0),
+               COUNT(DISTINCT dept)
+        FROM analyses_figees WHERE version_referentiel = ?{ou}
+    """, [version] + args).fetchone()
+    n_bulletins, n_bascules, n_depasse, n_these, n_depts = tot
+
+    def n(x):
+        return f"{x:,}".replace(",", " ")
 
     lignes_these = "".join(
         f"<tr><td><a href='commune/{h(t[1])}.html'>{h(t[0])}</a></td>"
         f"<td>{h(t[2])}</td><td class='num'>{h(BF._date_fr(t[3]))}</td>"
-        f"<td class='num'><b style='color:var(--bascule)'>{t[4]}</b></td>"
+        f"<td class='num'><b>{t[4]}</b></td>"
         f"<td class='num'>{t[5]} · {h(t[6])}</td>"
         f"<td class='num'>{t[7]} ({BF._nb(t[8])} %)</td></tr>"
-        for t in these)
+        for t in these[:12])
 
     bloc_these = f"""
-    <div class="tableau-communes">
+    <div class="tableau"><div class="tableau-defile">
       <table>
         <thead><tr><th>Commune</th><th>Dépt</th><th>Prélèvement</th>
-          <th>Bascules</th><th>Effort de recherche</th><th>Paramètres notés</th></tr></thead>
+          <th>Bascules</th><th>Effort de recherche</th><th>Substances notées</th></tr></thead>
         <tbody>{lignes_these}</tbody>
       </table>
-    </div>
-    <div class="rappel"><b>Comment lire ce tableau.</b> Chaque ligne est un bulletin
-      complet, sans aucun dépassement à la date où il a été prélevé, et qui comporte
-      pourtant au moins une mesure qui aurait dépassé la limite de 2016. L'eau n'a pas
-      changé entre les deux lectures : la limite, si. L'effort de recherche est affiché
-      parce qu'il conditionne tout le reste — on ne trouve que ce qu'on cherche.</div>
+    </div></div></div>
+    <p class="note note--gris"><b>Comment lire ce tableau.</b> Chaque ligne est un
+      bulletin complet, sans aucun dépassement à la date où il a été prélevé, et qui
+      comporte pourtant au moins une mesure qui aurait dépassé la limite de 2016. L'eau
+      n'a pas changé entre les deux lectures : la limite, si. L'effort de recherche est
+      affiché parce qu'il conditionne tout le reste — on ne trouve que ce qu'on
+      cherche.</p>
     """ if these else """
-    <div class="rappel">Aucun bulletin du corpus actuel ne présente cette configuration.
-      Ce n'est pas un résultat rassurant : c'est un corpus encore petit. La requête est
-      publiée telle quelle et se remplira à mesure de la collecte.</div>
+    <p class="note note--gris">Aucun bulletin du corpus actuel ne présente cette
+      configuration. Ce n'est pas un résultat rassurant : c'est un corpus encore petit.
+      La requête est publiée telle quelle et se remplira à mesure de la collecte.</p>
     """
 
+    cartes = "".join(
+        f'<article class="dossier {cl}">'
+        + (f'<div class="dossier-chiffre">{h(chiffre)}</div>' if chiffre else "")
+        + f'<h3>{h(titre)}</h3><p>{corps}</p>'
+        f'<p class="dossier-tag">{h(tag)}</p></article>'
+        for cl, chiffre, titre, corps, tag in DOSSIERS)
+
+    liste_refus = "".join(
+        f"<li><b>{h(fort)}</b> {suite}</li>" for fort, suite in REFUS)
+
     return f"""
-  <div class="recherche">
-    <h2>Quelle eau buvez-vous&nbsp;?</h2>
-    <p style="margin:0;font-size:14px;color:var(--ink-soft)">Entrez un code postal, un
-      code INSEE ou un nom de commune. La recherche se fait dans votre navigateur :
-      aucune requête n'est envoyée, et ce que vous cherchez ne nous est pas transmis.</p>
+  <p class="chapo">L'Observatoire sépare <b>la mesure</b>, qui est un fait physique, du
+    <b>verdict</b>, qui est une convention administrative datée. Chaque mesure publique
+    du contrôle sanitaire y est renotée contre trois grilles : celle de 2016, celle
+    d'aujourd'hui, et la plus protectrice identifiée dans le monde.</p>
+  <p>Il ne dit pas si votre eau est bonne. <b>Il dit contre quelle règle on l'a jugée, à
+    quelle date cette règle a été écrite, ce qu'on a cherché, ce qu'on n'a pas cherché,
+    et ce que l'analyse ne pouvait pas voir.</b></p>
+  <p>Sur les {n(n_bulletins)} analyses complètes du corpus, <b>{n(n_bascules)} mesures
+    dépassaient la limite de 2016 et ne dépassent pas celle de 2026</b>. Même eau, même
+    mesure, deux verdicts opposés.</p>
+
+  <div class="cherche">
+    <h2>Votre commune</h2>
     <div class="champ">
       <input id="q" type="search" inputmode="text" autocomplete="off"
-             placeholder="17100, Saintes, 28068…" aria-label="Code postal, code INSEE ou nom de commune">
+             placeholder="Code postal, code INSEE ou nom de commune"
+             aria-label="Code postal, code INSEE ou nom de commune">
     </div>
     <ul class="resultats" id="resultats"></ul>
-    <div class="aide">Le corpus ne couvre pas encore la France entière. Une commune
-      absente n'est pas une commune dont l'eau serait bonne : c'est une commune qui
-      n'a pas encore été collectée.</div>
+    <p class="aide">La recherche se fait dans votre navigateur : aucune requête n'est
+      envoyée, et ce que vous cherchez ne nous est pas transmis.</p>
+  </div>
+  <div class="deux-notes">
+    <p class="note note--gris"><b>Le corpus ne couvre pas encore la France entière, et
+      il n'y a aucun mystère à cela.</b> Cet observatoire est fait par une seule
+      personne, un citoyen concerné par la qualité de son eau, sur son temps, ses
+      ressources et son matériel — sans financement, public ou privé. Collecter un
+      département entier demande cinq à sept heures ; la collecte se poursuit,
+      département par département.</p>
+    <p class="note note--gris"><b>Ce qui est délibéré, en revanche, c'est de ne rien
+      publier à moitié.</b> Tant qu'un département n'est pas collecté en entier, il
+      n'apparaît pas ici : un département à moitié collecté ment davantage qu'un
+      département absent. Une commune absente n'est donc pas une commune dont l'eau
+      serait bonne — c'est une commune dont le tour n'est pas encore venu.</p>
   </div>
 
-  <section><h3 class="sec">Le corpus, en chiffres</h3>
-    <div class="chiffres">
-      <div class="chiffre"><div class="n">{n_analysees + n_rattachees}</div>
-        <div class="l">communes documentées<br>dont {n_rattachees} par le bulletin de leur réseau</div></div>
-      <div class="chiffre"><div class="n">{n_bulletins}</div>
-        <div class="l">bulletins complets analysés<br>plus de {SEUIL_COMPLET} paramètres chacun</div></div>
-      <div class="chiffre bascule"><div class="n">{n_bascules}</div>
-        <div class="l">bascules réglementaires<br>au-dessus de 2016, sous 2026</div></div>
-      <div class="chiffre rouge"><div class="n">{n_depasse}</div>
-        <div class="l">dépassements<br>à la date du prélèvement</div></div>
+  <section class="section"><h2>Le corpus au {h(BF._date_fr(calcule_le))}</h2>
+    <div class="nombres">
+      <div class="stat stat--bascule"><div class="num">{n(n_bascules)}</div>
+        <div class="lib"><b>mesures</b> · bascules réglementaires<br>
+          elles dépassaient la limite de 2016, elles ne dépassent pas celle de 2026.
+          Réparties dans {n(n_these)} bulletins déclarés conformes</div></div>
+      <div class="stat stat--rouge"><div class="num">{n(n_depasse)}</div>
+        <div class="lib"><b>mesures</b> · dépassements à la date<br>
+          au-dessus de la limite qui s'appliquait <b>le jour du prélèvement</b> — et non
+          de celle d'aujourd'hui</div></div>
     </div>
-    <div class="rappel"><b>Ces nombres ne se comparent pas d'une commune à l'autre.</b>
-      Une commune qui fait chercher 700 paramètres a mécaniquement plus de chances d'en
-      voir un dépasser qu'une commune qui en fait chercher 200 : comparer les comptes
-      bruts pénalise la transparence. Les comparaisons se font sur les taux, et l'effort
-      de recherche est affiché partout où elles apparaissent.
-      {f"<br><br>{n_nondoc} commune(s) du corpus sont <b>non documentées</b> : aucun bulletin complet, ni pour elles ni pour leur réseau. Ce n'est ni « conforme » ni « non conforme » — c'est une absence de donnée, et elle reste visible sur la carte." if n_nondoc else ""}</div>
+    <div class="nombres-socle">
+      <div class="stat-petit"><b>{n(n_documentees)} communes</b> documentées, dont
+        {n(n_rattachees)} par le bulletin de leur réseau</div>
+      <div class="stat-petit"><b>{n(n_bulletins)} analyses complètes</b>, plus de
+        {SEUIL_COMPLET} substances chacune, sur {n_depts} départements</div>
+    </div>
+    <p class="note note--gris"><b>Ces nombres ne se comparent pas d'une commune à
+      l'autre.</b> Une commune qui fait chercher 700 substances a mécaniquement plus de
+      chances d'en voir une dépasser qu'une commune qui en fait chercher 200 : comparer
+      les comptes bruts pénalise la transparence. Les comparaisons se font sur les taux,
+      et l'effort de recherche est affiché partout où elles apparaissent.</p>
+    {f'''<p class="note note--gris"><b>{n(n_nondoc)} communes</b> du corpus n'ont aucun
+      bulletin complet, ni pour elles ni pour leur réseau. Ce n'est ni « conforme » ni
+      « non conforme » — c'est une absence de donnée, et elle reste visible sur la
+      carte.</p>''' if n_nondoc else ""}
   </section>
 
-  <section><h3 class="sec">La requête qui porte la thèse</h3>
-    <p style="margin:0 0 12px;font-size:14px">Des bulletins <b>complets</b>, déclarés
-      <b>parfaitement conformes</b> aujourd'hui, et qui ne l'auraient pas été il y a dix
-      ans. C'est la démonstration matérielle du réétalonnage : ni une opinion, ni une
-      estimation — une mesure, deux grilles, deux verdicts.</p>
+  <section class="section"><h2>Sept mécanismes trouvés en chemin, et une erreur du projet</h2>
+    <p class="chapo">Aucun n'était visé au départ. Chacun est un sujet à lui seul, et
+      chacun porte sa date : le corpus grossit, et un chiffre sans sa date est un
+      chiffre faux.</p>
+    <div class="dossiers">{cartes}</div>
+  </section>
+
+  <section class="section">
+    <div class="figure-tete">
+      <h2>Conformes aujourd'hui, non conformes en 2016</h2>
+      <p class="chapo">Des bulletins <b>complets</b>, déclarés <b>parfaitement
+        conformes</b>, qui ne l'auraient pas été il y a dix ans. Ni une opinion, ni une
+        estimation : une mesure, deux grilles, deux verdicts. <b>Voici les douze
+        premières des {n(n_these)} lignes ; la requête qui les produit est publiée avec
+        la méthode.</b></p>
+    </div>
     {bloc_these}
   </section>
 
-  <section><h3 class="sec">Ce que cet outil est, et ce qu'il n'est pas</h3>
-    <div class="prose">
-      <h4>Il sépare la mesure du verdict</h4>
-      <p>Une mesure est un fait physique : <i>0,092 µg/L d'ESA métolachlore, le 14 mars
-        2025, à Saintes</i>. Ce fait ne change pas. Le verdict — « conforme » — est une
-        convention administrative, et elle change dans le temps. La même eau, avec la
-        même mesure, peut être non conforme en 2016 et conforme en 2026.</p>
-      <h4>Il interroge la norme, pas les acteurs</h4>
-      <p>Le sujet est la construction réglementaire du seuil. Ce n'est ni l'ARS, ni le
-        distributeur, ni le maire, ni l'agriculteur. Un exploitant qui respecte une
-        limite fixée par arrêté n'est pas en faute : c'est la limite qu'on examine.</p>
-      <h4>Ce n'est pas un outil de prescription</h4>
-      <p>Aucune recommandation de filtration, d'équipement, de traitement ou de produit
-        n'y figure, et il n'y en aura jamais — pas même en note. Si vous vous interrogez
-        sur votre eau, les interlocuteurs sont l'ARS de votre région, votre mairie, et
-        les données publiques Orobnat.</p>
-      <h4>Tout y est vérifiable</h4>
-      <p>Chaque chiffre est dérivé de la base, chaque seuil porte sa source et son
-        niveau de fiabilité, chaque écran porte la version de référentiel et la date de
-        calcul qui l'ont produit. Les données brutes et le référentiel sont
-        <a href="sources.html">téléchargeables</a>.</p>
+  <section class="section"><h2>Et maintenant ?</h2>
+    <p class="chapo">Ce que ces données permettent de faire — et ce qu'elles ne diront
+      jamais. L'Observatoire ne recommande rien : ni équipement, ni traitement, ni
+      produit, ni conduite individuelle. Il n'a pas d'avis sur votre robinet. Mais une
+      fois la fiche de votre commune lue, vous savez des choses précises et datées, et
+      ces choses se demandent.</p>
+    <div class="portes">
+      <div class="porte">
+        <h3>Vous habitez ici</h3>
+        <p>Lisez la fiche de votre commune jusqu'au bout, en particulier ce que
+          l'analyse n'a <b>pas</b> cherché. Puis, si vous voulez aller plus loin, ces
+          questions ont toutes une réponse publique :</p>
+        <ul>
+          <li>quelle est la liste des substances recherchées sur mon réseau, et depuis
+            quand est-elle celle-là ?</li>
+          <li>une substance déjà mesurée en dépassement chez moi est-elle toujours
+            recherchée aujourd'hui ?</li>
+          <li>quelles limites applicables à mon eau changeront de valeur à une date
+            déjà fixée ?</li>
+        </ul>
+        <p>Elles s'adressent à l'ARS de votre région, à votre mairie et à votre
+          exploitant, et elles portent sur des documents publics. Ce ne sont pas des
+          accusations : ce sont des <b>questions de dénombrement</b>.</p>
+      </div>
+      <div class="porte">
+        <h3>Vous êtes élu, association ou collectif</h3>
+        <p>Une commune, un syndicat des eaux, une association d'usagers peuvent obtenir
+          ce que l'Observatoire n'a pas encore : le <b>marché d'analyses</b> de leur
+          région, avec la liste de substances qui lui est annexée. C'est la pièce qui
+          manque pour passer d'une compatibilité à une démonstration.</p>
+        <p><b>Ce que l'Observatoire peut fournir :</b> l'extraction complète de votre
+          commune, de votre réseau ou de votre département, en CSV, avec la version du
+          référentiel qui l'a produite. Gratuitement, sous licence ouverte, sans
+          contrepartie.</p>
+      </div>
+      <div class="porte">
+        <h3>Vous enquêtez, vous enseignez, vous cherchez</h3>
+        <p>Toutes les données sont réutilisables, les seuils sont versionnés et
+          journalisés, et chaque bulletin publié porte la version du référentiel qui a
+          servi à le noter. Les requêtes qui produisent les chiffres de cette page sont
+          exposées avec la méthode.</p>
+        <p class="porte-liens"><a href="methode.html">La méthode</a> ·
+          <a href="sources.html">Sources &amp; licences</a> ·
+          <a href="substances.html">Le répertoire des substances</a></p>
+      </div>
     </div>
   </section>
+
+  <section class="section section--sombre">
+    <h2>Huit refus, écrits chacun après une erreur réellement commise</h2>
+    <p class="chapo">Ce ne sont pas des précautions décoratives. C'est ce qui rend le
+      travail contestable point par point — donc solide. <b>Si vous trouvez une entorse
+      à l'un de ces huit points sur ce site, écrivez-nous : la correction sera publiée,
+      datée, avec sa portée mesurée. C'est déjà arrivé.</b></p>
+    <ol class="refus">{liste_refus}</ol>
+  </section>
+
+  <section class="section signature">
+    <h2>Qui fait ça</h2>
+    <p>L'Observatoire est le travail d'une <b>personne seule</b>, un citoyen concerné
+      par la qualité de son eau, mené sur son temps et ses ressources propres — sans
+      financement public ni privé, sans publicité, sans partenariat industriel. Les
+      données viennent du contrôle sanitaire officiel (SISE-Eaux, ministère chargé de
+      la santé) ; le référentiel de seuils, la méthode et le code sont publiés sous
+      licence ouverte et versionnés. <b>Rien de ce qui est vendu ailleurs sur ce site
+      n'apparaît dans une fiche communale.</b></p>
+  </section>
 """
-
-
 def comptes_departements(con, version, lignes):
     """Par département : le nombre d'analyses complètes détenues, et le nombre
     de communes documentées. Ce sont les deux seuls nombres que la carte
@@ -1069,13 +1354,13 @@ def page_carte(lignes, version, calcule_le, comptes):
   </section>
 
   <section><h3 class="sec">{n_dept} département(s) documenté(s) — {total_b} analyses, {total_c} communes</h3>
-    <div class="tableau-communes">
+    <div class="tableau"><div class="tableau-defile">
       <table>
         <thead><tr><th>Département</th><th>Analyses complètes détenues</th>
           <th>Communes documentées</th></tr></thead>
         <tbody>{lig}</tbody>
       </table>
-    </div>
+    </div></div>
     <div class="rappel">Le tableau reprend la carte pour qui ne peut pas la voir, et
       il est dans l'ordre des codes — pas dans celui des nombres. Un classement de
       départements par nombre d'analyses se lirait comme un palmarès, alors qu'il ne
@@ -1326,14 +1611,14 @@ def page_communes(lignes, version, calcule_le):
 
     return f"""
   <section style="margin-top:0">
-    <div class="tableau-communes">
+    <div class="tableau"><div class="tableau-defile">
       <table>
         <thead><tr><th>Département</th><th>Communes documentées</th>
           <th>Non documentées</th><th>Effort de recherche</th>
           <th>Dépassements à la date</th><th>Bascules</th></tr></thead>
         <tbody>{"".join(lig)}</tbody>
       </table>
-    </div>
+    </div></div>
     <div class="rappel"><b>Un département n'a pas de verdict, et ce tableau n'en donne
       pas.</b> Les nombres d'une ligne sont des <b>sommes de bulletins</b> — chacun
       prélevé un jour donné, sur un point d'eau donné, et noté contre la grille en
@@ -1617,7 +1902,7 @@ def page_departement(dept, communes, version, calcule_le):
         </tr></thead>
         <tbody>{"".join(lig)}</tbody>
       </table>
-    </div></div>
+    </div></div></div>
     <div class="rappel"><b>Les colonnes chiffrées se trient</b>, par un clic sur leur
       titre, dans un sens puis dans l'autre. Un tri décroissant par dépassements met en
       tête les communes où une mesure a franchi le seuil applicable le jour du
@@ -2116,13 +2401,13 @@ def page_sources(con, version, calcule_le, exports):
   </div></section>
 
   <section><h3 class="sec">Référentiel — {len(ref)} paramètres</h3>
-    <div class="tableau-communes">
+    <div class="tableau"><div class="tableau-defile">
       <table>
         <thead><tr><th>Paramètre</th><th>Seuil 2016</th><th>Seuil 2026</th>
           <th>Seuil strict</th><th>Unité</th><th>Sources</th><th>Fiabilité</th></tr></thead>
         <tbody>{lignes}</tbody>
       </table>
-    </div>
+    </div></div>
   </section>
 """
 
@@ -2350,6 +2635,7 @@ def construire(destination=None, db=DB_PATH, depts=None):
             "Ce que le mot « conforme » ne dit pas sur l'eau du robinet : la même "
             "mesure, notée contre la norme de 2016, celle d'aujourd'hui, et la plus "
             "stricte au monde.", version, calcule_le,
+            formule=False,
             sous_titre="Un outil de conscience citoyenne, construit sur des données "
                        "ouvertes. Il sépare <b>la mesure</b>, qui est un fait, du "
                        "<b>verdict</b>, qui est une convention administrative datée.",
@@ -2564,7 +2850,8 @@ def pages_departements(lignes, version, calcule_le, public):
             sous_titre="Ce que l'Observatoire sait de l'eau de ce département — et "
                        "ce qu'il n'en sait pas. Un département n'a pas de verdict : "
                        "ce sont des bulletins datés, un par point d'eau.",
-            formule=False, prefixe="../",
+            formule=False, prefixe="../", largeur="large",
+            cle_bandeau="departement",
             fil=[("Accueil", "index.html"),
                  ("Les communes du corpus", "communes.html"),
                  (f"{nom} ({dept})", None)],
@@ -2656,7 +2943,7 @@ def fiches_communes(con, version, lignes, public):
             f"plus stricte au monde.",
             version, calcule_le=d0["calcule_le"],
             sous_titre=f"{h(d0['sub'])} — bulletin du {h(d0['date'])}",
-            formule=False, prefixe="../",
+            formule=False, prefixe="../", cle_bandeau="",
             fil=[("Accueil", "index.html"),
                  ("Les communes du corpus", "communes.html"),
                  (f"{_nom_dept(c['dept'])} ({c['dept']})",

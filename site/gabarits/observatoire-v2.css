@@ -1266,12 +1266,23 @@ th[aria-sort="descending"] .th-tri::after { content: "↓"; opacity: 1; }
 
 /* -- la photographie, en fond, visible ----------------------------------- */
 .bandeau-fond { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-.bandeau-fond > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* DIVERGENCE ASSUMÉE AVEC LA FEUILLE LIVRÉE — 16 août 2026.
+   Le sélecteur d'origine était `.bandeau-fond > img`, l'enfant direct. Les
+   maquettes posent en effet l'image directement dans le fond. Mais le §9.2 de
+   la consigne prescrit un `<picture>` autour, pour servir le WebP — qui divise
+   le poids par deux, 89 ko de JPEG contre 22 en WebP sur `fil-unique`. Avec le
+   `<picture>`, l'image n'est plus un enfant direct : le filtre ne s'appliquait
+   plus du tout, `filter` calculé à `none`, et seul le voile à 40 % restait.
+   Mesuré sur pixels réels : le crédit tombait à 3,93 contre 4,5 exigés, sur
+   les gouttes éclairées du bandeau départemental.
+   Le sélecteur est donc en descendant. À reporter dans la feuille de la charte,
+   sans quoi la prochaine livraison ramènera le défaut. */
+.bandeau-fond img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* C'est ce filtre qui rend le texte blanc lisible : il plafonne la luminance
    des hautes lumières de la photo. Un voile de dégradé ferait un aplat bleu ;
    un assombrissement garde l'image entière, elle reste une image. */
-.bandeau-fond > img { filter: brightness(.52) saturate(1.25) contrast(1.05); }
-.bandeau--chaud .bandeau-fond > img { filter: brightness(.5) saturate(1.2) contrast(1.05); }
+.bandeau-fond img { filter: brightness(.52) saturate(1.25) contrast(1.05); }
+.bandeau--chaud .bandeau-fond img { filter: brightness(.5) saturate(1.2) contrast(1.05); }
 /* Voile uniforme, léger : il donne l'unité de couleur, rien de plus. */
 .bandeau-fond::after {
   content: ""; position: absolute; inset: 0;
@@ -1284,7 +1295,11 @@ th[aria-sort="descending"] .th-tri::after { content: "↓"; opacity: 1; }
 .bandeau-txt { max-width: min(100%, 62ch); }
 .bandeau .fil { padding-block: 0 var(--e-4); }
 .bandeau .fil a { color: #FFFFFF; }
-.bandeau .surtitre { color: #C2F1F5; }
+/* Le §9.2 éclaircit « le surtitre et la citation » ; la feuille livrée ne
+   traitait que le surtitre. Posée sur la photographie, la citation gardait la
+   teinte d'eau du texte courant — mesurée à 1,09 sur pixels réels, contre 3
+   exigés à cette taille. Second report à faire dans la feuille de la charte. */
+.bandeau .surtitre, .bandeau .formule { color: #C2F1F5; }
 .bandeau .surtitre::before { background: #C2F1F5; }
 .bandeau h1, .bandeau h2 { color: #FFFFFF; }
 .bandeau .chapo { color: #FFFFFF; max-width: min(100%, 62ch); }
