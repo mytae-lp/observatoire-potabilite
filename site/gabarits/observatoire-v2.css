@@ -1556,3 +1556,113 @@ h3.sec + .bnote {
 .filtre-rep input:focus-visible { outline: 2px solid var(--eau); outline-offset: 1px; }
 .filtre-rep output { font-size: var(--t-sm); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) { .repertoire thead th { position: static; } }
+
+/* ===========================================================================
+   28. LE FORMULAIRE DE CONTACT
+   ===========================================================================
+   À ajouter à `observatoire-v2-systeme.css`. Ce bloc n'est employé que par
+   `contact.html` ; il est isolé pour pouvoir être posé — ou retiré — sans
+   toucher au reste de la feuille.
+
+   Deux partis pris qui ne sont pas cosmétiques :
+
+   · l'état d'envoi se montre en CSS pur, par `:target`. Le serveur renvoie
+     vers `contact.html#envoye` ou `#refuse`, et le bloc correspondant
+     apparaît. Aucun JavaScript n'est nécessaire pour savoir si le message est
+     parti — sur un site qui affiche « la recherche se fait dans votre
+     navigateur », un accusé de réception qui dépend d'un script serait une
+     incohérence ;
+
+   · le piège à robots (`.pot`) n'est pas un `type="hidden"`, que les robots
+     reconnaissent. C'est un champ ordinaire sorti du flux et retiré du
+     parcours clavier et du lecteur d'écran. Un humain ne le voit ni ne
+     l'atteint ; un robot qui remplit tout le remplit.
+   -------------------------------------------------------------------------- */
+.formulaire { max-width: 700px; }
+.champ-groupe { margin-bottom: var(--e-6); }
+.champ-groupe > label {
+  display: block; font-size: var(--t-sm); font-weight: 650;
+  color: var(--ink); margin-bottom: var(--e-2);
+}
+.champ-groupe .aide-champ {
+  display: block; font-size: var(--t-xs); color: var(--ink-soft);
+  margin: 0 0 var(--e-3); line-height: 1.5;
+}
+.champ-groupe input[type="text"],
+.champ-groupe input[type="email"],
+.champ-groupe select,
+.champ-groupe textarea {
+  width: 100%; font: inherit; font-size: var(--t-base);
+  color: var(--ink); background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--e-3) var(--e-4);
+}
+.champ-groupe textarea { min-height: 190px; resize: vertical; line-height: var(--lh-texte); }
+.champ-groupe select { appearance: none; padding-right: var(--e-8);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 22px) 55%, calc(100% - 16px) 55%;
+  background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
+.champ-groupe :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--eau); outline-offset: 1px; border-color: var(--eau);
+}
+.champ-groupe :is(input, textarea)::placeholder { color: var(--ink-faint); }
+.champ-groupe input:invalid:not(:placeholder-shown),
+.champ-groupe textarea:invalid:not(:placeholder-shown) { border-color: var(--rouge); }
+.champ-compteur { font-size: var(--t-xs); color: var(--ink-faint); float: right; }
+
+/* -- la case de consentement -------------------------------------------- */
+.champ-case { display: flex; gap: var(--e-3); align-items: flex-start; margin-bottom: var(--e-6); }
+.champ-case input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; flex: 0 0 auto;
+  accent-color: var(--eau); }
+.champ-case label { font-size: var(--t-sm); color: var(--ink-soft); line-height: 1.55; }
+.champ-case b { color: var(--ink); }
+
+/* -- le piège à robots : présent dans le HTML, absent pour l'humain ------ */
+.pot {
+  position: absolute !important; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%);
+  white-space: nowrap; border: 0;
+}
+
+/* -- le bouton d'envoi ---------------------------------------------------- */
+.bouton-envoi {
+  display: inline-flex; align-items: center; gap: var(--e-3);
+  font: inherit; font-size: var(--t-md); font-weight: 650;
+  background: var(--eau); color: #FFFFFF; border: 0;
+  padding: var(--e-4) var(--e-7); border-radius: var(--r-pastille);
+  cursor: pointer;
+}
+.bouton-envoi:hover { background: var(--eau-deep); }
+:root[data-theme="sombre"] .bouton-envoi { color: #061219; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .bouton-envoi { color: #061219; } }
+
+/* -- l'accusé de réception, en CSS pur ------------------------------------
+   Le serveur renvoie vers `#envoye` ou `#refuse` ; `:target` fait le reste. */
+.etat-envoi { display: none; scroll-margin-top: 80px; }
+.etat-envoi:target { display: block; }
+.etat-envoi p { margin: 0; }
+.etat-envoi h2 { font-size: var(--t-lg); margin: 0 0 var(--e-2); }
+#envoye { border-color: var(--vert); }
+#envoye h2 { color: var(--vert); }
+#refuse { border-color: var(--rouge); }
+#refuse h2 { color: var(--rouge); }
+/* Quand un état est affiché, le formulaire reste accessible en dessous :
+   un message refusé ne doit jamais faire perdre ce qui a été écrit. */
+
+/* -- les autres voies, qui ne sont pas un lot de consolation ------------- */
+.voies { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--e-5); }
+@media (max-width: 620px) {
+  .formulaire { max-width: none; }
+  .bouton-envoi { width: 100%; justify-content: center; }
+}
+
+/* -- la mise en page de la page de contact -------------------------------- */
+.grille-contact { display: grid; grid-template-columns: .85fr 1.15fr; gap: var(--e-8); align-items: start; }
+@media (max-width: 900px) { .grille-contact { grid-template-columns: 1fr; gap: var(--e-7); } }
+.refus-simple { list-style: none; padding: 0; margin: 0 0 var(--e-5); }
+.refus-simple li { position: relative; padding-left: var(--e-6); margin-bottom: var(--e-4);
+  font-size: var(--t-sm); color: var(--ink-soft); line-height: 1.6; }
+.refus-simple li::before { content: ""; position: absolute; left: 0; top: .55em;
+  width: 10px; height: 2px; background: var(--eau); }
+.refus-simple b { color: var(--ink); }

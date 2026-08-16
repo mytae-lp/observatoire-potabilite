@@ -1,0 +1,171 @@
+<div class="zone zone-large" style="padding-block:var(--e-8)">
+
+  <!-- ======================================================================
+       L'ACCUS&#201; DE R&#201;CEPTION, SANS JAVASCRIPT.
+       `contact.php` renvoie vers `contact.html#envoye` ou `#refuse` ; la
+       pseudo-classe `:target` r&#233;v&#232;le le bloc correspondant. Sur un site qui
+       affiche &#171;&nbsp;la recherche se fait dans votre navigateur&nbsp;&#187;, un accus&#233;
+       de r&#233;ception qui d&#233;pendrait d'un script serait une incoh&#233;rence.
+       ====================================================================== -->
+  <div class="note etat-envoi" id="envoye" role="status">
+    <h2>Le message est parti.</h2>
+    <p>Il arrive sur la bo&#238;te de l'Observatoire. La r&#233;ponse est &#233;crite par une seule
+      personne, sur son temps&nbsp;: comptez <b>quelques jours</b>, davantage en p&#233;riode de
+      collecte. <b>Si votre message signale une erreur, il passe devant.</b></p>
+  </div>
+
+  <div class="note etat-envoi" id="refuse" role="alert">
+    <h2>Le message n'est pas parti.</h2>
+    <p>Le formulaire a &#233;t&#233; refus&#233; c&#244;t&#233; serveur&nbsp;: un champ manquait, l'adresse
+      n'&#233;tait pas valide, ou l'envoi est arriv&#233; trop vite apr&#232;s l'ouverture de la page.
+      <b>Rien n'a &#233;t&#233; perdu&nbsp;: reprenez ci-dessous.</b> Si le refus se r&#233;p&#232;te,
+      &#233;crivez directement &#224; l'adresse donn&#233;e en bas de page.</p>
+  </div>
+
+  <div class="grille-contact">
+    <div>
+      <h2 class="sec">Ce qui aide vraiment</h2>
+      <p class="chapo" style="margin-bottom:var(--e-5)">L'Observatoire est tenu par une personne
+        seule. Quatre motifs re&#231;oivent une r&#233;ponse &#224; coup s&#251;r&nbsp;:</p>
+      <ul class="refus-simple">
+        <li><b>Une erreur dans une fiche ou un seuil.</b> Donnez la page et la ligne&nbsp;: c'est
+          le message le plus utile qu'on puisse recevoir, et il passe avant les autres.</li>
+        <li><b>Une source primaire.</b> Un arr&#234;t&#233;, un avis, une note de service qui date une
+          valeur&nbsp;: c'est exactement ce qui fait avancer le r&#233;f&#233;rentiel.</li>
+        <li><b>Un d&#233;partement &#224; collecter.</b> Dites lequel, et pourquoi maintenant.</li>
+        <li><b>Presse, &#233;lus, associations.</b> Pour comprendre une donn&#233;e avant de la
+          publier, ou organiser une session de lecture de bulletin.</li>
+      </ul>
+
+      <p class="bnote"><b>Ce que l'Observatoire ne peut pas faire.</b> Il ne rend pas d'avis
+        sanitaire, ne dit pas si une eau est bonne &#224; boire, et ne se substitue &#224; personne.
+        Pour une question sur votre eau, les interlocuteurs sont votre <b>ARS</b>, votre
+        <b>mairie</b> et les donn&#233;es publiques <b>Orobnat</b>.</p>
+      <p class="bnote">Pour un usage engageant &#8212; d&#233;marche administrative, litige, d&#233;cision
+        de sant&#233; &#8212; reportez-vous aux sources officielles. Voir aussi
+        <a href="methode.html">la m&#233;thode</a> et <a href="sources.html">les sources</a>.</p>
+    </div>
+
+    <div>
+      <h2 class="sec">Le formulaire</h2>
+
+      <!-- ==================================================================
+           Le formulaire poste vers `contact.php`, sur le M&#202;ME domaine.
+           Aucun service tiers, aucun captcha externe, aucun cookie&nbsp;: la
+           protection anti-robots est enti&#232;rement c&#244;t&#233; serveur, plus un
+           pi&#232;ge et un chronom&#232;tre pos&#233;s ici. Voir LISEZ-MOI-CONTACT.md.
+           ================================================================== -->
+      <form class="formulaire" action="contact.php" method="post" accept-charset="UTF-8"
+            novalidate>
+
+        <div class="champ-groupe">
+          <label for="nom">Votre nom <span aria-hidden="true">*</span></label>
+          <input id="nom" name="nom" type="text" required maxlength="80"
+                 autocomplete="name" placeholder="Pr&#233;nom et nom, ou nom d'organisation">
+        </div>
+
+        <div class="champ-groupe">
+          <label for="courriel">Votre adresse &#233;lectronique <span aria-hidden="true">*</span></label>
+          <span class="aide-champ">Elle ne sert qu'&#224; vous r&#233;pondre. Elle n'est
+            enregistr&#233;e nulle part, ni transmise &#224; personne.</span>
+          <input id="courriel" name="courriel" type="email" required maxlength="120"
+                 autocomplete="email" placeholder="vous@exemple.fr">
+        </div>
+
+        <div class="champ-groupe">
+          <label for="objet">Motif <span aria-hidden="true">*</span></label>
+          <select id="objet" name="objet" required>
+            <option value="">&#8212; choisissez &#8212;</option>
+            <option value="erreur">Signaler une erreur dans une fiche ou un seuil</option>
+            <option value="source">Verser une source primaire (arr&#234;t&#233;, avis, note)</option>
+            <option value="departement">Demander la collecte d'un d&#233;partement</option>
+            <option value="presse">Presse, &#233;lus, associations</option>
+            <option value="donnees">Question sur les donn&#233;es ou la m&#233;thode</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+
+        <div class="champ-groupe">
+          <label for="page">Page concern&#233;e</label>
+          <span class="aide-champ">Facultatif, mais tr&#232;s utile pour un signalement
+            d'erreur&nbsp;: collez l'adresse de la page.</span>
+          <input id="page" name="page" type="text" maxlength="200"
+                 placeholder="https://eau.yannick-mytae.fr/commune/28389.html">
+        </div>
+
+        <div class="champ-groupe">
+          <label for="message">Votre message <span aria-hidden="true">*</span></label>
+          <span class="aide-champ">De 20 &#224; 4&nbsp;000 caract&#232;res. Les liens sont
+            accept&#233;s, dans la limite d'un seul&nbsp;: c'est ce qui distingue un signalement
+            d'un envoi automatique.</span>
+          <textarea id="message" name="message" required minlength="20" maxlength="4000"
+                    placeholder="Dites ce que vous avez vu, o&#249;, et ce qui vous para&#238;t faux."></textarea>
+        </div>
+
+        <!-- Pi&#232;ge &#224; robots. Ce n'est pas un `type="hidden"`, que les robots
+             reconnaissent&nbsp;: c'est un champ ordinaire sorti du flux, retir&#233; du
+             parcours clavier et masqu&#233; aux lecteurs d'&#233;cran. Un humain ne le voit
+             ni ne l'atteint. S'il revient rempli, le message est jet&#233; en silence. -->
+        <div class="pot" aria-hidden="true">
+          <label for="site_web">Ne remplissez pas ce champ</label>
+          <input id="site_web" name="site_web" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <!-- Chronom&#232;tre. Pos&#233; par le navigateur &#224; l'ouverture de la page&nbsp;: un
+             envoi qui arrive moins de quatre secondes apr&#232;s est un envoi de robot.
+             Sans JavaScript, le champ reste vide et le serveur ne s'en sert pas&nbsp;:
+             un visiteur sans script n'est jamais bloqu&#233; pour cette raison. -->
+        <input type="hidden" name="ouvert_a" id="ouvert_a" value="">
+
+        <div class="champ-case">
+          <input id="accord" name="accord" type="checkbox" required value="1">
+          <label for="accord">J'accepte que mon nom, mon adresse &#233;lectronique et mon message
+            soient <b>transmis par courriel &#224; l'Observatoire</b> pour traiter ma demande.
+            Aucun stockage en base, aucun usage commercial, aucune transmission &#224; un tiers.</label>
+        </div>
+
+        <button class="bouton-envoi" type="submit">
+          Envoyer le message <span aria-hidden="true">&#8594;</span>
+        </button>
+
+        <p class="bnote" style="margin-top:var(--e-5)"><b>Ce formulaire n'emploie ni captcha, ni
+          service tiers, ni cookie.</b> La protection contre les envois automatiques est enti&#232;rement
+          port&#233;e par le serveur de ce site. Rien de ce que vous tapez ne sort d'ici avant que vous
+          n'appuyiez sur le bouton.</p>
+      </form>
+    </div>
+  </div>
+
+  <h2 class="sec" style="margin-top:var(--e-8)">Les autres voies</h2>
+  <div class="voies">
+    <div class="piece piece--fournie">
+      <span class="tag">Courriel direct</span>
+      <h3>Si le formulaire ne passe pas</h3>
+      <p>L'adresse est donn&#233;e en clair sur la page &#171;&nbsp;<a href="sources.html">Sources
+        &amp; donn&#233;es</a>&nbsp;&#187;. Le formulaire reste pr&#233;f&#233;rable&nbsp;: il achemine le motif
+        et la page concern&#233;e, ce qui fait gagner un aller-retour.</p>
+    </div>
+    <div class="piece">
+      <span class="tag">Votre eau</span>
+      <h3>ARS, mairie, Orobnat</h3>
+      <p>Pour une question sur la qualit&#233; de l'eau distribu&#233;e chez vous, ce sont les
+        interlocuteurs comp&#233;tents. L'Observatoire ne rend pas d'avis sanitaire.</p>
+    </div>
+    <div class="piece">
+      <span class="tag">R&#233;utilisation</span>
+      <h3>Reprendre les donn&#233;es</h3>
+      <p>Inutile d'&#233;crire pour cela&nbsp;: tout est t&#233;l&#233;chargeable et sous licence ouverte.
+        Voir <a href="sources.html">Sources &amp; donn&#233;es</a>.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* Le chronom&#232;tre, et rien d'autre. Trois lignes, aucune d&#233;pendance : la page
+   fonctionne enti&#232;rement sans elles &#8212; le serveur traite simplement le champ
+   vide comme &#171; pas d'information &#187;, jamais comme un motif de refus. */
+document.getElementById('ouvert_a').value = String(Date.now());
+</script>
+
+

@@ -66,7 +66,8 @@ REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 PAGES = [("index.html", "Accueil"), ("carte.html", "Collecte"),
          ("communes.html", "Communes"), ("substances.html", "Substances"),
          ("reclassements.html", "Reclassements"),
-         ("methode.html", "Méthode"), ("sources.html", "Sources & données")]
+         ("methode.html", "Méthode"), ("sources.html", "Sources & données"),
+         ("contact.html", "Contact")]
 
 
 # ---------------------------------------------------------------------------
@@ -2644,6 +2645,40 @@ def construire(destination=None, db=DB_PATH, depts=None):
             for f in sorted(os.listdir(source)):
                 shutil.copyfile(os.path.join(source, f),
                                 os.path.join(assets, f))
+
+        # --- la page de contact -------------------------------------------
+        # Son corps vit dans `gabarits/contact-corps.html` et non ici : c'est du
+        # HTML éditorial, pas de la composition, et il n'a rien à faire dans un
+        # fichier Python. Elle passe par `page()` comme les autres, et c'est le
+        # point : la version livrée portait sa propre barre de navigation
+        # recopiée à la main, qui aurait divergé de PAGES à la première entrée
+        # ajoutée, et appelait encore `observatoire.css` au lieu de la v2.
+        #
+        # `cle_bandeau` réutilise la photographie de la page Communes. La règle
+        # « une photographie par page de navigation » est donc entamée, mais
+        # l'alternative était pire : la page livrée datait le même cliché du
+        # 10 juin 2022 quand BANDEAUX le date du 1er juin, et les dates viennent
+        # de l'EXIF des originaux. Deux dates pour un même fichier, l'une des
+        # deux est fausse — on ne l'inscrit pas avant de savoir laquelle.
+        #
+        # `contact.php` est le SEUL fichier exécuté du site. Il est copié depuis
+        # `gabarits/` par la construction, donc suivi par le manifeste de
+        # `publier.py` : posé à la main sur le serveur, il aurait survécu aux
+        # publications sans jamais être mis à jour.
+        shutil.copyfile(os.path.join(GABARITS, "contact.php"),
+                        os.path.join(public, "contact.php"))
+        ecrire(os.path.join(public, "contact.html"), page(
+            "Écrire à l'Observatoire",
+            lire("contact-corps.html"),
+            "contact.html",
+            "Signaler une erreur, verser une source primaire, demander la "
+            "collecte d'un département. Formulaire sans captcha, sans service "
+            "tiers et sans cookie.", version, calcule_le,
+            formule=False, cle_bandeau="communes.html",
+            og_titre="Écrire à l'Observatoire",
+            sous_titre="Une erreur repérée, une source à verser, un département "
+                       "à collecter, une demande de la presse : <b>tout ce qui "
+                       "rend le travail plus juste est bienvenu.</b>"))
 
         ecrire(os.path.join(public, "index.html"), page(
             "Quelle eau buvez-vous ?",
