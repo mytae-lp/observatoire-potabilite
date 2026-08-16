@@ -2555,7 +2555,21 @@ def _poids(octets):
 
 
 # ---------------------------------------------------------------------------
-def construire(destination=None, db=DB_PATH, depts=None):
+def construire(destination=None, db=DB_PATH, depts=None, communes=None):
+    """
+    `communes` — un jeu de codes INSEE, et c'est un outil d'APERÇU, pas de
+    publication. Ajouté le 16 août 2026 : juger une fiche demandait jusque-là
+    de reconstruire le site entier, quatre heures, ou au mieux trois
+    départements, trente-cinq minutes. Pour regarder trois fiches, c'est un
+    prix qui décourage de regarder — et une forme qu'on ne regarde pas est une
+    forme qu'on publie sans la voir. C'est exactement ce qui vient d'arriver
+    aux fiches communales.
+
+    Le reste du site est produit normalement : l'accueil et les pages de
+    département continuent de lier TOUTES les communes, dont les fiches ne
+    seront pas écrites. Les liens y sont donc morts. C'est admis pour un
+    aperçu, et c'est pourquoi ce mode refuse d'écrire dans `site/public`.
+    """
     global DEPTS_PUBLIES
     # Sans `--depts`, on lit la source de vérité du dépôt plutôt que de publier
     # tout ce qui traîne dans la base. `--depts` reste possible pour un essai,
@@ -2935,6 +2949,8 @@ def fiches_communes(con, version, lignes, public):
         if c["statut"] == "non_documentee":
             continue
         insee = c["code_insee"]
+        if communes and insee not in communes:
+            continue
         rat = BF.rattachements(con, version, [insee]).get(insee)
         if rat:
             ligne = con.execute("""
@@ -3018,9 +3034,17 @@ def main():
     p.add_argument("--depts", help="départements à publier, séparés par des virgules "
                                    "(ex. 28,81,69,09,31). Défaut : tous ceux qui sont "
                                    "figés — à n'utiliser que si aucun n'est partiel.")
+    p.add_argument("--communes", help="APERÇU : ne rendre que ces codes INSEE, "
+                                      "séparés par des virgules. Exige --sortie — "
+                                      "un aperçu ne s'écrit jamais dans site/public.")
     a = p.parse_args()
     depts = [d.strip() for d in a.depts.split(",") if d.strip()] if a.depts else None
-    construire(destination=a.sortie, depts=depts)
+    communes = ({c.strip() for c in a.communes.split(",") if c.strip()}
+                if a.communes else None)
+    if communes and not a.sortie:
+        p.error("--communes exige --sortie : le site publié ne doit jamais "
+                "recevoir une construction partielle, ses liens seraient morts.")
+    construire(destination=a.sortie, depts=depts, communes=communes)
 
 
 if __name__ == "__main__":
