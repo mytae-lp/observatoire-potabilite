@@ -63,7 +63,7 @@ import indicateurs as IND  # noqa: E402
 GEOJSON = os.path.join(RACINE, "referentiel", "geo", "departements-simplifie.geojson")
 REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 
-PAGES = [("index.html", "Accueil"), ("carte.html", "Carte"),
+PAGES = [("index.html", "Accueil"), ("carte.html", "Collecte"),
          ("communes.html", "Communes"), ("substances.html", "Substances"),
          ("reclassements.html", "Reclassements"),
          ("methode.html", "Méthode"), ("sources.html", "Sources & données")]
@@ -530,17 +530,92 @@ def _centroide(anneau):
 # échelle continue : un département en porte 1 400 et un autre 1, et un dégradé
 # linéaire écraserait tout le monde sauf le premier. Les paliers sont affichés
 # en légende — une carte qui colorie sans dire ses seuils demande d'être crue.
-PALIERS_COUVERTURE = [(200, "c4"), (50, "c3"), (10, "c2"), (1, "c1")]
+# Les bornes de repli, avec la date du corpus qui les a produites — sans elle
+# on ne peut pas savoir qu'elles ont vieilli. Elles ne servent que si la
+# distribution est trop pauvre pour en calculer (moins de cinq départements).
+BORNES_REPLI = (750, 1200, 1700, 2500)
+BORNES_REPLI_DATE = "16 août 2026"
 
 
-def classe_couverture(n):
-    for seuil, classe in PALIERS_COUVERTURE:
-        if n >= seuil:
-            return classe
-    return "c0"
+def bornes_couverture(comptes):
+    """
+    Les quatre bornes des cinq classes de la carte, **calculées sur ce qu'elles
+    décrivent**.
+
+    Ce ne sont pas des seuils réglementaires : rien ne fixe qu'un département
+    « bien documenté » commence à 1 200 analyses. Ce sont des quintiles, et ils
+    doivent suivre le corpus — sans quoi ils cessent de discriminer sans que
+    rien ne le signale.
+
+    C'est exactement ce qui s'était produit : l'échelle d'origine — 1-9, 10-49,
+    50-199, 200 et plus — rangeait **21 départements sur 30 dans la même
+    classe**, alors qu'ils vont de 445 à 5 327 analyses. La carte avait cinq
+    couleurs et n'en montrait que deux. La consigne proposait de nouvelles
+    bornes fixes ; les calculer évite d'avoir à les refaire au prochain
+    département.
+
+    Les départements à **zéro** sont exclus du calcul : ils ont leur classe à
+    eux, `c0`, et les compter tirerait toutes les bornes vers le bas.
+    """
+    valeurs = sorted(d["bulletins"] for d in comptes.values() if d["bulletins"])
+    if len(valeurs) < 5:
+        return BORNES_REPLI
+
+    def quintile(p):
+        # Rang le plus proche, puis arrondi à un nombre qui se lit : une borne
+        # à 1 187 n'apprend rien de plus qu'une borne à 1 200, et se retient
+        # beaucoup moins bien.
+        #
+        # **Vers le haut, et jamais sous un pas.** Le corpus porte des
+        # départements à une ou deux analyses — une commune rapatriée seule,
+        # pas une collecte. Arrondir au plus proche ramenait la première borne
+        # à zéro, et la légende annonçait « moins de 0 analyses » sur une
+        # classe vide. Le plancher fait de cette première classe ce qu'elle
+        # doit être : les départements à peine effleurés.
+        v = valeurs[min(len(valeurs) - 1, int(round(p * (len(valeurs) - 1))))]
+        pas = 50 if v < 1000 else 100
+        return max(pas, -(-v // pas) * pas)
+
+    bornes = [quintile(p) for p in (.2, .4, .6, .8)]
+    # Deux quintiles peuvent tomber sur la même valeur si la distribution est
+    # tassée. On écarte alors les doublons plutôt que de produire une classe
+    # vide, qui ferait croire à un palier que personne n'occupe.
+    sorties = []
+    for b in bornes:
+        if not sorties or b > sorties[-1]:
+            sorties.append(b)
+    while len(sorties) < 4:
+        sorties.append(sorties[-1] + 1)
+    return tuple(sorties[:4])
 
 
-def carte_departements_svg(comptes, largeur=920, prefixe=""):
+def classe_couverture(n, bornes=BORNES_REPLI):
+    if not n:
+        return "c0"
+    for i, b in enumerate(bornes):
+        if n < b:
+            return f"c{i + 1}"
+    return "c5"
+
+
+def libelles_paliers(bornes):
+    """« moins de 750 », « 750 à 1 199 »… — la légende dit ses bornes.
+
+    Une carte qui colorie sans afficher ses seuils demande d'être crue, et
+    surtout : sans eux, personne ne peut voir qu'une échelle a cessé de
+    discriminer.
+    """
+    def n(x):
+        return f"{x:,}".replace(",", " ")
+    out = [("c1", f"moins de {n(bornes[0])} analyses")]
+    for i in range(len(bornes) - 1):
+        out.append((f"c{i + 2}", f"{n(bornes[i])} à {n(bornes[i + 1] - 1)}"))
+    out.append((f"c{len(bornes) + 1}", f"{n(bornes[-1])} et plus"))
+    out.append(("c0", "pas encore collecté"))
+    return out
+
+
+def carte_departements_svg(comptes, largeur=920, prefixe="", bornes=None):
     """
     La France par département, coloriée par le **nombre d'analyses** qu'on en
     détient — et rien d'autre.
@@ -560,6 +635,7 @@ def carte_departements_svg(comptes, largeur=920, prefixe=""):
     13 px pour des disques de 14 px de diamètre — réduire le rayon ne rattrapait
     rien, la densité des chefs-lieux restant la même.
     """
+    bornes = bornes or bornes_couverture(comptes)
     geo = geo_departements()
     if not geo:
         return ('<p class="rappel">Fond de carte absent — '
@@ -607,7 +683,8 @@ def carte_departements_svg(comptes, largeur=920, prefixe=""):
         titre = (f"{d['nom']} ({code}) — {n} analyse(s) complète(s), "
                  f"{nc} commune(s) documentée(s)" if n else
                  f"{d['nom']} ({code}) — pas encore collecté")
-        forme = f'<path class="dept {classe_couverture(n)}" d="{"".join(traces)}"/>'
+        forme = (f'<path class="dept {classe_couverture(n, bornes)}" '
+                 f'd="{"".join(traces)}"/>')
 
         # Le nombre, posé au centroïde — et seulement si le département est
         # assez grand pour l'accueillir. Un chiffre qui déborde de sa forme se
@@ -888,10 +965,31 @@ def comptes_departements(con, version, lignes):
 
 
 def page_carte(lignes, version, calcule_le, comptes):
-    svg = carte_departements_svg(comptes)
+    bornes = bornes_couverture(comptes)
+    svg = carte_departements_svg(comptes, bornes=bornes)
     total_b = sum(d["bulletins"] for d in comptes.values())
     total_c = sum(d["communes"] for d in comptes.values())
     n_dept = sum(1 for d in comptes.values() if d["bulletins"])
+
+    # Combien de départements dans chaque classe. C'est ce compte, et lui seul,
+    # qui permet de voir qu'une échelle a cessé de discriminer : l'échelle
+    # d'origine rangeait 21 départements sur 30 dans la même classe, et rien à
+    # l'écran ne le disait.
+    par_classe = {}
+    for d in comptes.values():
+        par_classe.setdefault(classe_couverture(d["bulletins"], bornes),
+                              []).append(d)
+    # **« Documenté » et « collecté » ne sont pas la même chose**, et la jauge
+    # ne doit compter que le second. Neuf départements du corpus portent une à
+    # trois analyses : une commune rapatriée seule, souvent pour éprouver un
+    # cas, jamais une collecte. Les faire entrer dans « X départements
+    # collectés en entier » serait une affirmation fausse — du même ordre que
+    # présenter une commune non documentée comme conforme.
+    n_metropole = 96
+    n_collectes = sum(1 for d in comptes.values()
+                      if d["bulletins"] >= bornes[0])
+    n_effleures = n_dept - n_collectes
+    n_reste = n_metropole - n_collectes
 
     lig = "".join(
         f"<tr><td><a href='departement/{h(code)}.html'>{h(_nom_dept(code))}</a>"
@@ -901,13 +999,32 @@ def page_carte(lignes, version, calcule_le, comptes):
         for code, d in sorted(comptes.items()) if d["bulletins"])
 
     paliers = "".join(
-        f'<span><i class="pal {classe}"></i> {libelle}</span>'
-        for classe, libelle in (
-            ("c1", "1 à 9 analyses"), ("c2", "10 à 49"), ("c3", "50 à 199"),
-            ("c4", "200 et plus"), ("c0", "pas encore collecté")))
+        f'<span><i class="pal {classe}"></i> {libelle} — '
+        f'<b>{len(par_classe.get(classe, []))}</b> département(s)</span>'
+        for classe, libelle in libelles_paliers(bornes))
 
+    part = 100 * n_collectes / n_metropole
+    effleures = (f" S'y ajoutent <b>{n_effleures}</b> départements où une ou "
+                 f"quelques communes seulement ont été rapatriées : ils "
+                 f"apparaissent sur la carte, mais ils ne sont pas collectés."
+                 if n_effleures else "")
     return f"""
   <section style="margin-top:0">
+    <div class="jauges">
+      <div class="jg jg--neutre" style="--pct:{part:.1f}%">
+        <div class="jg-lg"><span><b>{n_collectes} départements</b> collectés, sur
+          les <b>{n_metropole} de métropole</b></span><b>{part:.0f} %</b></div>
+        <div class="jg-piste"><em></em></div>
+      </div>
+    </div>
+    <p class="chapo"><b>{total_b}</b> analyses complètes, <b>{total_c}</b> communes
+      documentées. Il reste <b>{n_reste}</b> départements à collecter.{effleures}</p>
+    <div class="rappel"><b>Cette jauge n'est pas une jauge de seuil.</b> Une couverture
+      qui progresse n'est pas une limite dont on s'approche : elle n'a ni zone
+      d'approche à 85 %, ni repère plus strict, et elle n'est ni bonne ni mauvaise.
+      Réutiliser telle quelle la barre qui sert aux mesures serait un contresens — d'où
+      le modificateur qui lui retire l'un et l'autre.</div>
+
     <div class="carte-bloc">{svg}
       <div class="carte-legende paliers">{paliers}</div>
     </div>
@@ -918,15 +1035,37 @@ def page_carte(lignes, version, calcule_le, comptes):
       un jour donné sur un point d'eau donné et noté contre la grille en vigueur ce
       jour-là. Colorier un département en vert ou en rouge reviendrait à fabriquer une
       moyenne sans date, qui ne pourrait être comparée à aucune norme.</div>
-    <div class="rappel"><b>Un département foncé n'est pas un département en mauvais
-      état : c'est un département bien documenté.</b> La lecture se fait donc à
-      l'envers de l'habitude. Un département clair ou blanc n'a pas une eau meilleure —
-      il n'a pas encore été collecté, et l'absence de donnée n'est pas une bonne
+    <div class="rappel"><b>Un département fortement coloré n'est pas un département en
+      mauvais état : c'est un département bien documenté.</b> La lecture se fait donc à
+      l'envers de l'habitude. Un département pâle ou vide n'a pas une eau meilleure — il
+      n'a pas encore été collecté, et l'absence de donnée n'est pas une bonne
       nouvelle.</div>
+    <div class="rappel"><b>Les bornes de la légende suivent le corpus, elles ne sont pas
+      des seuils.</b> Rien ne fixe qu'un département « bien documenté » commence à telle
+      valeur : ce sont des quintiles, recalculés à chaque construction. Le compte de
+      chaque classe est affiché à côté — sans lui, on ne peut pas voir qu'une échelle a
+      cessé de discriminer, ce qui est précisément arrivé à la précédente.</div>
     <div class="rappel"><b>Cliquez un département coloré</b> pour ouvrir sa page : la
       liste alphabétique de ses communes, ses gestionnaires déclarés, et le détail de
       chaque bulletin. Les départements non collectés ne mènent nulle part — un lien y
       serait une promesse que le corpus ne tient pas.</div>
+  </section>
+
+  <section><h3 class="sec">Pourquoi ce n'est pas plus</h3>
+    <div class="prose">
+      <p>La question se pose ici, et pas ailleurs : c'est en voyant son département
+        vide qu'on se la pose. <b>L'Observatoire est tenu par une personne.</b> Chaque
+        département demande cinq à sept heures — moissonner les bulletins commune par
+        commune en respectant le débit d'un service public gratuit, les verser, les
+        figer contre le référentiel daté, puis construire et publier.</p>
+      <p>Ce n'est donc pas un choix éditorial : aucun département n'a été écarté, aucun
+        n'a été jugé moins intéressant qu'un autre. <b>L'ordre de collecte est l'ordre
+        dans lequel le travail a pu se faire</b>, et le tableau ci-dessous est rangé par
+        code pour que rien n'y ressemble à un palmarès.</p>
+      <p>Un département absent n'est pas un département sans problème. C'est un
+        département dont nous ne savons rien — et sur ce site, ces deux choses ne se
+        confondent jamais.</p>
+    </div>
   </section>
 
   <section><h3 class="sec">{n_dept} département(s) documenté(s) — {total_b} analyses, {total_c} communes</h3>
@@ -1232,19 +1371,49 @@ def bloc_arretes(dept, nom_dept):
     même mécanique.
     """
     return f"""
-  <section><h3 class="sec">Arrêtés préfectoraux — {h(nom_dept)}</h3>
-    <div class="bandeau nonredige">
-      <span class="ic">◻</span>
-      <div><b>L'Observatoire ne détient pas encore ces actes pour ce département.</b>
-        Cette section est vide, et elle le restera tant qu'ils n'auront pas été
-        collectés. Une section absente aurait laissé croire qu'il n'y a rien à
-        savoir ; il y a quelque chose à savoir, et nous ne l'avons pas encore.</div>
+  <section class="section"><h2>Deux documents publics diraient ce que cette page ne peut pas dire</h2>
+    <p class="chapo">Ce ne sont pas des lacunes de la collecte : ces documents existent,
+      ils sont publics, et ils ne sont pas dans les données d'analyse. Les nommer vaut
+      mieux que laisser croire que le bulletin dit tout.</p>
+
+    <div class="pieces">
+      <div class="piece">
+        <h3>Le marché d'analyses de la région</h3>
+        <p>Il fixe <b>quelles substances le laboratoire doit chercher</b>, et à quelle
+          finesse. C'est lui, et non l'état de la ressource, qui explique qu'un
+          département cherche 627 paramètres et un autre 234 — et qu'un même
+          département en cherche deux fois moins qu'il y a six ans.</p>
+        <p class="note note--gris"><b>Non détenu.</b> Ces marchés sont publiés au profil
+          d'acheteur de chaque agence régionale de santé, en pièces jointes, sans format
+          commun.</p>
+      </div>
+      <div class="piece">
+        <h3>Les arrêtés préfectoraux de {h(nom_dept)}</h3>
+        <p>Ils portent les <b>décisions</b> prises après un dépassement : mesures
+          correctives, restriction d'usage, interruption de distribution, et surtout les
+          <b>dérogations</b> qui autorisent une eau à rester au-dessus d'une limite.</p>
+        <p class="note note--gris"><b>Non détenus.</b> Le contrôle sanitaire publie des
+          mesures, pas des décisions. Les arrêtés paraissent au recueil des actes
+          administratifs de la préfecture, en PDF, sans format commun d'un département
+          à l'autre.</p>
+      </div>
     </div>
-    <div class="prose">
-      <h4>Ce qu'un arrêté préfectoral peut décider sur l'eau</h4>
-      <p>Un dépassement de limite de qualité n'aboutit pas seulement à une mention sur
-        un bulletin. Il ouvre une procédure, et cette procédure produit des actes
-        écrits qui ne figurent nulle part dans les données d'analyse.</p>
+
+    <div class="verdict-bloc verdict-bloc--bascule">
+      <h2>Une eau peut légalement rester au-dessus d'une limite pendant six ans</h2>
+      <p>Lorsque les mesures correctives n'ont pas suffi, le préfet peut accorder une
+        <b>dérogation</b> : trois ans au maximum, renouvelable une fois dans des
+        circonstances exceptionnelles. La possibilité d'une troisième a été
+        <b>abrogée</b> — quelqu'un a jugé, à un moment, qu'elle était de trop.</p>
+      <p><b>Conséquence directe pour cette page :</b> un bulletin déclaré conforme peut
+        l'être au regard de la limite ordinaire, ou au regard d'une dérogation qui l'a
+        temporairement déplacée pour cette commune-là. <b>Nous ne pouvons pas
+        distinguer les deux</b>, et aucun chiffre de ce site ne prétend le faire. La
+        question se pose à l'agence régionale de santé et à la préfecture.</p>
+    </div>
+
+    <details class="plus">
+      <summary>Afficher les 8 articles qui organisent cette procédure</summary>
       <table><thead><tr><th>Article</th><th>Ce que le texte prévoit</th></tr></thead><tbody>
         <tr><td><code>R1321-26</code></td><td>Tout dépassement d'une limite de qualité est <b>signalé immédiatement au maire et à l'agence régionale de santé</b>, et une enquête est menée.</td></tr>
         <tr><td><code>R1321-27</code></td><td>La personne responsable de la distribution prend <b>« le plus rapidement possible les mesures correctives nécessaires »</b>, quelle qu'en soit la cause.</td></tr>
@@ -1255,24 +1424,18 @@ def bloc_arretes(dept, nom_dept):
         <tr><td><code>R1321-34</code></td><td><b>Abrogé</b> — la possibilité d'une troisième dérogation a été supprimée.</td></tr>
         <tr><td><code>R1321-35</code></td><td>Un <b>bilan</b> est obligatoire à l'issue de chaque période dérogatoire.</td></tr>
       </tbody></table>
-      <p>Autrement dit : <b>une eau peut légalement rester au-dessus d'une limite
-        pendant six ans au maximum</b>, sur décision écrite, motivée et bornée. C'est
-        le pendant exact de ce que cet observatoire documente par ailleurs — la limite
-        se déplace dans le temps, et l'eau peut aussi être autorisée à rester
-        au-dessus d'elle pour une durée fixée.</p>
+      <p class="note note--gris">Le pendant exact de ce que cet observatoire documente
+        par ailleurs : la limite se déplace dans le temps, et l'eau peut aussi être
+        autorisée à rester au-dessus d'elle, pour une durée écrite.</p>
+    </details>
 
-      <h4>Pourquoi ces actes ne sont pas dans nos données</h4>
-      <p>Le contrôle sanitaire publie des <b>mesures</b> ; il ne publie pas les
-        <b>décisions</b> prises à leur suite. Les arrêtés préfectoraux paraissent au
-        recueil des actes administratifs de chaque préfecture, en PDF, sans format
-        commun d'un département à l'autre. Les collecter est un travail d'une autre
-        nature que l'interrogation d'une base d'analyses, et il reste à faire.</p>
-      <p><b>Conséquence à garder en tête en lisant les pages qui suivent :</b> un
-        bulletin déclaré conforme peut l'être au regard de la limite ordinaire, ou au
-        regard d'une dérogation qui l'a temporairement déplacée pour cette commune-là.
-        <b>Nous ne pouvons pas distinguer les deux</b>, et aucun chiffre de ce site ne
-        prétend le faire. La question se pose à l'agence régionale de santé et à la
-        préfecture, dont c'est l'information.</p>
+    <div class="piece piece--fournie">
+      <h3>Ce que l'Observatoire fournit, lui</h3>
+      <p>Tout ce qui est affiché sur cette page est dérivé de fichiers publics et
+        <b>téléchargeable</b> : un bulletin par ligne, le détail paramètre par
+        paramètre avec le seuil applicable à sa date, le statut de chaque commune, et
+        le référentiel daté de seuils qui a servi à noter.</p>
+      <p><a class="lien-fort" href="../sources.html">Les données et leurs licences</a></p>
     </div>
   </section>
 """
@@ -1388,22 +1551,27 @@ def page_departement(dept, communes, version, calcule_le):
     index = "".join(f'<a href="#l-{h(i)}">{h(i)}</a>' for i in vues)
 
     return f"""
-  <section style="margin-top:0">
-    <div class="chiffres">
-      <div class="chiffre"><div class="n">{n_ana + n_rat}</div>
-        <div class="l">communes documentées<br>dont {n_rat} par le bulletin de leur réseau</div></div>
-      <div class="chiffre"><div class="n">{n_nd}</div>
-        <div class="l">communes non documentées<br>ni bulletin propre, ni bulletin de réseau</div></div>
-      <div class="chiffre bascule"><div class="n">{n_bas}</div>
-        <div class="l">bascules réglementaires<br>au-dessus de 2016, sous 2026</div></div>
-      <div class="chiffre rouge"><div class="n">{n_dep}</div>
-        <div class="l">dépassements<br>à la date du prélèvement</div></div>
+  <div class="fiche-tete fiche-tete--seule">
+    <div class="verdict-bloc verdict-bloc--indetermine">
+      <h2>Cette page ne classe pas ce département</h2>
+      <p>Un département n'a pas de verdict. Il a des <b>bulletins</b>, chacun prélevé un
+        jour donné sur un point d'eau donné, et noté contre la grille en vigueur ce
+        jour-là. Les nombres ci-dessous sont des <b>sommes</b> : ils disent ce que l'on
+        sait de ce territoire, jamais l'état de son eau.</p>
     </div>
-  </section>
+    <div class="nombres">
+      <div class="stat"><div class="num">{n_ana + n_rat}</div>
+        <div class="lib">communes documentées<br>dont {n_rat} par le bulletin de leur réseau</div></div>
+      <div class="stat"><div class="num">{n_nd}</div>
+        <div class="lib">communes non documentées<br>ni bulletin propre, ni bulletin de réseau</div></div>
+      <div class="stat stat--bascule"><div class="num">{n_bas}</div>
+        <div class="lib">bascules réglementaires<br>au-dessus de 2016, sous 2026</div></div>
+      <div class="stat stat--rouge"><div class="num">{n_dep}</div>
+        <div class="lib">dépassements<br>à la date du prélèvement</div></div>
+    </div>
+  </div>
 
-  {bloc_arretes(dept, nom_dept)}
-
-  <section><h3 class="sec">Où se concentre ce que l'on sait</h3>
+  <section class="section"><h2>Où se concentre ce que l'on sait</h2>
     <div class="carte-bloc">{svg}
       {legende_carte(n)}
     </div>
@@ -1417,7 +1585,7 @@ def page_departement(dept, communes, version, calcule_le):
       de connaissance, pas à pointer un nom.</div>
   </section>
 
-  <section><h3 class="sec">Trouver votre commune</h3>
+  <section class="section"><h2>Trouver votre commune</h2>
     <div class="recherche-dept">
       <input id="q-dept" type="search" inputmode="text" autocomplete="off"
              placeholder="Nom de commune ou code postal — {h(exemple_cp)}"
@@ -1431,9 +1599,9 @@ def page_departement(dept, communes, version, calcule_le):
       pour être lisible.</div>
   </section>
 
-  <section><h3 class="sec">Les {len(communes)} communes, par ordre alphabétique</h3>
+  <section class="section"><h2>Les {len(communes)} communes, par ordre alphabétique</h2>
     <nav class="index-alpha" id="index-alpha" aria-label="Aller à une lettre">{index}</nav>
-    <div class="tableau-communes large">
+    <div class="tableau tableau--annuaire"><div class="tableau-defile">
       <table id="tbl-communes">
         <thead><tr>
           <th aria-sort="ascending" data-tri="nom" data-type="texte">Commune</th>
@@ -1449,7 +1617,7 @@ def page_departement(dept, communes, version, calcule_le):
         </tr></thead>
         <tbody>{"".join(lig)}</tbody>
       </table>
-    </div>
+    </div></div>
     <div class="rappel"><b>Les colonnes chiffrées se trient</b>, par un clic sur leur
       titre, dans un sens puis dans l'autre. Un tri décroissant par dépassements met en
       tête les communes où une mesure a franchi le seuil applicable le jour du
@@ -1484,6 +1652,8 @@ def page_departement(dept, communes, version, calcule_le):
   </section>
 
   {bloc_uge}
+
+  {bloc_arretes(dept, nom_dept)}
 """
 
 
@@ -2186,16 +2356,17 @@ def construire(destination=None, db=DB_PATH, depts=None):
             scripts=f'<script src="assets/{empreinte("recherche.js")}"></script>'))
 
         ecrire(os.path.join(public, "carte.html"), page(
-            "Carte de couverture",
+            "Où en est la collecte",
             page_carte(lignes, version, calcule_le, comptes), "carte.html",
             "Combien d'analyses complètes l'Observatoire détient dans chaque "
-            "département — une carte de ce que l'on sait, pas de ce que l'on a "
-            "trouvé.", version, calcule_le,
-            sous_titre="Chaque département porte le <b>nombre d'analyses complètes</b> "
-                       "que nous en détenons. Un département n'a pas de verdict : la "
-                       "couleur dit l'effort de connaissance, jamais la qualité de "
-                       "l'eau.", formule=False,
-            fil=[("Accueil", "index.html"), ("Carte de couverture", None)]))
+            "département — l'avancement d'un travail, pas une carte de la qualité "
+            "de l'eau.", version, calcule_le,
+            sous_titre="Ce que montre cette page n'est pas l'état de l'eau, c'est "
+                       "<b>l'avancement d'un travail</b>. Chaque département porte le "
+                       "nombre d'analyses complètes que nous en détenons.",
+            formule=False, largeur="large",
+            og_titre="Où en est la collecte de l'Observatoire",
+            fil=[("Accueil", "index.html"), ("Où en est la collecte", None)]))
 
         ecrire(os.path.join(public, "communes.html"), page(
             "Les communes du corpus",
