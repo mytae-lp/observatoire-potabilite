@@ -4002,3 +4002,333 @@ rendre une eau distribuée propre. **Il faut accepter que le résultat soit
   interdit explicitement pendant une campagne. Coût : le refigeage complet de
   11 h au lieu d'un incrémental de 4 h. Ce n'est pas une faute de calcul, c'est
   un défaut de coordination, et il est maintenant chiffré.
+
+---
+
+## 27. Mise à jour du 15 août 2026 — la fiche disait une eau là où la commune en a trois
+
+Point de départ : Yannick compare notre fiche des Arcs (83004) à celle de **Mon
+Eau Nette**, qui a nettement évolué depuis la note du 6 août — le site a
+maintenant une page d'**historique par substance** et **sépare les réseaux**.
+Son constat : « de notre côté, la fiche ne parle que de l'adduction de Ste
+Roseline ». Il avait raison sur ce qu'on donne à voir, et pour une raison qui
+n'était pas celle qu'on pouvait croire.
+
+### 27.1 Ce qui n'allait pas — deux défauts, pas un
+
+**La donnée était là.** 33 bulletins complets pour Les Arcs, de 2016 à 2026,
+sur **trois points d'eau** : `STATION LE PEICAL`, `BASSIN LES CAMBRES`,
+`STATION SAINTE CECILE`. Rien ne manquait à la collecte.
+
+1. **Le sélecteur de bulletins ne portait pas le point d'eau.** Il écrivait
+   `d.name + " · " + d.date_courte`, où `name` est le nom de la **commune** :
+   33 boutons « Les Arcs · une date », strictement indiscernables. L'en-tête
+   nommait le réseau du bulletin de tête — et le bulletin le plus récent, celui
+   du 19 mai 2026, est justement **le seul dont l'installation amont n'est pas
+   déclarée** : il ne porte que `ADDUCTION STE ROSELINE (PEICAL)`. D'où la
+   lecture « cette commune, c'est Ste Roseline ». Le §8bis n° 5 — *dire où
+   l'analyse a été prélevée* — n'était pas tenu sur les fiches multi-captages.
+
+2. **Un bulletin sur deux disparaissait en cas de prélèvements le même jour.**
+   La clé du dictionnaire de bulletins était `f"{insee}-{date}"`, aux deux
+   endroits qui la fabriquent (`site/build_site.py`, `sortie/build_fiche.py`).
+   Aux Arcs, **le 1er mars 2024, Les Cambres et Sainte Cécile sont tous deux
+   prélevés** : la seconde entrée écrasait la première, `ORDER` gardait deux
+   fois la même clé, et deux boutons identiques rendaient le même bulletin.
+   C'est **littéralement le §2.3** — *l'unité est le `code_prelevement`, jamais
+   la date* — non appliqué dans le code qui publie. Corrigé : la clé est le
+   code de prélèvement.
+
+Livré et vérifié au navigateur sur une reconstruction du 83 : 4 groupes
+étiquetés, 33 boutons distincts, les deux bulletins du 1er mars 2024
+atteignables séparément, aucune erreur console ; une commune à captage unique
+reste en liste plate, sans étiquette. Touché : `site/build_site.py`,
+`sortie/build_fiche.py`, `site/gabarits/fiche.js`,
+`site/gabarits/observatoire.css`.
+
+**Non republié.** `tests/test_sorties.py` rend 3 échecs, **antérieurs à cette
+session** et sans rapport avec elle : le référentiel courant `64c998f636a8`
+n'est pas figé (commit 49e42f9, « 19 codes en double cassaient le figeage »),
+la base ne porte que `d0fb678dcbe2`. `build_site.py` le signale aussi.
+**Lancer `src/figer.py` avant toute publication.**
+
+### 27.2 Ce que Les Arcs apprend sur la donnée elle-même
+
+Les sulfates, par point d'eau, en mg/L — chiffres tirés des 33 bulletins figés
+(figure : `data/etudes/serie-83004-sulfates.svg`) :
+
+| Point d'eau | premier | dernier |
+|---|---|---|
+| BASSIN LES CAMBRES | 55 (10/06/2016) | 120 (09/06/2025), pic à 190 en 03/2024 |
+| STATION SAINTE CECILE | 194 (25/04/2016) | 290 (26/03/2025), plateau à 330 en 2023-24 |
+| STATION LE PEICAL | 214 (12/09/2017) | 180 (27/08/2025), plateau à 330 en 2023 |
+
+**La hausse est réelle et elle est sur les trois captages** ; Les Cambres
+triple. Deux d'entre eux franchissent 250 mg/L à partir de 2022 — **référence
+de qualité, `REG-01`, `verifie`, identique en 2016 et en 2026**. Donc : aucun
+dépassement de limite, **aucune bascule, et rien qui serve la thèse** — le
+seuil n'a pas bougé, c'est l'eau. C'est un fait éditorial, pas une pièce du
+dossier réglementaire, et il ne faut pas les confondre.
+
+**Le dentelé de leur courbe n'est pas du bruit, ce sont deux eaux.** Leur
+réseau `ADDUC. ARCS STJEAN BAS-VILLAGE` est alimenté **à 50 % par Les Cambres
+et à 50 % par Sainte Cécile** (parts déclarées dans `noms_reseaux`), soit
+environ 150 mg/L contre environ 300. Leur « en hausse de 68 % » est calculé en
+travers de ce mélange. **Ils séparent par UDI de distribution ; le mélange se
+fait un cran plus bas, au point de production.** Nous tenons ce grain
+(`code_installation_amont`) et eux non : c'est notre avantage réel sur cet
+axe, et c'est le terrain du §7.2.
+
+**Deux pièges de leur affichage, que le nôtre ne doit pas reprendre** :
+« Aluminium **0 µg/L** », ligne plate en vert — sur nos 33 bulletins
+l'aluminium n'est **jamais quantifié**, LQ 10 µg/L à chaque fois (§2.4) ; et
+« Fer **+ 567 %** », calculé sur une série qui mélange des points sous LQ et
+deux captages différents.
+
+**À instruire, non conclu** : sur cette commune le panel passe de **725
+paramètres le 8 septembre 2021 à 244 le 29 mars 2022**. Même forme que la
+rupture du Tarn (§C2), **onze mois plus tard**. Un motif de plus, sur un
+département de plus — la cause n'est pas dans les données, et ne s'écrit pas.
+
+### 27.3 Ce qui est ouvert par l'axe « évolution »
+
+Point de méthode tranché en chemin : **une série d'un seul paramètre n'est pas
+un profil synthétique.** Le §2.3 interdit de composer une eau à partir de
+valeurs prises dans des bulletins différents ; une substance suivie dans le
+temps ne compose rien. Le §2.11 troisième règle ne mord pas non plus tant qu'on
+n'agrège pas entre paramètres. **L'axe nous est donc ouvert**, sous trois
+conditions tenues par `src/etude_serie.py` : une courbe par point d'eau, les
+non-quantifiées dénombrées sous la figure et jamais tracées à zéro, **aucun
+pourcentage d'évolution** tant qu'aucun estimateur n'est arrêté.
+
+`src/etude_serie.py` est un **matériau d'étude**, hors chaîne de publication
+(`data/etudes/`). Il reste à décider s'il devient un chantier de la vitrine.
+
+**Erreur commise et corrigée dans la même heure** : `--parametre sulfate`
+appariait par `LIKE '%sulfate%'` et attrapait **« Endosulfan sulfate »**, un
+pesticide, en plus des « Sulfates ». Seule la différence d'unité — mg/L contre
+µg/L — a séparé les deux séries : **par chance, pas par méthode**. C'est le
+§2.7 transposé du seuil à la série. Le script refuse désormais de choisir : un
+fragment ambigu liste les paramètres et s'arrête.
+
+---
+
+## 28. Mise à jour du 15 août 2026, soir — « Substances » cachait deux objets
+
+Session LOCALE, conversation « référentiel ». **Rien n'a été figé, construit ni
+publié** : le VPS refige sous `87550b65000b` et publie seul cette nuit (§10 de
+`docs/EXPLOITATION.md`). Tout ce qui suit est du code et du référentiel, non
+commité au moment où ces lignes sont écrites.
+
+### 28.1 Le constat de départ
+
+`substances.html` s'appelait « Les substances, une par une » et ne portait que
+**quatre dossiers rédigés**. Constat de Yannick : le nom porte à confusion, et
+il manque un répertoire de ce qui est réellement cherché. Deux objets sous un
+seul nom — un lecteur qui cliquait « Substances » pouvait croire que le projet
+n'en suit que quatre.
+
+**Et les quatre sont quatre métabolites reclassés en valeur de VIGILANCE.** Le
+référentiel le dit mot pour mot : `vigilance (non pertinent depuis le
+29/04/2024, avis 2023-SA-0142-a)`. La page affichait « 0,1 → 0,9 µg/L,
+applicable depuis le 29 avril 2024 » sans le préciser — un lecteur y lisait une
+limite de qualité qui se relâche. C'est le §9.3(b) transposé de la fiche à
+l'index. Corrigé : la nature est affichée en colonne et en tête de chaque page,
+avec ce qu'elle autorise à conclure, et la note du §2.12 sur l'extrapolation
+du 0,1.
+
+### 28.2 Ce qui a été livré
+
+| | |
+|---|---|
+| `substances.html` | devient **le répertoire** — 1 243 paramètres, rangés par famille puis alphabétiquement, jamais par nombre de dépassements (§2.11) |
+| `reclassements.html` | **nouvelle entrée**, porte les dossiers longs sous leur vrai nom — « Les valeurs qui ont bougé » |
+| `substance/<slug>.html` | **une page par paramètre**, brief dérivé pour tous, dossier long à la place pour ceux qui en ont un |
+| `referentiel/identite_substances.csv` | table versionnée **vide**, où atterrira le sourçage « ce que c'est » |
+| `sortie/identite.py` | son lecteur, **dans la couche de sortie** |
+| `DP.repertoire()` | une seule passe groupée : 1 243 paramètres en 0,9 s sur 14 M de lignes |
+| `DP.slug()` | l'identifiant d'URL, **défini une seule fois**, repris par `dossier_substance` |
+| `dossier_substance.py --version` | refuse au lieu de rendre du vide quand la version visée n'est figée sur aucun bulletin |
+
+**Contrôlé** : 1 241 pages rendues en mémoire, passées dans `prescrit` et
+`comparaison_anonyme` de `tests/test_sorties.py` — **0 signalement**. Les
+quatre modules compilent. Rien n'a été écrit dans `site/public/`.
+
+### 28.3 Pourquoi la table d'identité n'est PAS chargée par `build_db.py`
+
+`figer.version_referentiel()` ne prend que quatre fichiers — `referentiel_seuils`,
+`alias_parametres`, `regles_famille`, `hors_perimetre` — et `version_moteur()`
+ne prend que `figer.py`, `build_db.py`, `common.py`. Une table lue par la
+couche de sortie ne déclenche donc **aucun refigeage**, et c'est juste : une
+phrase d'identification ne décide d'aucun verdict. Précédent suivi :
+`sortie/indicateurs.py` lit déjà `referentiel/indicateurs.csv` de cette façon.
+
+### 28.4 Ce que le répertoire a mis au jour
+
+Chiffres relevés contre `d0fb678dcbe2`, la sauvegarde locale — **à refaire
+contre `87550b65000b`**, ils bougeront.
+
+| d'où vient le terme de comparaison | paramètres |
+|---|---|
+| une ligne du référentiel qui lui est propre | **88** |
+| une règle de famille | **731** |
+| la limite déclarée par la source | 34 |
+| aucun | **390** |
+
+**La majorité des paramètres est notée par sa famille, pas par une valeur lue
+pour elle.** Ce n'est pas un défaut — l'administration fait de même — mais le
+taire ferait passer le répertoire pour un travail de sourçage paramètre par
+paramètre qu'il n'est pas. La page l'affiche. **753 paramètres n'ont jamais été
+quantifiés** dans le corpus, ce qui ne veut pas dire absents (§2.4).
+
+Trois défauts trouvés en chemin :
+
+1. **Le sélénium perdait sa date d'applicabilité.** Le repli d'appariement était
+   écrit en `lower()` là où le moteur emploie `common.norm()` : le corpus dit
+   « Sélénium », le référentiel « Selenium », et le code 1385 a été retiré en
+   août (§11.2). Ni code ni libellé ne rapprochaient les deux, et la ligne
+   sortait **sans date** alors que le §2.5 la rend obligatoire. Corrigé, et
+   contrôlé : **plus aucun paramètre dont la valeur a bougé n'est sans date**.
+2. **`origine_seuil_2026` confond deux des trois sources du §2.8** — une ligne
+   propre et une règle de famille y valent toutes deux `referentiel`, parce que
+   `v_mesures_ref` a déjà fondu la règle dans `seuil_2026`. Contourné en
+   sortie via `v_regle_famille_appliquee`. **Non corrigé en base** : toucher
+   `build_db.py` force un refigeage complet.
+3. **« 1,2,4 Triazole » n'est apparié à rien.** Le §11.1 avait laissé sa ligne
+   sans code SANDRE en notant qu'« aucun libellé Hub'Eau ne le porte » ; le
+   corpus le porte désormais, code 6808, **2 mesures**, sous un libellé à
+   espace là où le référentiel écrit un tiret. Un alias suffirait.
+
+### 28.5 Ce qui attend
+
+1. **Recaler les quatre proses sur le figeage de cette nuit.** `--verifier`
+   rend aujourd'hui **43 bloquants** sur trois d'entre elles, dont le nombre
+   `3193` — la taille du corpus quand elles ont été écrites. Les dossiers de
+   faits eux-mêmes datent du 11 août et portent 7 279 bulletins. Deux couches
+   périmées l'une sur l'autre. **Ne rien recaler avant le figeage** : une prose
+   est couplée à sa version ET à l'étendue du corpus (§13.4).
+2. **Le sélénium mériterait un dossier.** C'est le seul candidat du corpus qui
+   porte une **limite de qualité opposable** déplacée par un texte lu et
+   sourcé — 10 → 20 µg/L au 01/01/2023, arrêté du 30/12/2022 art. 2,
+   `REG-02|REG-03`, `verifie` —, là où les quatre publiés sont des valeurs de
+   vigilance dont le 0,1 d'avant est extrapolé. 22 bascules, 6 communes :
+   modeste, mais littéral. **Décision de Yannick, non prise.**
+3. **Le sourçage de `identite_substances.csv`**, par lots, dans l'ordre
+   d'utilité du répertoire. La table est vide ; chaque lot est un commit qui
+   dit quelle source a été lue.
+4. **Le portage vers la forme v2** touchera ces pages : deux index et un brief
+   de plus à transposer.
+
+---
+
+## 29. Mise à jour du 15 août 2026, 20 h 50 — le sourçage d'identité, premier lot
+
+Suite du §28. Session LOCALE. **Rien n'est figé, construit, publié ni commité.**
+Le VPS refige de son côté et publie seul cette nuit ; tout ce qui suit est du
+code, du référentiel et de la documentation.
+
+### 29.1 Ce qui existe maintenant
+
+| | |
+|---|---|
+| `docs/CONSIGNE_IDENTITE.md` | la consigne versionnée, sœur de `CONSIGNE_SOURCAGE.md` |
+| `sortie/identite_lot.py` | le script aux deux bouts — choisit, fabrique les briefs, **contrôle avant d'écrire** |
+| `referentiel/identite_substances.csv` | **97 paramètres** portent une identité sourcée |
+
+**61 en `verifie`, 36 en `a_verifier`, 17 avec un statut d'autorisation daté.**
+94 des 110 substances qui pèsent — porteuses d'une bascule ou d'un dépassement —
+sont faites. Les 97 passent `prescrit` et `comparaison_anonyme`.
+
+**Dix-sept statuts datés sur quatre-vingt-dix-sept, et c'est le chiffre
+honnête** : la base européenne des pesticides est inaccessible (voir 29.3), donc
+la plupart des substances ne peuvent pas porter la date de leur retrait.
+
+### 29.2 Dix sources versées et indexées dans la journée
+
+`MET-06` à `MET-14` — neuf avis ANSES, dont l'avis fondateur du 30/01/2019
+(101 pages, table CAS ↔ code SANDRE) —, plus **la famille `IDEN`, ouverte le
+15 août sur décision de Yannick** :
+
+- **`IDEN-01`** PPDB / BPDB, University of Hertfordshire. **Périmètre borné, et
+  la borne est ce qui l'a fait admettre** : elle fonde `quoi`, `usage` et
+  `molecule_mere`, **jamais** un `statut_autorisation` — ses mentions
+  « approved / expired » arrivent sans règlement ni date de décision, et une date
+  d'expiration n'est pas une date de décision. Toute ligne qui s'en réclame est
+  `a_verifier`. **Réserve établie indépendamment par trois agents**, qui ont
+  conclu la même chose sans se voir ;
+- **`IDEN-02`** E-Phy (ANSES) ;
+- **`MET-14`** avis EFSA du 04/06/2019 sur la terbuthylazine, **lu sur le miroir
+  PMC** et non chez l'éditeur — c'est écrit à l'index.
+
+`IDEN` existe pour la raison exacte de `GEST` : ranger dans `REG` une source qui
+n'est pas réglementaire ferait prendre pour un texte ce qui n'en est pas un.
+
+### 29.3 Ce qui est mesuré, et ne se repaie pas
+
+- **La base européenne des pesticides est INACCESSIBLE** — redirection vers
+  `sorry.ec.europa.eu` d'un côté, coquille JavaScript vide de l'autre. C'était
+  la seule voie vers un statut d'autorisation daté. Il n'y a pas de rechange, et
+  c'est la cause unique des 80 statuts vides ;
+- **EUR-Lex ne rend rien**, sous trois formes d'URL ;
+- **les PDF de l'ANSES arrivent en binaire** par `WebFetch` : les relire avec
+  `pypdf` ;
+- **`pypdf` découpe les mots** — « EUR OPEAN », « Acr ylamide ». Un `grep` naïf
+  répond « absent » à tort. Chercher sur le texte privé de ses espaces ; la
+  recette est au §3 de la consigne.
+
+### 29.4 Trois erreurs commises, dont deux par moi
+
+1. **J'ai affirmé dans deux briefs que `REG-04` porte des fiches « dalapon » et
+   « propiconazole ». Zéro occurrence, dans les deux cas.** Écrit de mémoire,
+   dans une consigne qui instruit des agents : le §2.7 retourné contre celui qui
+   l'édicte, à l'échelle du lot. Les deux agents l'ont constaté et l'ont dit.
+   Règle ajoutée : **un brief ne nomme une source que si l'on y a cherché le nom
+   de la substance.**
+2. **Mon contrôle « le code et le libellé désignent deux paramètres différents »
+   supposait qu'un code SANDRE ne porte qu'un libellé.** Faux : le code 2094
+   porte « Dalapon 85 » (838 mesures) ET « Dalapon spd » (6 153). L'agent,
+   bloqué, a écrit l'autre libellé pour passer — **mon faux positif a déplacé
+   une identité vers un paramètre voisin**, ce que le contrôle existait pour
+   empêcher. Corrigé : le libellé fait foi, le code confirme, un code partagé est
+   signalé. Il en remonte **sept**, dont l'aluminium, le fer, le manganèse, les
+   chlorites et les deux turbidités.
+3. **La première correction n'avait pas pris** — `codes_partages` était calculé
+   et jamais lu, le faux positif ayant disparu par effet de bord. Vérifié, puis
+   posé pour de bon. *Une correction qui marche sans qu'on sache pourquoi n'est
+   pas une correction.*
+
+### 29.5 Deux dossiers rouverts par les données
+
+- **L'anthraquinone est un dossier MAL POSÉ**, et c'est la réponse à une question
+  qui bloque le dépôt depuis le 9 août. La fiche SANDRE ne connaît **qu'un seul
+  paramètre 2013**, sans famille : la distinction « HAP » / « pesticide » n'est
+  pas une différence chimique mais **une double étiquette SISE-Eaux**. Elle ne se
+  tranchera jamais sur une fiche de molécule — il faut une source SISE-Eaux ou
+  ARS qui explique l'étiquetage. Aucune ligne écrite, à dessein ;
+- **« Acide Hydroxybenzoïque » (5313) n'est probablement pas un pesticide** : la
+  fiche SANDRE donne « anion Salicylate », sans rattachement pesticide ni
+  métabolite. Il est pourtant rangé en famille `pesticide` au référentiel.
+
+### 29.6 Ce qui attend
+
+1. **Le lot `traitement`, 12 paramètres, ÉTAIT EN COURS à la coupure** —
+   sommes réglementaires, microbiologie, radiologique, sous-produits.
+   `data/dossiers/reponses_identite/traitement.csv` porte déjà **11 lignes**
+   écrites au fil de l'eau : la règle « écrire après chaque substance » a payé,
+   rien n'est perdu. Relancer `--verifier` puis `--integrer`.
+2. **Trois substances non établies, et chacune pour une bonne raison** :
+   anthraquinone (voir 29.5), HCH bêta (trois CAS pour trois objets, le bêta
+   n'est nommé nulle part), atrazine déséthyl.
+3. **L'atrazine reste sans statut d'autorisation** après quatre tentatives.
+   `REG-07` est catalogué à l'index **sans fichier sur le disque** — c'est le
+   défaut à réparer en premier si l'on veut ce statut.
+4. **Deux faits à porter au référentiel**, décisions de Yannick :
+   le classement CIRC du chlorure de vinyle — *« IARC has classified vinyl
+   chloride in Group 1 »*, `REG-04`, colonne `cancerogenicite_circ` aujourd'hui
+   vide —, et la famille du paramètre 5313.
+5. **Sept codes SANDRE partagés entre deux libellés**, plus trois que le corpus
+   dément (1335, 1735, 1295) et quatre côté métaux. Les agents ont laissé le code
+   vide plutôt que d'écrire un code que le corpus contredit. À arbitrer.
+6. **Les 1 243 − 110 paramètres restants** n'ont pas d'identité et n'en ont pas
+   besoin tout de suite : aucun ne porte de dépassement.
+7. **Rien n'est commité.** 8 fichiers modifiés, 5 nouveaux.

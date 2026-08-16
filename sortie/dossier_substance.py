@@ -75,10 +75,13 @@ DOSSIERS = os.path.join(RACINE, "data", "dossiers")
 MIN_QUANTIFIEES = 20
 
 
-def slug(s):
-    s = unicodedata.normalize("NFD", s.lower())
-    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
-    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+import dossier_page as DP  # noqa: E402
+
+# Une seule définition de l'identifiant d'URL, dans `dossier_page` : c'est lui
+# qui fabrique les adresses du répertoire et des pages. En tenir une seconde
+# ici les ferait diverger au premier ajustement, et les dossiers publiés
+# changeraient d'adresse en silence.
+slug = DP.slug
 
 
 def fr(x, n=3):
@@ -97,6 +100,51 @@ def fr(x, n=3):
 
 def date_fr(d):
     return d.strftime("%d/%m/%Y") if d else "—"
+
+
+def versions_figees(con):
+    """Les figeages présents en base, du plus récent au plus ancien."""
+    return con.execute("""
+        SELECT version_referentiel, COUNT(*), MAX(calcule_le)
+        FROM analyses_figees GROUP BY 1 ORDER BY 3 DESC
+    """).fetchall()
+
+
+def choisir_version(con, demandee=None):
+    """
+    Le figeage à interroger — et un refus explicite si l'on vise du vide.
+
+    Le dossier de faits se lit dans `analyses_figees` / `verdicts_figes`, pas
+    dans le référentiel : demander la version du référentiel COURANT quand elle
+    n'a pas encore été figée rendait des tableaux vides et une liste
+    d'éligibles vide, sans un mot d'explication. Constaté le 15 août 2026 —
+    référentiel `64c998f636a8` (commit 49e42f9), base figée sous
+    `d0fb678dcbe2` seulement.
+
+    **Un dossier vide est plus dangereux qu'une erreur** : il se lit comme
+    « cette substance n'a rien », alors qu'il dit « cette version n'a rien ».
+    On refuse donc, en donnant les versions disponibles, et `--version` permet
+    de viser un figeage antérieur en connaissance de cause.
+    """
+    dispo = versions_figees(con)
+    connues = {v[0]: (v[1], v[2]) for v in dispo}
+    version = demandee or figer.version_referentiel()
+    if version in connues:
+        return version
+    print(f"la version « {version} » n'est figée sur aucun bulletin.")
+    if not dispo:
+        print("aucun figeage en base — lance src/figer.py.")
+        sys.exit(1)
+    print("versions figées disponibles :")
+    for v, n, d in dispo:
+        print(f"    {v}   {n} bulletins   figé le {d}")
+    if not demandee:
+        print("\nle référentiel courant n'est pas figé : soit tu figes "
+              "(src/figer.py),\nsoit tu vises un figeage existant avec "
+              "--version. Un dossier tiré d'une\nversion antérieure porte "
+              "cette version dans son en-tête, et la prose qui\nen sortira y "
+              "est couplée (§13.4).")
+    sys.exit(1)
 
 
 def eligibles(con, version):
@@ -734,6 +782,9 @@ def main():
     p.add_argument("--code", help="code SANDRE")
     p.add_argument("--liste", action="store_true",
                    help="les substances qui ont de quoi porter un dossier")
+    p.add_argument("--version",
+                   help="le figeage à interroger, quand le référentiel courant "
+                        "n'est pas encore figé")
     p.add_argument("--verifier", action="store_true",
                    help="contrôle les proses écrites, sans rien produire")
     p.add_argument("--relire", action="store_true",
@@ -765,7 +816,7 @@ def main():
         print("base absente — lance d'abord src/build_db.py")
         sys.exit(1)
     con = duckdb.connect(DB_PATH, read_only=True)
-    version = figer.version_referentiel()
+    version = choisir_version(con, a.version)
 
     try:
         if a.liste:

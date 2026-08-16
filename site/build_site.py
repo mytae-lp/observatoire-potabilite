@@ -57,6 +57,7 @@ sys.path.insert(0, os.path.join(RACINE, "sortie"))
 from common import DB_PATH, SEUIL_COMPLET, departements_publies  # noqa: E402
 import build_fiche as BF  # noqa: E402
 import dossier_page as DP  # noqa: E402
+import identite as ID_SUB  # noqa: E402
 import indicateurs as IND  # noqa: E402
 
 GEOJSON = os.path.join(RACINE, "referentiel", "geo", "departements-simplifie.geojson")
@@ -64,6 +65,7 @@ REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 
 PAGES = [("index.html", "Accueil"), ("carte.html", "Carte"),
          ("communes.html", "Communes"), ("substances.html", "Substances"),
+         ("reclassements.html", "Reclassements"),
          ("methode.html", "Méthode"), ("sources.html", "Sources & données")]
 
 
@@ -1367,13 +1369,138 @@ def page_departement(dept, communes, version, calcule_le):
 """
 
 
-def page_substances(con, version, substances):
-    """
-    L'index des dossiers de substance.
+FAMILLE_EN_CLAIR = {
+    "pesticide": "Pesticides", "metabolite": "Métabolites de pesticides",
+    "metal": "Métaux", "metalloide": "Métalloïdes", "mineral": "Minéraux",
+    "organique": "Composés organiques", "PFAS": "PFAS",
+    "sous-produit desinfection": "Sous-produits de désinfection",
+    "microbiologique": "Microbiologie", "radiologique": "Radiologique",
+    "organoleptique": "Organoleptique", "equilibre": "Équilibre calcocarbonique",
+    "nitrates": "Nitrates", "nitrites": "Nitrites",
+}
 
-    Il ne recopie rien des pages : il donne, pour chacune, la date à laquelle
-    la règle a bougé et le nombre d'analyses que ce déplacement fait basculer.
-    Le reste se lit sur la page.
+
+def page_substances(con, version, repertoire, dossiers):
+    """
+    Le répertoire — TOUT ce que le corpus cherche dans l'eau, paramètre par paramètre.
+
+    C'est ce qu'un lecteur attend en cliquant « Substances » : *qu'a-t-on
+    cherché dans mon eau, et qu'est-ce que c'est ?* Jusqu'au 15 août 2026 cette
+    adresse portait les quatre dossiers rédigés — quatre métabolites — et
+    laissait croire que le projet n'en suivait que quatre. Les dossiers ont
+    leur propre entrée désormais : `reclassements.html`.
+
+    **Le tableau ne classe pas et ne compare pas** (§2.11). Il est rangé par
+    famille puis par ordre alphabétique, jamais par nombre de dépassements :
+    deux molécules ne sont pas cherchées dans les mêmes bulletins, et les
+    aligner par leur compte ferait un palmarès dont le premier facteur serait
+    l'effort de recherche.
+    """
+    par_famille = {}
+    for f in repertoire:
+        par_famille.setdefault(f["famille"] or "", []).append(f)
+
+    total = len(repertoire)
+    corpus = repertoire[0]["corpus"] if repertoire else 0
+    compte = {k: sum(1 for f in repertoire if f["origine_seuil"] == k)
+              for k in ("ligne", "regle", "declare", "absent")}
+    jamais = sum(1 for f in repertoire if not f["quantifiees"])
+
+    blocs = []
+    for cle in sorted(par_famille, key=lambda c: (c == "", FAMILLE_EN_CLAIR.get(c, c))):
+        molecules = sorted(par_famille[cle], key=lambda f: f["libelle"].lower())
+        titre = FAMILLE_EN_CLAIR.get(cle, cle) or "Famille non renseignée"
+        lignes = []
+        for f in molecules:
+            nature = (DP.NATURE_EN_CLAIR.get(f["nature"], "—")
+                      if f["seuil_2026"] is not None else "rien à quoi comparer")
+            valeur = (f'{h(BF._nb(f["seuil_2026"]))} {h(f["unite"] or "")}'
+                      if f["seuil_2026"] is not None else "—")
+            if f["seuil_2016"] is not None and f["seuil_2016"] != f["seuil_2026"]:
+                valeur = (f'{h(BF._nb(f["seuil_2016"]))} → ' + valeur)
+            depuis = (h(BF._date_fr(f["date_applicabilite"]))
+                      if f["date_applicabilite"] else "—")
+            pastille = ('<span class="pill">dossier</span>'
+                        if f["slug"] in dossiers else "")
+            lignes.append(
+                f'<tr><td><a href="substance/{h(f["slug"])}.html">{h(f["libelle"])}</a>'
+                f' {pastille}</td><td>{h(nature)}</td><td>{valeur}</td>'
+                f'<td>{depuis}</td>'
+                f'<td class="num">{f["mesures"]}</td>'
+                f'<td class="num">{f["quantifiees"]}</td>'
+                f'<td class="num">{f["communes_quantifiee"]}</td></tr>')
+        blocs.append(
+            f'<section><h3 class="sec">{h(titre)} — {len(molecules)}</h3>'
+            '<table><thead><tr><th>Substance</th><th>Nature</th>'
+            '<th>Valeur de comparaison</th><th>Applicable depuis</th>'
+            '<th class="num">Cherché</th><th class="num">Quantifié</th>'
+            '<th class="num">Communes</th></tr></thead><tbody>'
+            + "".join(lignes) + '</tbody></table></section>')
+
+    return f"""
+  <section style="margin-top:0"><div class="prose">
+    <p><b>{total} paramètres</b> ont été cherchés au moins une fois dans les
+      {corpus} bulletins complets du corpus. Chacun a sa page : ce qu'il est,
+      à quoi on le compare et depuis quand, et ce que le corpus en dit.</p>
+    <p class="bnote"><b>Ce tableau ne classe rien.</b> Il est rangé par famille
+      puis par ordre alphabétique, jamais par nombre de dépassements. Deux
+      paramètres ne sont pas cherchés dans les mêmes bulletins : les aligner par
+      leur compte ferait un palmarès dont le premier facteur serait l'effort de
+      recherche, pas l'état de l'eau. La colonne « cherché » est le
+      dénominateur, et elle ne se sépare jamais des deux suivantes.</p>
+  </div></section>
+
+  <section><h3 class="sec">Ce que le projet peut dire, et ce qu'il ne peut pas</h3>
+    <table><thead><tr><th>D'où vient le terme de comparaison</th>
+      <th class="num">Paramètres</th><th>Ce que ça permet</th></tr></thead><tbody>
+      <tr><td>Une ligne du référentiel qui lui est propre</td>
+        <td class="num">{compte['ligne']}</td>
+        <td>valeur sourcée et datée, verdict au sens plein</td></tr>
+      <tr><td>Une règle de famille</td><td class="num">{compte['regle']}</td>
+        <td>noté avec son groupe, sans valeur lue pour lui</td></tr>
+      <tr><td>La limite déclarée par la source</td><td class="num">{compte['declare']}</td>
+        <td>aucun verdict 2016, aucune bascule (§2.8)</td></tr>
+      <tr><td>Aucun</td><td class="num">{compte['absent']}</td>
+        <td>mesuré, mais aucun verdict n'est prononcé</td></tr>
+    </tbody></table>
+    <p class="bnote"><b>La majorité des paramètres est notée par une règle de
+      famille, pas par une valeur lue pour elle.</b> C'est ce que fait aussi
+      l'administration, et ce n'est pas un défaut — mais le taire ferait passer
+      ce répertoire pour un travail de sourçage paramètre par paramètre qu'il
+      n'est pas. Le §2.8 impose de distinguer les trois sources de seuil ; cette
+      page les compte.</p>
+    <p class="bnote"><b>{jamais} paramètres n'ont jamais été quantifiés</b> dans
+      le corpus. Cela ne veut pas dire qu'ils sont absents : aucune analyse ne
+      les a vus au-dessus de la limite de quantification du laboratoire, ce qui
+      n'est pas la même chose (§2.4).</p>
+  </section>
+{''.join(blocs)}"""
+
+
+def page_reclassements(con, version, substances):
+    """
+    L'index des dossiers de substance — les valeurs qui ont bougé.
+
+    À ne pas confondre avec `page_substances`, qui est le répertoire de TOUT ce
+    que le corpus cherche. Cette page-ci ne porte que les quelques molécules
+    dont un texte a déplacé la valeur et dont le déplacement a été rédigé et
+    relu. Les deux étaient confondues sous le nom « Substances » jusqu'au
+    15 août 2026 : un lecteur qui cliquait « Substances » tombait sur quatre
+    métabolites et pouvait croire que le projet n'en suit que quatre.
+
+    Il ne recopie rien des pages : il donne, pour chacune, la NATURE de la
+    valeur qui la note, la date à laquelle cette valeur a bougé et le nombre
+    d'analyses que ce déplacement fait basculer. Le reste se lit sur la page.
+
+    **La colonne de nature n'est pas un ornement : sans elle la page ment.**
+    Les dossiers publiés sont des métabolites reclassés « non pertinents » —
+    leur 0,9 µg/L est une valeur de vigilance, pas une limite de qualité
+    opposable. Un tableau qui aligne « 0,1 → 0,9 µg/L, applicable depuis le
+    29 avril 2024 » sans le dire fait lire un relâchement de limite là où il y
+    a eu sortie du périmètre opposable. C'est le §9.3(b) de `docs/REPRISE.md`
+    transposé de la fiche à l'index, et le §2.13 cinquième cas : un
+    reclassement de pertinence déplace deux verdicts, celui de la substance et
+    celui du total des pesticides dont elle sort le même jour.
     """
     if not substances:
         return """
@@ -1381,43 +1508,82 @@ def page_substances(con, version, substances):
     <p>Aucun dossier de substance n'est encore publié.</p>
   </div></section>"""
 
-    lignes = []
+    lignes, corpus, metabolites, a_verifier, naturelles = [], 0, 0, [], set()
     for slug, libelle, origine in substances:
         s = DP.seuil(con, libelle, version)
         c = DP.chiffres(con, libelle, version)
+        corpus = c["corpus"] or corpus
+        if (c["famille"] or "") == "metabolite":
+            metabolites += 1
+        if s and (s[7] or "") != "verifie":
+            a_verifier.append(libelle)
         deplacement = (f"{h(BF._nb(s[2]))} → {h(BF._nb(s[3]))} {h(s[1] or '')}"
                        if s and s[2] is not None and s[3] is not None else "—")
         date = h(BF._date_fr(s[4])) if s and s[4] else "sans date au référentiel"
+        naturelles.add(c["nature"])
+        nature = h(DP.NATURE_EN_CLAIR.get(c["nature"], "—"))
         marque = ('<span class="pill">à relire</span>' if origine == "propose" else "")
+        drapeau = ('<span class="pill">à vérifier</span>'
+                   if s and (s[7] or "") != "verifie" else "")
         lignes.append(
-            f'<tr><td><a href="substance/{h(slug)}.html">{h(libelle)}</a> {marque}</td>'
-            f'<td>{deplacement}</td><td>{date}</td>'
+            f'<tr><td><a href="substance/{h(slug)}.html">{h(libelle)}</a> '
+            f'{marque}{drapeau}</td>'
+            f'<td>{nature}</td><td>{deplacement}</td><td>{date}</td>'
             f'<td class="num">{c["bascules"]}</td>'
             f'<td class="num">{c["communes_bascule"]}</td>'
             f'<td class="num">{c["mesures"]}</td></tr>')
 
+    # §2.12 — le 0,1 µg/L d'avant n'est pas lu dans un texte de 2016 pour un
+    # métabolite : il vient de l'instruction de décembre 2020. L'index invoque
+    # la grille de 2016 une fois par ligne ; il doit donc le dire une fois.
+    note_metabolites = ("" if not metabolites else
+                        f'\n    <p class="bnote">{DP.NOTE_METABOLITE}</p>')
+
+    # Ce que chaque nature autorise à conclure — pris à la même source que les
+    # pages elles-mêmes, et restreint aux natures effectivement présentes dans
+    # le tableau. Recopier ces phrases ici en ferait une seconde version, qui
+    # divergerait de celle des pages à la première retouche.
+    note_natures = "".join(
+        f'\n    <p class="bnote"><b>{h(DP.NATURE_EN_CLAIR[n])}.</b> '
+        f'{DP.PORTEE_NATURE[n]}</p>'
+        for n in ("limite", "reference", "vigilance", "referentiel_sans_statut")
+        if n in naturelles)
+
+    note_fiabilite = ("" if not a_verifier else f"""
+    <p class="bnote"><b>Valeur en « à vérifier » :</b>
+      {h(', '.join(a_verifier))}. Le seuil n'a pas été lu sur une source primaire
+      en session ; il est signalé comme tel et ne s'arrondit jamais en
+      « vérifié ».</p>""")
+
     return f"""
   <section style="margin-top:0"><div class="prose">
-    <p>Une fiche communale répond à « qu'y a-t-il dans mon eau ? ». Ces pages-ci
-      répondent à une autre question : <b>qu'est-ce que cette substance démontre ?</b>
-      Une molécule, une date de reclassement, et deux verdicts opposés pour un même
-      résultat — c'est là que le déplacement des seuils se voit le mieux.</p>
+    <p>Le <a href="substances.html">répertoire</a> dit ce que le corpus cherche
+      dans l'eau, molécule par molécule. Ces pages-ci répondent à une autre
+      question : <b>qu'est-ce que cette substance démontre ?</b> Une molécule,
+      une date de reclassement, et deux verdicts opposés pour un même résultat —
+      c'est là que le déplacement des seuils se voit le mieux.</p>
     <p class="bnote">Le nombre d'analyses porté par une substance ne se lit jamais seul :
       une substance n'est présente que dans les bulletins qui la cherchent, et la
-      colonne « analyses » donne ce dénominateur. Une comparaison entre deux
-      substances n'aurait pas de sens ici — elles ne sont pas cherchées dans les
-      mêmes bulletins.</p>
+      colonne « analyses » donne ce dénominateur, sur les {corpus} bulletins complets
+      du corpus. Une comparaison entre deux substances n'aurait pas de sens ici —
+      elles ne sont pas cherchées dans les mêmes bulletins.</p>
   </div></section>
 
   <section><h3 class="sec">Les dossiers publiés</h3>
     <table><thead><tr>
-      <th>Substance</th><th>Déplacement de la valeur</th><th>Applicable depuis</th>
+      <th>Substance</th><th>Nature de la valeur</th>
+      <th>Déplacement de la valeur</th><th>Applicable depuis</th>
       <th class="num">Analyses basculées</th><th class="num">Communes</th>
       <th class="num">Analyses</th>
     </tr></thead><tbody>{''.join(lignes)}</tbody></table>
+
+    <p class="bnote"><b>La nature de la valeur commande la lecture de toute la
+      ligne.</b> Aligner des natures différentes dans une même colonne de
+      chiffres sans les distinguer ferait lire un relâchement de limite là où il
+      n'y en a pas eu.</p>{note_natures}
     <p class="bnote">« Analyses basculées » : des mesures qui dépassaient la valeur
       applicable avant le reclassement et ne dépassent pas celle d'après. La mesure
-      n'a pas changé — la règle, si.</p>
+      n'a pas changé — la règle, si.</p>{note_metabolites}{note_fiabilite}
   </section>"""
 
 
@@ -1936,33 +2102,67 @@ def construire(destination=None, db=DB_PATH, depts=None):
             formule=False,
             fil=[("Accueil", "index.html"), ("Sources, référentiel et données", None)]))
 
-        # --- une page par substance dotée d'un dossier --------------------
+        # --- une page par molécule cherchée -------------------------------
         #
-        # L'étage au-dessus de la fiche : le raisonnement se publie UNE fois et
-        # se lie depuis chaque commune concernée, au lieu d'être recopié dans
-        # chacune (cf. sortie/dossier_page.py).
+        # Deux étages, une seule adresse par molécule. Toutes reçoivent le
+        # brief dérivé ; les quelques-unes dont le déplacement a été rédigé et
+        # relu reçoivent le dossier long à la place — c'est l'ordre de
+        # préséance de `dossier_page` : auteur, puis proposé, puis dérivé.
+        #
+        # Le répertoire est construit en UNE passe (cf. DP.repertoire) : les
+        # requêtes par molécule coûtent un balayage chacune, et à 1 243
+        # molécules elles balaieraient la table des verdicts des milliers de
+        # fois.
         substances = DP.publiables()
+        dossiers = {s for s, _l, _o in substances}
+        identites = ID_SUB.charger()
+        rep = DP.repertoire(con, version)
+
         for slug, libelle, _o in substances:
             corps_s, titre_s, origine_s = DP.corps(con, slug, version, h, prefixe="../")
             d_s = (DP.charger()[0].get(slug) or DP.charger()[1].get(slug))
             ecrire(os.path.join(public, "substance", f"{slug}.html"), page(
-                titre_s, corps_s, "substances.html",
+                titre_s, corps_s, "reclassements.html",
                 (d_s.get("chapeau") or titre_s)[:300],
                 version, calcule_le, prefixe="../",
                 sous_titre=h(d_s.get("titre") or ""),
-                fil=[("Accueil", "index.html"), ("Substances", "substances.html"),
-                     (titre_s, None)]))
+                fil=[("Accueil", "index.html"),
+                     ("Reclassements", "reclassements.html"), (titre_s, None)]))
+
+        for f in rep:
+            if f["slug"] in dossiers:
+                continue                     # le dossier long l'emporte
+            ecrire(os.path.join(public, "substance", f'{f["slug"]}.html'), page(
+                f["libelle"],
+                DP.brief(f, identites, h, prefixe="../"), "substances.html",
+                f'Ce que le corpus cherche et trouve sous « {f["libelle"]} » : '
+                f'à quoi ce paramètre est comparé, depuis quand, et dans '
+                f'combien de bulletins elle est recherchée.',
+                version, calcule_le, prefixe="../", formule=False,
+                fil=[("Accueil", "index.html"),
+                     ("Substances", "substances.html"), (f["libelle"], None)]))
 
         ecrire(os.path.join(public, "substances.html"), page(
-            "Les substances, une par une",
-            page_substances(con, version, substances), "substances.html",
+            "Ce qu'on cherche dans l'eau",
+            page_substances(con, version, rep, dossiers), "substances.html",
+            "Le répertoire des paramètres recherchés dans le corpus : ce qu'ils "
+            "sont, à quoi ils sont comparés, et dans combien de bulletins.",
+            version, calcule_le,
+            sous_titre="Une fiche communale dit ce qu'il y a dans une eau. Ce "
+                       "répertoire dit ce qu'on y a cherché — et ce que le projet "
+                       "peut, ou ne peut pas, en conclure.", formule=False,
+            fil=[("Accueil", "index.html"), ("Ce qu'on cherche dans l'eau", None)]))
+
+        ecrire(os.path.join(public, "reclassements.html"), page(
+            "Les valeurs qui ont bougé",
+            page_reclassements(con, version, substances), "reclassements.html",
             "Ce que chaque substance démontre du déplacement des seuils : une "
             "page par molécule, avec sa date de reclassement.",
             version, calcule_le,
-            sous_titre="Une fiche communale dit ce qu'il y a dans une eau. Ces "
-                       "pages-ci disent ce qu'une substance démontre — et la date "
-                       "à laquelle la règle qui la note a changé.", formule=False,
-            fil=[("Accueil", "index.html"), ("Les substances, une par une", None)]))
+            sous_titre="Ces pages disent ce qu'une substance démontre — et la "
+                       "date à laquelle la règle qui la note a changé.",
+            formule=False,
+            fil=[("Accueil", "index.html"), ("Les valeurs qui ont bougé", None)]))
 
         # --- une page par commune documentée ------------------------------
         n_fiches = fiches_communes(con, version, lignes, public)
@@ -2120,7 +2320,10 @@ def fiches_communes(con, version, lignes, public):
         C, PARAMS, ORDER = {}, {}, []
         for ligne, cols, rattachement in lignes_c:
             a = dict(zip(cols, ligne))
-            cle = f"{insee}-{a['date_prelevement']}"
+            # La clé est le code de prélèvement, jamais la date (§2.3) : deux
+            # points d'eau de la même commune sont souvent prélevés le même
+            # jour, et la clé datée en écrasait un silencieusement.
+            cle = a["code_prelevement"]
             d_iso = str(a["date_prelevement"])
             C[cle] = BF.bloc_commune(
                 con, ligne, cols, None, version,
