@@ -1,0 +1,16 @@
+# Les quatre mesures de forme du §7 — instrument d'atelier, PAS de production.
+#
+# Volontairement séparé de `requirements.txt` : le VPS moissonne, ingère, fige
+# et publie. Il n'a aucune raison de porter 150 Mo de binaires de navigateur, et
+# `requirements.txt` doit rester ce qu'il est — deux lignes qu'on installe sans
+# y penser.
+#
+#     py -X utf8 -m pip install -r outils/requirements-forme.txt
+#     py -X utf8 -m playwright install chromium
+#
+# Pillow ne sert qu'à `mesure_contraste.py --pixels`, qui compare la couleur
+# d'un texte au pixel le plus défavorable de la photographie sous lui (§9.6).
+# Sans Pillow, les trois autres mesures et le mode « fond calculé » fonctionnent
+# tels quels.
+playwright>=1.40
+Pillow>=10.0
