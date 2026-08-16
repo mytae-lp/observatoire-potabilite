@@ -90,10 +90,54 @@
     return li;
   }
 
+  /* L'écran de la commune absente.
+     C'est le SEUL endroit du site où quelqu'un repart les mains vides, et il
+     n'avait qu'une phrase grise. Ce qu'il lui manquait n'est pas une excuse :
+     c'est la distinction entre « nous ne savons rien de cette eau » et « cette
+     eau n'a rien » — les deux ne se confondent jamais ici — et une porte de
+     sortie plutôt qu'un cul-de-sac.
+
+     Le texte est construit par le DOM et non par innerHTML : ce que le
+     visiteur a tapé y est réinjecté, et une commune peut légitimement
+     s'appeler « L'Isle-sur-le-Doubs ». */
+  function absente(q){
+    const li = document.createElement("li");
+    li.className = "vide vide-corpus";
+
+    const t = document.createElement("h3");
+    t.textContent = "« " + q + " » n'est pas encore dans le corpus";
+    li.appendChild(t);
+
+    const p1 = document.createElement("p");
+    p1.textContent = "Ce n'est pas une information sur son eau. Une commune "
+      + "absente n'est pas une commune dont l'eau serait bonne : c'est une "
+      + "commune dont le tour n'est pas encore venu.";
+    li.appendChild(p1);
+
+    const p2 = document.createElement("p");
+    p2.textContent = "La collecte se fait département par département, et elle "
+      + "avance vite. Si vous voulez savoir quand le vôtre sera versé, ou "
+      + "signaler une erreur : ";
+    const a = document.createElement("a");
+    a.href = "contact.html";
+    a.className = "lien-fort";
+    a.textContent = "écrire à l'Observatoire";
+    p2.appendChild(a);
+    p2.appendChild(document.createTextNode("."));
+    li.appendChild(p2);
+
+    return li;
+  }
+
   function chercher(q){
     if(INDEX === null){ enAttente = q; return; }
     liste.innerHTML = "";
-    q = pl(q.trim());
+    /* La saisie telle qu'elle a été tapée est conservée : c'est elle qu'on
+       réaffiche. `pl()` rabat les accents et la casse pour comparer, et
+       renvoyer « vesoul » à quelqu'un qui a écrit « Vesoul » donne
+       l'impression que la machine a mal lu. */
+    const saisie = q.trim();
+    q = pl(saisie);
     if(q.length < 2) return;
 
     const trouves = INDEX.map(c => [score(c, q), c])
@@ -102,11 +146,7 @@
       .slice(0, 25);
 
     if(!trouves.length){
-      liste.appendChild(vide(
-        "Aucune commune du corpus ne correspond à « " + q + " ». Le corpus ne couvre "
-        + "pas encore la France entière : une commune absente n'est pas une commune "
-        + "dont l'eau serait bonne, c'est une commune qui n'a pas encore été "
-        + "collectée."));
+      liste.appendChild(absente(saisie));
       return;
     }
     trouves.forEach(([, c]) => liste.appendChild(ligne(c)));
