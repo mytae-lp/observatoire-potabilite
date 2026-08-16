@@ -500,6 +500,14 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
     return {
         "name": a["commune"],
         "insee": a["code_insee"],
+        # Le point d'eau qui a produit CE bulletin. Il ne suffit pas qu'il
+        # descende dans les métadonnées : c'est lui qui étiquette le sélecteur
+        # de bulletins, sans quoi une commune alimentée par plusieurs captages
+        # aligne des dizaines de boutons indiscernables et se lit comme si elle
+        # n'avait qu'une eau (§8bis n° 5). Les Arcs (83004), 15 août 2026 :
+        # Sainte Cécile tourne autour de 300 mg/L de sulfates, Les Cambres
+        # autour de 150 — deux eaux, et un seul libellé pour les 33 bulletins.
+        "pt": a["nom_installation_amont"] or "",
         # Le sous-titre nomme le RÉSEAU, pas le gestionnaire. Corrigé le 13 août
         # 2026, sur décision de Yannick : il écrivait « eau du réseau
         # <nom_uge> », or `nom_uge` est l'exploitant. Un habitant de Baziège
@@ -884,7 +892,12 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             # deux fois : il porte le nom de la commune qui l'a demandé.
             if a["code_prelevement"] in empruntes and a["code_insee"] not in (insees or []):
                 continue
-            cle = f"{a['code_insee']}-{a['date_prelevement']}"
+            # La clé est le code de prélèvement, jamais la date (§2.3) : une
+            # commune a souvent plusieurs prélèvements le même jour sur des
+            # points d'eau différents. Aux Arcs, le 1er mars 2024, Les Cambres
+            # et Sainte Cécile sont tous deux prélevés — la clé datée écrasait
+            # l'un des deux et le faisait disparaître de la fiche.
+            cle = a["code_prelevement"]
             d_iso = str(a["date_prelevement"])
             C[cle] = bloc_commune(con, ligne, cols, None, version)
             PARAMS[cle] = bloc_parametres(con, a["code_prelevement"], version)
