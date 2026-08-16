@@ -1,0 +1,54 @@
+/* ===========================================================================
+   Les trois polices, déclarées.
+
+   POURQUOI CE FICHIER EXISTE À PART
+   ---------------------------------
+   `observatoire-v2.css` nomme les familles dans ses jetons — `--f-titre:
+   "Newsreader"…`, `--f-texte: "Inter"…` — mais ne contient **aucun**
+   `@font-face`. Ce n'est pas un oubli de la charte : les maquettes livrées
+   inlinaient les trois `.woff2` en base64 pour s'ouvrir par double-clic, et la
+   déclaration vivait donc dans chaque maquette, pas dans la feuille.
+
+   En production, les polices sont des fichiers servis depuis `assets/`. Sans
+   les trois règles ci-dessous, elles y sont copiées et **jamais chargées** :
+   les pages retombent silencieusement sur Georgia et system-ui, et la décision
+   D7 de `docs/CHARTE_GRAPHIQUE.md` cesse de s'appliquer sans que rien ne le
+   signale. C'est le genre de panne qui ne casse rien et qu'on ne voit qu'en
+   comparant deux captures.
+
+   POURQUOI PAS DANS `observatoire-v2.css`
+   ---------------------------------------
+   Cette feuille-là est **livrée** par le dossier `Charte_graphique_v2` et se
+   remplace par copie à chaque nouvelle version. Y ajouter les `@font-face`
+   garantirait qu'ils disparaissent au prochain versement, en silence, et que
+   l'on repaie la même enquête. Ici, ils survivent.
+
+   Les valeurs — familles, graisses variables, `font-display: swap` — sont
+   reprises telles quelles des maquettes ; seule la source change, du base64 au
+   fichier. Les trois fichiers sont déjà sous-ensemblés au jeu français :
+   34 ko pour Inter, 41 et 46 ko pour Newsreader.
+   =========================================================================== */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;      /* police variable : une seule requête pour toutes les graisses */
+  font-display: swap;        /* le texte s'affiche tout de suite, dans la police de repli */
+  src: url("inter-var.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("newsreader-var.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("newsreader-var-italic.woff2") format("woff2");
+}

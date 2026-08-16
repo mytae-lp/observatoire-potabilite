@@ -187,70 +187,188 @@ def fil_ariane(fil, prefixe):
             bouts.append(f'<li aria-current="page">{h(libelle)}</li>')
         else:
             bouts.append(f'<li><a href="{prefixe}{h(url)}">{h(libelle)}</a></li>')
-    return ('<nav class="fil" aria-label="Fil d\'Ariane"><div class="wrap">'
+    return ('<nav class="fil" aria-label="Fil d\'Ariane"><div class="zone zone-large">'
             f'<ol>{"".join(bouts)}</ol></div></nav>')
 
 
-def page(titre, corps, page_courante, description, version, calcule_le,
-         scripts="", sous_titre=None, formule=True, prefixe="", fil=None):
-    """
-    Le squelette commun. `prefixe` est le chemin de retour vers la racine —
-    "" à la racine, "../" dans `commune/` et `departement/`.
+# La marque, inlinée. 625 octets : une seconde requête coûterait plus cher que
+# l'octet économisé, et l'inline permettra de faire suivre la teinte au thème le
+# jour où c'est utile (consigne §0). Le même fichier est servi en `rel=icon`.
+MARQUE_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" '
+    'aria-label="Observatoire de la potabilité réglementaire">'
+    '<path d="M16 2.5C16 2.5 5.5 14.2 5.5 20.2a10.5 10.5 0 0 0 21 0C26.5 14.2 '
+    '16 2.5 16 2.5Z" fill="#0B6A73"/>'
+    '<rect x="8.4" y="17.1" width="15.2" height="2.1" rx="1.05" fill="#F2F5F7" '
+    'opacity=".95"/>'
+    '<rect x="11.6" y="22.3" width="12" height="2.1" rx="1.05" fill="#7FD4DA"/>'
+    '</svg>')
 
-    Il est passé explicitement plutôt que réparé après coup : la version
-    précédente réécrivait les adresses d'une page déjà rendue par une chaîne de
-    `.replace()`, une par entrée de menu. Ajouter une page au menu ou un
-    sous-dossier au site demandait de penser à allonger la chaîne, sans quoi le
-    lien pointait dans le vide — et rien ne l'aurait signalé.
+# Le thème, restauré AVANT le premier rendu. Ces quatre lignes sont dans le
+# `<head>` et nulle part ailleurs : dans un fichier externe, ou en fin de page,
+# le visiteur qui a choisi le thème sombre verrait d'abord une page claire, puis
+# un basculement. C'est le seul script du site qui doit bloquer le rendu, et
+# c'est pour cela qu'il est réduit à sa plus simple expression.
+THEME_AVANT_RENDU = (
+    "<script>try{var t=localStorage.getItem('theme');"
+    "if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>")
+
+
+def barre(page_courante, prefixe):
     """
-    nav = "".join(
-        f'<li><a href="{prefixe}{f}"{" aria-current=\"page\"" if f == page_courante else ""}>{h(n)}</a></li>'
+    La barre fine et collante, qui remplace le bandeau de titre.
+
+    Le bandeau v1 portait le `h1`, le sous-titre et la formule sur toute la
+    largeur, à chaque page. Il coûtait la moitié d'un écran de téléphone avant
+    le premier mot utile, et répétait sept fois la même citation. La barre ne
+    porte que ce qui sert à se déplacer : la marque, le menu, le thème.
+
+    Le menu se replie **à 1080 px** et pas à 900 : déployé, il réclame 1 049 px
+    de barre. Mesuré, et c'est la mesure 2 du §7 qui l'avait attrapé — dans la
+    plage 900-1080, la barre débordait sans que personne ne regarde jamais là.
+    """
+    liens = "".join(
+        f'<li><a href="{prefixe}{f}"'
+        f'{" aria-current=\"page\"" if f == page_courante else ""}>{h(n)}</a></li>'
         for f, n in PAGES)
+    return f"""<header class="barre">
+  <div class="zone zone-large barre-i">
+    <a class="marque" href="{prefixe}index.html" aria-label="Accueil de l'Observatoire">
+      {MARQUE_SVG}
+      <span class="marque-txt"><b>Observatoire</b><span>de la potabilité réglementaire</span></span>
+    </a>
+    <button class="bouton-theme burger" id="burger" aria-expanded="false"
+            aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <ul class="menu" id="menu">{liens}</ul>
+    <button class="bouton-theme" id="theme"
+            aria-label="Basculer entre thème clair et sombre"
+            title="Thème clair / sombre">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/>
+        <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>
+      </svg>
+    </button>
+  </div>
+</header>"""
+
+
+def pied(version, calcule_le, corpus=None):
+    """Le pied : l'avertissement, les licences, et la traçabilité.
+
+    L'avertissement est le seul texte du site qui protège son lecteur plutôt
+    que de l'informer. Il passe en `.avert` — un bloc à filet ambre —, alors
+    qu'il s'affichait sans style depuis toujours : la classe n'était définie
+    nulle part, ni en v1 ni dans la première v2 (consigne §10.3).
+    """
+    corpus_html = (f"<span><b>Corpus</b> <code>{h(corpus)}</code></span>"
+                   if corpus else "")
+    return f"""<footer class="pied">
+  <div class="zone zone-large">
+    <p class="avert"><strong>Avertissement.</strong> Cet observatoire est un outil
+      d'information citoyenne. Il rapproche des mesures publiques d'un référentiel de
+      seuils daté que nous construisons et documentons nous-mêmes : <strong>ce
+      rapprochement peut comporter des erreurs</strong>. Les valeurs affichées ici
+      n'ont aucun caractère officiel et ne remplacent pas les conclusions sanitaires
+      de l'agence régionale de santé. Pour tout usage engageant — démarche
+      administrative, litige, décision de santé — reportez-vous aux sources
+      officielles et faites vérifier ces éléments par un tiers compétent. Les
+      références sur la qualité de votre eau restent votre ARS, votre mairie et le
+      rapport annuel de votre service d'eau.</p>
+    <p><b>Sources &amp; licences.</b> Mesures : SISE-Eaux (ministère chargé de la
+      santé) via l'API Hub'Eau, sous Licence Ouverte 2.0. Référentiel de seuils,
+      méthode et base : ODbL 1.0. Code : MIT. Fond de carte : contours départementaux
+      IGN/Etalab, Licence Ouverte. Une réutilisation conforme aux licences n'engage
+      pas l'Observatoire sur les conclusions qu'en tire le réutilisateur.</p>
+    <div class="tracab">
+      <span><b>Version du référentiel</b> <code>{h(version)}</code></span>
+      <span><b>Calculé le</b> <code>{h(calcule_le)}</code></span>
+      {corpus_html}
+      <span><b>Porté par</b> Éditions Mytae</span>
+    </div>
+  </div>
+</footer>"""
+
+
+def page(titre, corps, page_courante, description, version, calcule_le,
+         scripts="", sous_titre=None, formule=True, prefixe="", fil=None,
+         largeur="std", titre_dans_corps=False, og_titre=None,
+         og_description=None, corpus=None):
+    """
+    Le squelette commun, forme v2.
+
+    `prefixe` est le chemin de retour vers la racine — "" à la racine, "../"
+    dans `commune/` et `departement/`. Il est passé explicitement plutôt que
+    réparé après coup : la version d'avant réécrivait les adresses d'une page
+    déjà rendue par une chaîne de `.replace()`, une par entrée de menu. Ajouter
+    une page au menu demandait de penser à allonger la chaîne, sans quoi le lien
+    pointait dans le vide — et rien ne l'aurait signalé.
+
+    `largeur` choisit la mesure de la page (décision D6) : `prose` pour un texte
+    suivi, `std` par défaut, `large` pour une carte ou un annuaire. La `.wrap` à
+    1000 px disparaît.
+
+    **`titre_dans_corps`** est l'échafaudage du portage, et il a vocation à
+    disparaître. La forme cible met le `h1` dans le corps de chaque page — dans
+    le bandeau photographique, quand il y en a un. Mais les fonctions de page
+    n'émettent pas encore de `h1`, et le squelette v1 le fournissait : le retirer
+    d'un coup laisserait chaque page sans titre de niveau 1, ce qui est une
+    régression d'accessibilité et de référencement. Tant qu'une page ne fournit
+    pas le sien, le squelette pose une accroche standard ; quand elle le
+    fournit, elle passe `titre_dans_corps=True` et le squelette s'efface.
+
+    `og_titre` diffère volontairement de `titre` : l'un sert le moteur de
+    recherche, l'autre arrête le défilement dans un fil social. Ne pas les
+    fusionner (consigne §4.1 de la communication).
+    """
+    zone = {"prose": "zone-prose", "std": "zone-std", "large": "zone-large"}[largeur]
+
+    accroche = "" if titre_dans_corps else f"""
+<div class="accroche">
+  <div class="zone {zone}">
+    <p class="surtitre">Observatoire de la potabilité réglementaire</p>
+    <h1>{h(titre)}</h1>
+    {f'<p class="chapo">{sous_titre}</p>' if sous_titre else ''}
+    {'<p class="formule">« Ce n\'est pas l\'eau qui est devenue potable. C\'est la limite qui a bougé. »</p>' if formule else ''}
+  </div>
+</div>"""
+
     return f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{h(titre)} — Observatoire de la potabilité réglementaire</title>
 <meta name="description" content="{h(description)}">
-<link rel="stylesheet" href="{prefixe}assets/{empreinte('observatoire.css')}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Observatoire de la potabilité réglementaire">
+<meta property="og:title" content="{h(og_titre or titre)}">
+<meta property="og:description" content="{h(og_description or description)}">
+<meta property="og:image" content="{prefixe}assets/partage.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#08344C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C1620" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/svg+xml" href="{prefixe}assets/marque.svg">
+<link rel="preload" as="font" type="font/woff2" href="{prefixe}assets/inter-var.woff2" crossorigin>
+<link rel="stylesheet" href="{prefixe}assets/{empreinte('polices.css')}">
+<link rel="stylesheet" href="{prefixe}assets/{empreinte('observatoire-v2.css')}">
+{THEME_AVANT_RENDU}
 </head>
 <body>
-<div class="masthead"><div class="wrap">
-  <div class="eyebrow">Observatoire de la potabilité réglementaire · données ouvertes</div>
-  <h1>{h(titre)}</h1>
-  <p>{sous_titre or ''}</p>
-  {'<div class="formule">« Ce n\'est pas l\'eau qui est devenue potable. C\'est la limite qui a bougé. »</div>' if formule else ''}
-</div></div>
-<nav class="nav" aria-label="Sections du site"><div class="wrap"><ul>{nav}</ul></div></nav>
+{barre(page_courante, prefixe)}
 {fil_ariane(fil, prefixe)}
-
-<div class="wrap">
+{accroche}
+<main class="zone {zone} accroche-suite">
 {corps}
+</main>
 
-<footer><div class="src">
-  <p class="avert"><strong>Avertissement.</strong> Cet observatoire est un outil
-  d'information citoyenne. Il rapproche des mesures publiques d'un référentiel de
-  seuils daté que nous construisons et documentons nous-mêmes : <strong>ce
-  rapprochement peut comporter des erreurs</strong>. Les valeurs affichées ici
-  n'ont aucun caractère officiel et ne remplacent pas les conclusions sanitaires
-  de l'agence régionale de santé. Pour tout usage engageant — démarche
-  administrative, litige, décision de santé — reportez-vous aux sources
-  officielles et faites vérifier ces éléments par un tiers compétent. Les
-  références sur la qualité de votre eau restent votre ARS, votre mairie et le
-  rapport annuel de votre service d'eau.</p>
-  <strong>Sources &amp; licences.</strong> Mesures : SISE-Eaux (ministère chargé de la
-  santé) via l'API Hub'Eau, sous Licence Ouverte 2.0. Référentiel de seuils, méthode
-  et base : ODbL 1.0. Code : MIT. Fond de carte : contours départementaux IGN/Etalab,
-  Licence Ouverte. Une réutilisation conforme aux licences n'engage pas l'Observatoire
-  sur les conclusions qu'en tire le réutilisateur.
-  <div class="tracab">
-    <span><b>Version du référentiel :</b> {h(version)}</span>
-    <span><b>Calculé le :</b> {h(calcule_le)}</span>
-    <span><b>Porté par :</b> Éditions Mytae</span>
-  </div>
-</div></footer>
-</div>
+{pied(version, calcule_le, corpus)}
+<script src="{prefixe}assets/{empreinte('barre.js')}"></script>
 {scripts}
 </body>
 </html>
@@ -2040,9 +2158,20 @@ def construire(destination=None, db=DB_PATH, depts=None):
         # --- pages --------------------------------------------------------
         assets = os.path.join(public, "assets")
         os.makedirs(assets, exist_ok=True)
-        for f in ("observatoire.css", "fiche.js", "recherche.js", "carte.js",
-                  "tableau.js"):
+        for f in ("observatoire.css", "observatoire-v2.css", "polices.css",
+                  "fiche.js", "recherche.js", "carte.js", "tableau.js",
+                  "barre.js", "marque.svg", "partage.png"):
             shutil.copyfile(os.path.join(GABARITS, f), os.path.join(assets, f))
+        # Les polices et les bandeaux, à plat dans `assets/`. Les trois `.woff2`
+        # sont déjà sous-ensemblés au jeu français — 34, 41 et 46 ko — et les
+        # bandeaux existent en JPEG et en WebP, le `<picture>` choisissant.
+        for dossier in ("polices", "photos"):
+            source = os.path.join(GABARITS, dossier)
+            if not os.path.isdir(source):
+                continue
+            for f in sorted(os.listdir(source)):
+                shutil.copyfile(os.path.join(source, f),
+                                os.path.join(assets, f))
 
         ecrire(os.path.join(public, "index.html"), page(
             "Quelle eau buvez-vous ?",

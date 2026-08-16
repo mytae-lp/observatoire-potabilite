@@ -655,8 +655,8 @@ details.bulletin[open] summary { border-bottom: 1px solid var(--line); }
 /* -- Table de repères ------------------------------------------------------ */
 .tab-simple { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
 
-/* -- Emplacement de carte (inchangé dans cette maquette) ------------------- */
-.carte-bloc {
+/* -- Emplacement de carte non reprise dans une maquette -------------------- */
+.carte-absente {
   background: var(--card); border: 1px dashed var(--line); border-radius: var(--r-lg);
   padding: var(--e-8) var(--e-6); text-align: center; color: var(--ink-faint); font-size: var(--t-sm);
 }
@@ -967,3 +967,565 @@ main > section.section.section--sombre { background: var(--eau-deep); }
 /* La carte d'aveu occupe toute la largeur : son texte, lui, garde sa mesure. */
 .dossier--aveu p { max-width: var(--mesure); }
 .dossier--aveu .dossier-pied { max-width: none; }
+
+/* ===========================================================================
+   23. LES CARTES
+   Portage du contrat déjà en place dans le dépôt (`.carte-bloc`, `.pt`,
+   `.zone`, `.etiq`, `.carte-legende`, `.index-alpha`) sur les jetons v2.
+   Les noms de classes sont conservés à l'identique : les SVG sont produits
+   par `carte_departements_svg()` et `carte_svg()`, et rien ne doit obliger à
+   toucher au générateur pour changer la forme.
+   =========================================================================== */
+
+/* Paliers de la carte de France. Un dégradé de la couleur de l'eau, jamais du
+   vert au rouge : l'intensité dit le NOMBRE D'ANALYSES DÉTENUES, pas un
+   verdict. Foncé = bien documenté — la lecture se fait à l'envers de
+   l'habitude, et c'est le rappel sous la carte qui doit le dire. */
+:root {
+  /* Cinq paliers pour les départements COLLECTÉS (c1→c5), plus c0 pour ceux
+     qui ne le sont pas encore. Les bornes viennent de la distribution réelle
+     — voir la légende de `carte.html` : avec l'ancienne échelle (« 200 et
+     plus »), les 17 départements tombaient tous dans la même classe et la
+     carte ne discriminait rien. */
+  --pal-0: #E3EAEE;               /* pas encore collecté */
+  --pal-1: #CFE3E7; --pal-2: #A0C9D2; --pal-3: #6FAEBC; --pal-4: #357F91; --pal-5: #0E5F70;
+  --pal-vide: #E3EAEE;
+  --pal-etiq-clair: #FFFFFF;      /* étiquette sur les deux paliers les plus marqués */
+  --pal-liseré: #FFFFFF;
+}
+:root[data-theme="sombre"] {
+  --pal-0: #182430;
+  --pal-1: #17303A; --pal-2: #1E4956; --pal-3: #2A6B7C; --pal-4: #3A97AC; --pal-5: #5FD3DC;
+  --pal-vide: #182430; --pal-etiq-clair: #08131C; --pal-liseré: #0C1620;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="clair"]) {
+    --pal-0: #182430;
+    --pal-1: #17303A; --pal-2: #1E4956; --pal-3: #2A6B7C; --pal-4: #3A97AC; --pal-5: #5FD3DC;
+    --pal-vide: #182430; --pal-etiq-clair: #08131C; --pal-liseré: #0C1620;
+  }
+}
+
+.carte-bloc { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--e-5); }
+.carte-bloc svg { width: 100%; height: auto; display: block; }
+.carte-bloc path.dept { fill: var(--pal-vide); stroke: var(--pal-liseré); stroke-width: .6; }
+.carte-bloc path.dept.c0 { fill: var(--pal-0); }
+.carte-bloc path.dept.c1 { fill: var(--pal-1); }
+.carte-bloc path.dept.c2 { fill: var(--pal-2); }
+.carte-bloc path.dept.c3 { fill: var(--pal-3); }
+.carte-bloc path.dept.c4 { fill: var(--pal-4); }
+.carte-bloc path.dept.c5 { fill: var(--pal-5); }
+.carte-bloc .zone-inerte { pointer-events: none; }
+
+/* Un département documenté est une porte d'entrée, pas un décor. Ceux que le
+   corpus ne couvre pas restent inertes : un survol qui promet un lien absent
+   laisserait croire à une couverture qui n'existe pas. */
+.carte-bloc a.zone { cursor: pointer; }
+.carte-bloc a.zone path.dept { transition: fill var(--duree); }
+.carte-bloc a.zone:hover path.dept { stroke: var(--eau-deep); stroke-width: 1.4; }
+.carte-bloc a.zone:focus-visible path.dept { stroke: var(--eau); stroke-width: 2; }
+
+.carte-bloc text.etiq {
+  font-family: var(--f-texte); font-size: 13px; font-weight: 700;
+  fill: var(--ink); paint-order: stroke; stroke: var(--card); stroke-width: 3px;
+  stroke-linejoin: round; pointer-events: none; font-variant-numeric: tabular-nums;
+}
+.carte-bloc a.zone:has(path.c1) text.etiq { stroke: var(--pal-1); }
+.carte-bloc a.zone:has(path.c2) text.etiq { stroke: var(--pal-2); }
+.carte-bloc a.zone:has(path.c3) text.etiq { stroke: var(--pal-3); }
+.carte-bloc a.zone:has(path.c4) text.etiq { fill: var(--pal-etiq-clair); stroke: var(--pal-4); }
+.carte-bloc a.zone:has(path.c5) text.etiq { fill: var(--pal-etiq-clair); stroke: var(--pal-5); }
+
+/* Carte des communes d'un département : un point par commune, sa couleur
+   porte le verdict de son bulletin. */
+.carte-bloc a.pt { cursor: pointer; }
+.carte-bloc a.pt circle { stroke: var(--card); stroke-width: 1.4; transition: r var(--duree); }
+.carte-bloc a.pt:hover circle { stroke: var(--eau); stroke-width: 2; }
+.carte-bloc circle.analysee-vert    { fill: var(--vert); }
+.carte-bloc circle.analysee-rouge   { fill: var(--rouge); }
+.carte-bloc circle.analysee-bascule { fill: var(--bascule); }
+.carte-bloc circle.analysee-ambre   { fill: var(--ambre); }
+/* Commune rattachée : le cercle porte le verdict du bulletin emprunté, et un
+   demi-disque clair dit que l'analyse vient d'ailleurs. Deux informations sur
+   un même point, là où le blanc plein n'en portait aucune. */
+.carte-bloc circle.rattachee { fill: var(--card); stroke: var(--eau); stroke-width: 2.2; }
+.carte-bloc circle.rattachee.rattachee-vert    { fill: var(--vert); }
+.carte-bloc circle.rattachee.rattachee-rouge   { fill: var(--rouge); }
+.carte-bloc circle.rattachee.rattachee-bascule { fill: var(--bascule); }
+.carte-bloc circle.rattachee.rattachee-ambre   { fill: var(--ambre); }
+.carte-bloc path.demi-emprunt { fill: var(--card); stroke: none; pointer-events: none; }
+.carte-bloc circle.non_documentee { fill: var(--gris-bg); stroke: var(--gris); stroke-width: 1.6; }
+
+/* -- La légende EST le filtre -------------------------------------------- */
+.carte-legende { display: grid; gap: var(--e-1); margin-top: var(--e-5); font-size: var(--t-sm); color: var(--ink-soft); }
+.carte-legende i { width: 15px; height: 15px; border-radius: 50%; flex: none; display: inline-block; }
+.lg-vert { background: var(--vert); } .lg-rouge { background: var(--rouge); }
+.lg-bascule { background: var(--bascule); } .lg-ambre { background: var(--ambre); }
+.lg-rattachee { background: var(--card); border: 2px solid var(--eau); }
+.lg-nondoc { background: var(--gris-bg); border: 2px solid var(--gris); }
+.carte-legende .lg-btn {
+  display: flex; align-items: center; gap: var(--e-3); width: 100%;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: var(--r-sm);
+  padding: var(--e-2) var(--e-3); transition: background var(--duree), border-color var(--duree);
+}
+.carte-legende .lg-btn:hover { background: var(--paper); border-color: var(--line); }
+.carte-legende .lg-btn .n { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+/* Un état masqué garde son compte à l'écran, barré : on retire un état de la
+   vue, jamais du décompte. */
+.carte-legende .lg-btn[aria-pressed="false"] { opacity: .6; }
+.carte-legende .lg-btn[aria-pressed="false"] .lib { text-decoration: line-through; }
+.carte-legende .lg-btn[aria-pressed="false"] i { filter: grayscale(1); }
+.lg-aide { margin: var(--e-3) 0 0; font-size: var(--t-xs); color: var(--ink-faint); font-style: italic; }
+
+/* Paliers : une légende d'intensité, pas d'états. */
+.carte-legende.paliers { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--e-2) var(--e-5); }
+.carte-legende.paliers span { display: flex; align-items: center; gap: var(--e-2); }
+.carte-legende i.pal { width: 24px; height: 14px; border-radius: 3px; border: 1px solid var(--line); }
+i.pal.c0 { background: var(--pal-0); } i.pal.c1 { background: var(--pal-1); }
+i.pal.c2 { background: var(--pal-2); } i.pal.c3 { background: var(--pal-3); }
+i.pal.c4 { background: var(--pal-4); } i.pal.c5 { background: var(--pal-5); }
+i.pal.vide { background: var(--pal-vide); }
+
+/* -- Index alphabétique : sur 586 lignes, il remplace le survol d'une carte */
+.index-alpha { display: flex; flex-wrap: wrap; gap: var(--e-1); margin: 0 0 var(--e-4); }
+.index-alpha a {
+  display: inline-block; min-width: 32px; text-align: center; padding: var(--e-2) var(--e-3);
+  font-size: var(--t-sm); font-weight: 700; text-decoration: none; color: var(--ink);
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm);
+}
+.index-alpha a:hover { background: var(--eau); color: var(--card); border-color: var(--eau); }
+.tableau-communes tr:target td { background: var(--ambre-bg); }
+
+/* -- Jauge neutre : une progression, pas un seuil ------------------------- */
+/* La jauge de seuil vire à l'ambre à 85 % : ce serait un contresens sur une
+   couverture, où avancer est une bonne nouvelle. Fond plat, pas de repère. */
+.jg--neutre .jg-piste::before { background: var(--eau); }
+.jg--neutre .jg-piste em { display: none; }
+.jg--neutre .jg-lg > b { color: var(--eau); }
+
+/* -- Un réseau et ses communes ------------------------------------------- */
+.reseaux { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-3); }
+.reseau { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--e-4) var(--e-5); }
+.reseau b { display: block; font-size: var(--t-sm); font-weight: 650; }
+.reseau .meta { font-size: var(--t-xs); color: var(--ink-faint); margin-top: var(--e-1); }
+.reseau .communes { font-size: var(--t-sm); color: var(--ink-soft); margin-top: var(--e-2); }
+
+@media (max-width: 900px) { .reseaux { grid-template-columns: minmax(0, 1fr); } }
+
+/* Trois notes côte à côte sous une figure : elles tombent l'une sous l'autre
+   avant que leur mesure ne devienne illisible. */
+@media (max-width: 1080px) { .trois-notes { grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }
+@media (max-width: 760px)  { .trois-notes { grid-template-columns: minmax(0,1fr) !important; } }
+
+/* Une ligne de repère dans un tableau : elle explique une coupure, elle ne
+   porte pas de donnée. */
+.ligne-repere td { background: var(--card-alt); color: var(--ink-soft); font-size: var(--t-sm); padding: var(--e-5); }
+.tableau-communes small { color: var(--ink-faint); display: inline-block; }
+.tableau-communes thead th small { font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+/* Le compte de chaque palier : une légende d'intensité doit dire combien de
+   zones tombent dans chaque classe, sinon on ne sait pas si elle discrimine. */
+.carte-legende.paliers b.cpt {
+  margin-left: var(--e-2); font-variant-numeric: tabular-nums; color: var(--ink);
+  background: var(--card-alt); border: 1px solid var(--line); border-radius: var(--r-pastille);
+  padding: 0 var(--e-2); font-size: var(--t-xs); font-weight: 700;
+}
+
+/* ===========================================================================
+   24. L'ANNUAIRE D'UN DÉPARTEMENT
+   Un tableau de 586 lignes et 9 colonnes doit : tenir dans la largeur, garder
+   son en-tête à l'écran, et se trier par colonne. Les trois vont ensemble —
+   un tri sans en-tête figée oblige à remonter pour savoir ce qu'on lit.
+   =========================================================================== */
+.tableau--annuaire table { font-size: var(--t-xs); table-layout: fixed; }
+.tableau--annuaire td, .tableau--annuaire th { padding: var(--e-2) var(--e-3); }
+.tableau--annuaire td.num, .tableau--annuaire th.num { text-align: right; }
+.tableau--annuaire .sous { display: block; color: var(--ink-faint); font-size: var(--t-xs); line-height: 1.35; }
+.tableau--annuaire td .commune { font-size: var(--t-sm); }
+.tableau--annuaire .etat { font-size: 11px; padding: 2px var(--e-2); }
+.tableau--annuaire .etat::before { width: 6px; height: 6px; }
+
+/* L'en-tête reste à l'écran, sous la barre de navigation. */
+.tableau--annuaire thead th {
+  position: sticky; top: 60px; z-index: 5;
+  background: var(--card-alt); vertical-align: bottom;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+@media (max-width: 1080px) { .tableau--annuaire thead th { top: 60px; } }
+
+/* Un en-tête triable est un bouton, pas un titre décoré : il s'atteint au
+   clavier et il annonce son sens de tri. */
+.th-tri {
+  display: flex; align-items: center; gap: var(--e-1); width: 100%;
+  font: inherit; font-size: var(--t-xs); font-weight: 650; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-faint);
+  background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+}
+th.num .th-tri { justify-content: flex-end; }
+.th-tri:hover { color: var(--ink); }
+.th-tri::after { content: "↕"; font-size: 11px; opacity: .45; }
+th[aria-sort="ascending"]  .th-tri { color: var(--eau); }
+th[aria-sort="descending"] .th-tri { color: var(--eau); }
+th[aria-sort="ascending"]  .th-tri::after { content: "↑"; opacity: 1; }
+th[aria-sort="descending"] .th-tri::after { content: "↓"; opacity: 1; }
+.tri-aide { font-size: var(--t-sm); color: var(--ink-soft); margin: 0 0 var(--e-4); }
+
+/* Une pièce manquante : ce que l'Observatoire n'a pas, et qui existe. */
+.pieces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-4); }
+.piece {
+  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--gris);
+  border-radius: var(--r-md); padding: var(--e-6);
+}
+.piece--fournie { border-left-color: var(--eau); }
+.piece .tag {
+  display: inline-flex; align-self: flex-start; gap: var(--e-2);
+  font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--gris); background: var(--gris-bg); border-radius: var(--r-pastille);
+  padding: var(--e-1) var(--e-3); margin-bottom: var(--e-3);
+}
+.piece--fournie .tag { color: var(--eau); background: var(--eau-bg); }
+.piece h3 { font-size: var(--t-lg); margin-bottom: var(--e-3); }
+.piece p { font-size: var(--t-base); color: var(--ink-soft); max-width: none; }
+
+@media (max-width: 900px) { .pieces { grid-template-columns: minmax(0, 1fr); } }
+
+/* Un `overflow-x:auto` crée un conteneur de défilement, et un `th` collant à
+   l'intérieur se cale sur CE conteneur — donc ne colle plus au défilement de
+   la page. Sur l'annuaire, la largeur tient à partir de 1080 px : on rend donc
+   le cadre transparent au défilement, et l'en-tête colle pour de bon.
+   En dessous, le tableau défile latéralement et l'en-tête ne peut plus coller :
+   c'est le prix de la largeur, et il est assumé plutôt que caché. */
+.tableau--annuaire .tableau-defile { overflow: visible; }
+@media (max-width: 1080px) {
+  .tableau--annuaire .tableau-defile { overflow-x: auto; }
+  .tableau--annuaire table { table-layout: auto; min-width: 900px; }
+  .tableau--annuaire thead th { position: static; }
+}
+
+/* `overflow:hidden` sur le cadre arrondi casse aussi le collage : un ancêtre
+   qui rogne devient le repère de `position:sticky`. Le cadre de l'annuaire
+   laisse donc passer, et l'arrondi est porté par les cellules d'angle. */
+.tableau--annuaire { overflow: visible; }
+.tableau--annuaire thead th:first-child { border-top-left-radius: var(--r-lg); }
+.tableau--annuaire thead th:last-child  { border-top-right-radius: var(--r-lg); }
+.tableau--annuaire tbody tr:last-child td:first-child { border-bottom-left-radius: var(--r-lg); }
+.tableau--annuaire tbody tr:last-child td:last-child  { border-bottom-right-radius: var(--r-lg); }
+
+/* ===========================================================================
+   25. BANDEAU DE TÊTE — photographie en tête, données en réglette
+   ===========================================================================
+   Décision du 14 août 2026 (soir), après une première version trop austère.
+
+   Le propos du site n'est pas « l'eau, c'est la mort » : c'est un site de
+   conscience. L'eau est belle, et c'est précisément ce qui rend la lecture
+   des nombres supportable — l'image aère l'esprit et vient CONTRASTER le
+   propos, elle ne l'illustre pas. Toutes les pages ont donc une photographie
+   en tête, fiches communales comprises.
+
+   Ce que l'image n'a pas le droit de faire reste inchangé : commenter le
+   verdict. Elle ne montre ni robinet, ni rivière verte, ni mousse blanche —
+   elle montre de l'eau à l'état de rosée, datée et signée comme une source.
+   Et la donnée ne disparaît pas : elle passe en RÉGLETTE, une bande fine en
+   pied de bandeau où une marque vaut toujours une unité, avec sa légende.
+   -------------------------------------------------------------------------- */
+.bandeau {
+  position: relative; isolation: isolate; overflow: hidden;
+  --voile:   #08283A;                 /* couleur du fond ET du voile */
+  --paper:   #08283A; --card: #10293A; --card-alt: #143246;
+  --ink:     #F4F8FB; --ink-soft: #CBD9E4; --ink-faint: #AFC2D0;
+  --line:    #2E4A5F; --line-soft: #243D50;
+  --eau:     #8FDCE2; --eau-bg: #0E3A44; --eau-deep: #062634;
+  --vert:    #7FD6A2; --vert-bg: #123324;
+  --rouge:   #F5978A; --rouge-bg: #3A1D1D;
+  --bascule: #C4AEF3; --bascule-bg: #281F3E;
+  --gris:    #B3C4D1; --gris-bg: #1D3140;
+  --ambre:   #EFB454; --ambre-bg: #38290F;
+  --pal-0: #16303F; --pal-1: #1B3B47; --pal-2: #245263;
+  --pal-3: #31788B; --pal-4: #43A3B8; --pal-5: #6FDDE6;
+  background: var(--voile); color: var(--ink);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  min-height: clamp(300px, 34vw, 480px);
+}
+:root[data-theme="sombre"] .bandeau { --voile: #06121A; --card: #101D28; --card-alt: #16242F; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="clair"]) .bandeau { --voile: #06121A; --card: #101D28; --card-alt: #16242F; }
+}
+/* Le bandeau chaud ouvre la zone Éditions Mytae : on change de monde. */
+.bandeau--chaud {
+  --voile: #241A10; --paper: #241A10; --card: #2E2317; --card-alt: #382C1D;
+  --ink: #F8F3EA; --ink-soft: #DFD4C3; --ink-faint: #C7BAA8;
+  --line: #4A3B2A; --line-soft: #3C2F21; --eau: #8FDCE2;
+  border-bottom: 3px solid var(--eau);
+}
+:root[data-theme="sombre"] .bandeau--chaud { --voile: #14100A; --card: #1F1A12; --card-alt: #262019; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="clair"]) .bandeau--chaud { --voile: #14100A; --card: #1F1A12; --card-alt: #262019; }
+}
+.bandeau--chaud .bandeau-separation { border-color: #C2F1F5; color: #C2F1F5; }
+
+/* -- la photographie, en fond, visible ----------------------------------- */
+.bandeau-fond { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.bandeau-fond > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* C'est ce filtre qui rend le texte blanc lisible : il plafonne la luminance
+   des hautes lumières de la photo. Un voile de dégradé ferait un aplat bleu ;
+   un assombrissement garde l'image entière, elle reste une image. */
+.bandeau-fond > img { filter: brightness(.52) saturate(1.25) contrast(1.05); }
+.bandeau--chaud .bandeau-fond > img { filter: brightness(.5) saturate(1.2) contrast(1.05); }
+/* Voile uniforme, léger : il donne l'unité de couleur, rien de plus. */
+.bandeau-fond::after {
+  content: ""; position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--voile) 40%, transparent);
+}
+
+/* -- le texte, posé dessus ------------------------------------------------ */
+.bandeau-texte { position: relative; z-index: 1; }
+.bandeau-i { padding-block: var(--e-8) var(--e-8); }
+.bandeau-txt { max-width: min(100%, 62ch); }
+.bandeau .fil { padding-block: 0 var(--e-4); }
+.bandeau .fil a { color: #FFFFFF; }
+.bandeau .surtitre { color: #C2F1F5; }
+.bandeau .surtitre::before { background: #C2F1F5; }
+.bandeau h1, .bandeau h2 { color: #FFFFFF; }
+.bandeau .chapo { color: #FFFFFF; max-width: min(100%, 62ch); }
+.bandeau .chapo b, .bandeau .chapo strong { color: #FFFFFF; }
+.bandeau .fiche-tete { padding-block: 0; grid-template-columns: 1fr; }
+
+/* -- le crédit : une photographie se cite comme une source ---------------- */
+.bandeau-credit {
+  margin: var(--e-5) 0 0; font-size: var(--t-xs); line-height: 1.55;
+  color: rgba(255,255,255,.9); font-variant-numeric: tabular-nums;
+  max-width: min(100%, 78ch);
+}
+.bandeau-credit b { color: #FFFFFF; font-weight: 650; }
+.bandeau-credit em { font-style: italic; }
+
+/* -- l'accroche d'accueil est un bandeau, mais elle garde son champ ------- */
+.accroche.bandeau { padding-block: 0; min-height: clamp(420px, 46vw, 660px); }
+.accroche.bandeau .accroche-grille { grid-template-columns: 1fr; }
+.accroche.bandeau .formule { color: #DFF7F9; border-left-color: #C2F1F5; }
+.accroche.bandeau h1 { max-width: 18ch; }
+
+/* -- adaptations ---------------------------------------------------------- */
+@media (max-width: 900px) {
+  .bandeau { min-height: clamp(260px, 52vw, 400px); }
+  .accroche.bandeau { min-height: clamp(320px, 68vw, 520px); }
+  .bandeau-i { padding-block: var(--e-7); }
+}
+
+/* La tête de page a migré dans le bandeau : ce qui reste sous la photographie
+   est le seul bloc de verdict, qui n'a plus de colonne jumelle. */
+.fiche-tete--seule { display: block; }
+.fiche-tete--seule > .verdict-bloc { max-width: 760px; }
+/* Dans la réglette, la marque neutre doit se voir : sur le voile plein, le
+   filet du thème sombre est trop discret. */
+.reglette { --line: #3A5E77; }
+:root[data-theme="sombre"] .reglette { --line: #2C4A5F; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .reglette { --line: #2C4A5F; } }
+
+/* --------------------------------------------------------------------------
+   25 ter. LA REPRISE APRÈS LE BANDEAU
+   Le texte tombait directement sous la photographie, et la rupture entre le
+   sombre et le papier se lisait comme un à-coup. Deux réponses, aucune
+   décorative : un liseré qui referme le bandeau, et de l'air.
+   -------------------------------------------------------------------------- */
+.bandeau { border-bottom: 3px solid var(--eau); }
+.accroche-suite { padding-block: var(--e-9) var(--e-8); }
+.accroche-suite > .accroche-grille > div > .chapo:first-child {
+  font-size: var(--t-lg); line-height: 1.55; color: var(--ink);
+}
+@media (max-width: 900px) { .accroche-suite { padding-block: var(--e-7) var(--e-6); } }
+
+/* --------------------------------------------------------------------------
+   26. LA PART, DANS UN TABLEAU — une barre qui dit une proportion
+   Un pourcentage seul se compare mal d'une ligne à l'autre ; la barre rend la
+   comparaison immédiate, et le nombre reste là pour la précision.
+   -------------------------------------------------------------------------- */
+.part { display: flex; align-items: center; gap: var(--e-3); min-width: 170px; }
+.part-piste { flex: 1 1 auto; height: 8px; border-radius: var(--r-pastille); background: var(--line-soft); overflow: hidden; }
+.part-piste i { display: block; height: 100%; background: var(--bascule); border-radius: var(--r-pastille); }
+.part b { font-variant-numeric: tabular-nums; font-size: var(--t-sm); color: var(--ink); min-width: 4.5ch; text-align: right; }
+/* Un nom de fichier ne casse pas tout seul : sur un écran de 320 px, il sort
+   de la page. On l'autorise à se couper. */
+code { overflow-wrap: anywhere; }
+
+/* ===========================================================================
+   27. LES PAGES DE SUBSTANCE — répertoire, reclassements, briefs
+   ===========================================================================
+   Ajouté le 15 août 2026, pour les pages produites par `sortie/dossier_page.py`
+   et `build_site.py`. Ces pages n'emploient que 21 classes et des balises nues.
+   Quinze de ces classes n'existaient pas en v2 : elles sont définies ICI, sous
+   LEURS noms v1. Le balisage du générateur n'a donc pas à changer — ce qui
+   compte quand il produit plus de mille pages.
+
+   Une seule exception, signalée au §9.4 de la consigne : `.pill` porte
+   aujourd'hui trois sens sur une seule forme. Il lui faut trois variantes,
+   et cela demande une ligne dans le générateur.
+   -------------------------------------------------------------------------- */
+
+/* -- les alias d'ossature : même chose que la v2, sous les noms v1 -------- */
+.wrap { width: 100%; margin-inline: auto; padding-inline: var(--e-5);
+        max-width: calc(var(--l-large) + 2 * var(--e-5)); }
+.prose { max-width: var(--mesure); }
+.prose p { margin: 0 0 var(--e-4); }
+.prose ul { margin: 0 0 var(--e-4); padding-left: var(--e-5); }
+.prose li { margin-bottom: var(--e-2); }
+.prose h4 { font-size: var(--t-lg); margin: var(--e-6) 0 var(--e-3); }
+.prose h4:first-child { margin-top: 0; }
+.prose blockquote { margin: var(--e-5) 0; padding: var(--e-4) var(--e-5);
+  border-left: 3px solid var(--eau); background: var(--card-alt);
+  border-radius: 0 var(--r-md) var(--r-md) 0; font-size: var(--t-base); }
+.eyebrow { font-family: var(--f-texte); font-size: var(--t-xs); font-weight: 650;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--eau); }
+
+/* -- le titre de section, qui sert de repère dans une page très longue --- */
+.sec {
+  font-size: var(--t-xl); letter-spacing: -.015em;
+  margin: 0 0 var(--e-5); padding-top: var(--e-4);
+  border-top: 2px solid var(--eau);
+}
+/* Les <section> nues du générateur s'espacent entre elles ; celles qui portent
+   déjà `.section` ont leur propre respiration et n'y touchent pas. */
+section:not(.section) + section:not(.section) { margin-top: var(--e-7); }
+.brief { padding-block: var(--e-7) var(--e-8); }
+.brief > section:first-of-type { margin-top: 0; }
+/* Un tableau d'identité est une liste de couples : l'étiquette ne prend pas
+   la moitié de la largeur. */
+tbody th { text-align: left; width: 16rem; color: var(--ink); font-weight: 650;
+  font-size: var(--t-sm); letter-spacing: 0; text-transform: none; }
+
+/* -- .bnote — LE PORTEUR DES GARDE-FOUS -----------------------------------
+   En v1 : 12 px, gris, sans cadre. C'est-à-dire que le dénominateur, le
+   « jamais quantifié n'est pas absent » et la nature de la valeur se lisaient
+   comme des mentions légales. Or c'est ce que le projet a de plus spécifique :
+   28 occurrences sur un seul brief, et chacune empêche une lecture fausse.
+
+   Elle passe donc à la taille du texte courant, avec un filet à gauche. Pas
+   un encadré plein : vingt-huit encadrés d'affilée deviennent un mur, et un
+   mur ne se lit pas non plus. Les `.bnote` consécutives se resserrent pour
+   former un bloc au lieu d'une pluie.
+   -------------------------------------------------------------------------- */
+.bnote {
+  font-size: var(--t-sm); line-height: 1.6; color: var(--ink-soft);
+  margin: var(--e-4) 0 0; padding: var(--e-3) 0 var(--e-3) var(--e-5);
+  border-left: 3px solid var(--line);
+  max-width: var(--mesure);
+}
+.bnote b, .bnote strong { color: var(--ink); font-weight: 650; }
+.bnote + .bnote { margin-top: var(--e-2); }
+/* Une `.bnote` qui ouvre une section porte le garde-fou principal : elle a
+   droit au filet de la couleur de l'eau, et à un fond. */
+section > .bnote:first-child,
+.prose > .bnote:first-child,
+h3.sec + .bnote {
+  border-left-color: var(--eau); background: var(--card-alt);
+  padding-right: var(--e-5); border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+
+/* -- les grands nombres --------------------------------------------------
+   Trois nombres alignés se lisent comme une progression, et sur un
+   reclassement cela ferait lire « la limite s'est relâchée » là où une
+   substance est SORTIE du périmètre opposable. D'où deux décisions :
+   l'étiquette a la place de dire la nature en entier, et la case « après »
+   porte une flèche qui dit que c'est la MÊME valeur qui s'est déplacée.
+   -------------------------------------------------------------------------- */
+.chiffres {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--e-4); margin: var(--e-5) 0 0;
+}
+.chiffre {
+  position: relative; overflow: hidden;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: var(--e-5) var(--e-5) var(--e-5) var(--e-6);
+}
+.chiffre::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px;
+  background: var(--ink-faint); }
+.chiffre .n {
+  display: block; font-family: var(--f-titre); font-size: var(--t-2xl);
+  font-weight: 600; line-height: 1; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.chiffre .l {
+  display: block; margin-top: var(--e-3);
+  font-size: var(--t-xs); line-height: 1.5; color: var(--ink-soft);
+}
+.chiffre.bascule::before { background: var(--bascule); }
+.chiffre.bascule .n { color: var(--bascule); }
+.chiffre.rouge::before  { background: var(--rouge); }
+.chiffre.rouge .n  { color: var(--rouge); }
+.chiffre.gris::before   { background: var(--gris); }
+.chiffre.gris .n   { color: var(--gris); }
+/* La valeur qui a bougé n'est pas un troisième nombre : c'est le même,
+   déplacé. La flèche le dit, et disparaît quand les cases passent l'une
+   sous l'autre — où elle pointerait dans le vide. */
+@media (min-width: 901px) {
+  .chiffre + .chiffre.bascule { margin-left: var(--e-5); }
+  .chiffre + .chiffre.bascule::after {
+    content: "→"; position: absolute; left: calc(-1 * var(--e-5)); top: 50%;
+    transform: translate(-30%, -50%);
+    font-size: var(--t-lg); color: var(--bascule); font-weight: 700;
+  }
+  .chiffre + .chiffre.bascule { overflow: visible; }
+}
+
+/* -- .pill — trois sens, trois formes -------------------------------------
+   « dossier », « à relire » et « à vérifier » ne disent pas la même chose :
+   le premier oriente, le deuxième avoue un état de relecture, le troisième
+   est un garde-fou sur la donnée. Une seule forme pour les trois les rend
+   interchangeables à l'œil.
+   -------------------------------------------------------------------------- */
+.pill {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  font-size: var(--t-xs); font-weight: 650; letter-spacing: .04em;
+  padding: 2px var(--e-3); border-radius: var(--r-pastille);
+  background: var(--gris-bg); color: var(--gris); white-space: nowrap;
+  vertical-align: baseline;
+}
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: 0 0 auto; }
+.pill--dossier  { background: var(--eau-bg);   color: var(--eau); }
+.pill--relire   { background: var(--gris-bg);  color: var(--gris); }
+.pill--verifier { background: var(--ambre-bg); color: var(--ambre); }
+.pill--verifier::before { border-radius: 1px; transform: rotate(45deg); }
+
+/* -- le statut d'une commune, repris de la v1 ---------------------------- */
+.st { display: inline-flex; align-items: center; gap: var(--e-2);
+  font-size: var(--t-xs); font-weight: 650; padding: 2px var(--e-3);
+  border-radius: var(--r-pastille); }
+.st.analysee          { background: var(--vert-bg); color: var(--vert); }
+.st.rattachee_reseau  { background: var(--eau-bg);  color: var(--eau); }
+.st.non_documentee    { background: transparent; color: var(--gris);
+                        border: 1px dashed var(--gris); }
+
+/* -- .avert — l'avertissement de pied ------------------------------------
+   Défaut trouvé le 15 août 2026 : cette classe n'était définie NULLE PART,
+   ni en v1 ni en v2. Le paragraphe qui dit ce que l'Observatoire n'est pas
+   s'affichait donc sans style, sur toutes les pages, depuis toujours. C'est
+   le seul texte du site qui protège son lecteur : il ne peut pas être le
+   seul sans forme.
+   -------------------------------------------------------------------------- */
+.avert {
+  border: 1px solid color-mix(in srgb, var(--ambre) 40%, transparent);
+  border-left: 4px solid var(--ambre);
+  background: var(--ambre-bg);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  padding: var(--e-5); margin: 0 0 var(--e-5);
+  font-size: var(--t-sm); line-height: 1.6; color: var(--ink);
+  max-width: none;
+}
+.avert strong { color: var(--ink); font-weight: 700; }
+.pied .avert a { color: var(--ambre); }
+
+/* -- le répertoire : 1 243 lignes, et il faut que ça reste tenable ------- */
+.repertoire thead th { position: sticky; top: 60px; z-index: 5; }
+.repertoire section { content-visibility: auto; contain-intrinsic-size: auto 600px; }
+.filtre-rep { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-4);
+  margin: var(--e-5) 0 var(--e-6); }
+.filtre-rep input {
+  flex: 1 1 280px; font: inherit; font-size: var(--t-base);
+  padding: var(--e-3) var(--e-4); border: 1px solid var(--line);
+  border-radius: var(--r-md); background: var(--card); color: var(--ink);
+}
+.filtre-rep input:focus-visible { outline: 2px solid var(--eau); outline-offset: 1px; }
+.filtre-rep output { font-size: var(--t-sm); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .repertoire thead th { position: static; } }
