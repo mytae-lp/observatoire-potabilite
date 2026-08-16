@@ -2832,7 +2832,7 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None):
             fil=[("Accueil", "index.html"), ("Les valeurs qui ont bougé", None)]))
 
         # --- une page par commune documentée ------------------------------
-        n_fiches = fiches_communes(con, version, lignes, public)
+        n_fiches = fiches_communes(con, version, lignes, public, communes)
 
         # --- index de recherche ------------------------------------------
         index = [{"i": c["code_insee"], "n": c["commune"], "d": c["dept"],
@@ -2942,7 +2942,7 @@ def pages_departements(lignes, version, calcule_le, public):
     return n
 
 
-def fiches_communes(con, version, lignes, public):
+def fiches_communes(con, version, lignes, public, communes=None):
     """
     Une page par commune documentée, bâtie sur le MÊME corps et le MÊME rendu
     que la fiche autonome — mêmes obligations d'affichage, mêmes trois états,
