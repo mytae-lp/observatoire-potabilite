@@ -1,0 +1,28 @@
+# Les fichiers du référentiel sont rendus en LF sur TOUTES les machines.
+#
+# Posé le 16 août 2026, après une fausse alerte qui a failli coûter neuf heures.
+#
+# `figer.version_referentiel()` hache les OCTETS de ces quatre fichiers. Git
+# stocke du LF dans le dépôt et rend du CRLF dans une copie de travail Windows :
+# le même commit produisait donc DEUX empreintes selon la machine —
+# `64c998f636a8` sur le PC, `982f3e6ea21d` sur le VPS. Une session travaillant
+# en local en concluait, à juste titre au vu de ce qu'elle voyait, que « le
+# référentiel n'est pas figé » et que `test_sorties.py` échouait. Rien n'était
+# faux dans son constat : la mesure était bonne, la machine n'était pas la
+# bonne. Aucun refigeage n'était nécessaire.
+#
+# POURQUOI CE FICHIER PLUTÔT QU'UN CORRECTIF DANS `figer.py`
+# Normaliser les fins de ligne à l'intérieur de `version_referentiel()` serait
+# plus direct — et changerait `version_moteur()`, donc ferait refuser le
+# prochain figeage et imposerait de tout refiger (~9 h sur 42 387 bulletins).
+# Ici, l'empreinte calculée sur le VPS ne bouge pas d'un caractère : le dépôt
+# contenait déjà du LF, on aligne seulement la copie Windows sur lui.
+#
+# Après un `git pull` qui apporte ce fichier, forcer la conversion de la copie
+# de travail :  git add --renormalize . && git checkout -- .
+referentiel/*.csv text eol=lf
+
+# Même raison pour le code : `version_moteur()` hache figer.py, build_db.py et
+# common.py. Une copie de travail en CRLF y produirait la même divergence, et
+# celle-là ferait refuser un figeage au lieu d'en réclamer un.
+*.py text eol=lf
