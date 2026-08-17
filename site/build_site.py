@@ -2044,13 +2044,31 @@ def page_substances(con, version, repertoire, dossiers):
                 f'<td class="num">{f["mesures"]}</td>'
                 f'<td class="num">{f["quantifiees"]}</td>'
                 f'<td class="num">{f["communes_quantifiee"]}</td></tr>')
-        blocs.append(
-            f'<section><h3 class="sec">{h(titre)} — {len(molecules)}</h3>'
-            '<table><thead><tr><th>Substance</th><th>Nature</th>'
-            '<th>Valeur de comparaison</th><th>Applicable depuis</th>'
-            '<th class="num">Cherché</th><th class="num">Quantifié</th>'
-            '<th class="num">Communes</th></tr></thead><tbody>'
-            + "".join(lignes) + '</tbody></table></section>')
+        # Le répertoire compte 1 243 paramètres, dont 612 pesticides : une
+        # famille entière déroulée fait perdre la page. Les 25 premiers, le
+        # reste sous un repli qui dit son nombre — jamais tronqué (§2.8).
+        def tableau(rangs):
+            return ('<div class="tableau"><div class="tableau-defile"><table>'
+                    '<thead><tr><th>Substance</th><th>Nature</th>'
+                    '<th>Valeur de comparaison</th><th>Applicable depuis</th>'
+                    '<th class="num">Cherché</th><th class="num">Quantifié</th>'
+                    '<th class="num">Communes</th></tr></thead><tbody>'
+                    + "".join(rangs) + '</tbody></table></div></div>')
+
+        corps_f = tableau(lignes[:25])
+        if len(lignes) > 25:
+            corps_f += (f'<details class="plus"><summary>Afficher les '
+                        f'{len(lignes) - 25} autres de cette famille</summary>'
+                        + tableau(lignes[25:]) + '</details>')
+        blocs.append(f'<section><h3 class="sec">{h(titre)} — {len(molecules)}'
+                     f'</h3>{corps_f}</section>')
+
+    filtre = (f'<div class="filtre-rep">'
+              f'<input id="q-rep" type="search" autocomplete="off" '
+              f'placeholder="Filtrer : nom de substance, famille…" '
+              f'aria-label="Filtrer le répertoire">'
+              f'<output id="n-rep" for="q-rep">{total} paramètres</output>'
+              f'</div>')
 
     return f"""
   <section style="margin-top:0"><div class="prose">
@@ -2089,7 +2107,8 @@ def page_substances(con, version, repertoire, dossiers):
       les a vus au-dessus de la limite de quantification du laboratoire, ce qui
       n'est pas la même chose (§2.4).</p>
   </section>
-{''.join(blocs)}"""
+{filtre}
+  <div class="repertoire">{''.join(blocs)}</div>"""
 
 
 def page_reclassements(con, version, substances):
@@ -2830,6 +2849,35 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
                 fil=[("Accueil", "index.html"),
                      ("Substances", "substances.html"), (f["libelle"], None)]))
 
+        # LE FILTRE ET LES REPLIS SE CONTREDISENT, et c'est le seul point
+        # délicat de cette page : une ligne repliée ne se laisse pas trouver.
+        # Dès qu'une recherche est en cours, tous les replis s'ouvrent ; ils
+        # se referment quand le champ est vidé. Sans ça, chercher « atrazine »
+        # dans une famille de 612 molécules ne rendrait rien alors qu'elle y
+        # est — un silence qui se lit comme une absence (§2.4, transposé).
+        script_rep = """<script>
+(function(){
+  var q = document.getElementById('q-rep'), n = document.getElementById('n-rep');
+  if (!q) return;
+  var lignes = [].slice.call(document.querySelectorAll('.repertoire tbody tr'));
+  var sections = [].slice.call(document.querySelectorAll('.repertoire section'));
+  var replis = [].slice.call(document.querySelectorAll('.repertoire details'));
+  var total = n.textContent;
+  q.addEventListener('input', function(){
+    var t = q.value.trim().toLowerCase(), vus = 0;
+    replis.forEach(function(d){ d.open = !!t; });
+    lignes.forEach(function(tr){
+      var ok = !t || tr.textContent.toLowerCase().indexOf(t) !== -1;
+      tr.hidden = !ok; if (ok) vus++;
+    });
+    sections.forEach(function(s){
+      s.hidden = !s.querySelector('tbody tr:not([hidden])');
+    });
+    n.textContent = t ? (vus + ' entree' + (vus > 1 ? 's' : '') + ' affichee'
+                             + (vus > 1 ? 's' : '')) : total;
+  });
+})();
+</script>"""
         ecrire(os.path.join(public, "substances.html"), page(
             "Ce qu'on cherche dans l'eau",
             page_substances(con, version, rep, dossiers), "substances.html",
@@ -2839,6 +2887,7 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
             sous_titre="Une fiche communale dit ce qu'il y a dans une eau. Ce "
                        "répertoire dit ce qu'on y a cherché — et ce que le projet "
                        "peut, ou ne peut pas, en conclure.", formule=False,
+            scripts=script_rep,
             fil=[("Accueil", "index.html"), ("Ce qu'on cherche dans l'eau", None)]))
 
         ecrire(os.path.join(public, "reclassements.html"), page(
