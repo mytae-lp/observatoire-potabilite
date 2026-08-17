@@ -73,7 +73,7 @@ REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 # rend au menu sa fonction, qui est de dire en un coup d'œil ce que le site
 # contient.
 #
-# Trois premiers niveaux sans sous-menu — l'accueil, les dossiers — parce que
+# Trois premiers niveaux sans deroule-menu — l'accueil, les dossiers — parce que
 # ce sont les deux portes que le projet veut voir prendre. Le reste se range
 # par question posée : où regarder, comment c'est fait, qui le fait.
 #
@@ -300,13 +300,13 @@ def barre(page_courante, prefixe):
             f'{" aria-current=\"page\"" if f == page_courante else ""}>{h(n)}</a></li>'
             for f, n in sous)
         morceaux.append(
-            f'<li class="a-sous"><details class="sous{" sous--ici" if ici else ""}"'
+            f'<li class="a-sous"><details class="deroule{" deroule--ici" if ici else ""}"'
             f'{" open" if ici else ""}>'
             f'<summary>{h(nom)}'
-            f'<svg class="sous-fleche" viewBox="0 0 24 24" fill="none" aria-hidden="true"'
+            f'<svg class="deroule-fleche" viewBox="0 0 24 24" fill="none" aria-hidden="true"'
             f' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
             f' stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
-            f'</summary><ul class="sous-menu">{entrees}</ul></details></li>')
+            f'</summary><ul class="deroule-menu">{entrees}</ul></details></li>')
     liens = "".join(morceaux)
     return f"""<header class="barre">
   <div class="zone zone-large barre-i">
@@ -2512,6 +2512,7 @@ def bloc_arretes(dept, nom_dept):
 
     <details class="plus">
       <summary>Afficher les 8 articles qui organisent cette procédure</summary>
+      <div class="tableau"><div class="tableau-defile">
       <table><thead><tr><th>Article</th><th>Ce que le texte prévoit</th></tr></thead><tbody>
         <tr><td><code>R1321-26</code></td><td>Tout dépassement d'une limite de qualité est <b>signalé immédiatement au maire et à l'agence régionale de santé</b>, et une enquête est menée.</td></tr>
         <tr><td><code>R1321-27</code></td><td>La personne responsable de la distribution prend <b>« le plus rapidement possible les mesures correctives nécessaires »</b>, quelle qu'en soit la cause.</td></tr>
@@ -2521,7 +2522,7 @@ def bloc_arretes(dept, nom_dept):
         <tr><td><code>R1321-33</code></td><td>Une <b>seconde</b> dérogation de trois ans au maximum, « dans des circonstances exceptionnelles ».</td></tr>
         <tr><td><code>R1321-34</code></td><td><b>Abrogé</b> — la possibilité d'une troisième dérogation a été supprimée.</td></tr>
         <tr><td><code>R1321-35</code></td><td>Un <b>bilan</b> est obligatoire à l'issue de chaque période dérogatoire.</td></tr>
-      </tbody></table>
+      </tbody></table></div></div>
       <p class="note note--gris">Le pendant exact de ce que cet observatoire documente
         par ailleurs : la limite se déplace dans le temps, et l'eau peut aussi être
         autorisée à rester au-dessus d'elle, pour une durée écrite.</p>
@@ -2855,6 +2856,7 @@ def page_substances(con, version, repertoire, dossiers):
   </div></section>
 
   <section><h3 class="sec">Ce que le projet peut dire, et ce qu'il ne peut pas</h3>
+    <div class="tableau"><div class="tableau-defile">
     <table><thead><tr><th>D'où vient le terme de comparaison</th>
       <th class="num">Paramètres</th><th>Ce que ça permet</th></tr></thead><tbody>
       <tr><td>Une ligne du référentiel qui lui est propre</td>
@@ -2866,7 +2868,7 @@ def page_substances(con, version, repertoire, dossiers):
         <td>aucun verdict 2016, aucune bascule (§2.8)</td></tr>
       <tr><td>Aucun</td><td class="num">{compte['absent']}</td>
         <td>mesuré, mais aucun verdict n'est prononcé</td></tr>
-    </tbody></table>
+    </tbody></table></div></div>
     <p class="bnote"><b>La majorité des paramètres est notée par une règle de
       famille, pas par une valeur lue pour elle.</b> C'est ce que fait aussi
       l'administration, et ce n'est pas un défaut — mais le taire ferait passer
@@ -2975,12 +2977,13 @@ def page_reclassements(con, version, substances):
   </div></section>
 
   <section><h3 class="sec">Les dossiers publiés</h3>
+    <div class="tableau"><div class="tableau-defile">
     <table><thead><tr>
       <th>Substance</th><th>Nature de la valeur</th>
       <th>Déplacement de la valeur</th><th>Applicable depuis</th>
       <th class="num">Analyses basculées</th><th class="num">Communes</th>
       <th class="num">Analyses</th>
-    </tr></thead><tbody>{''.join(lignes)}</tbody></table>
+    </tr></thead><tbody>{''.join(lignes)}</tbody></table></div></div>
 
     <p class="bnote"><b>La nature de la valeur commande la lecture de toute la
       ligne.</b> Aligner des natures différentes dans une même colonne de
@@ -3006,11 +3009,12 @@ def page_methode(con, version, calcule_le):
       physique ; un verdict est une convention administrative, et cette convention se
       déplace. L'objet de l'outil est de rendre ce déplacement visible et vérifiable.</p>
     <p>Chaque mesure est donc notée trois fois :</p>
+    <div class="tableau"><div class="tableau-defile">
     <table><thead><tr><th>Grille</th><th>Question posée</th></tr></thead><tbody>
       <tr><td>2016</td><td>Cette eau aurait-elle été potable selon la norme d'il y a dix ans ?</td></tr>
       <tr><td>2026</td><td>Est-elle potable selon la norme en vigueur aujourd'hui ?</td></tr>
       <tr><td>stricte</td><td>Serait-elle potable selon la norme la plus protectrice au monde ?</td></tr>
-    </tbody></table>
+    </tbody></table></div></div>
     <p>L'indicateur central est la <b>bascule</b> : une mesure au-dessus de la limite de
       2016 et sous celle de 2026. Un bulletin déclaré conforme et comportant des
       bascules est la démonstration matérielle du réétalonnage.</p>
@@ -3101,6 +3105,7 @@ def page_methode(con, version, calcule_le):
       de sa limite apporte 0,5. Deux substances chacune à la moitié de la leur
       apportent 1,0 — l'équivalent d'une limite entière occupée, alors qu'aucune des
       deux n'a franchi la sienne. C'est tout le propos.</p>
+    <div class="tableau"><div class="tableau-defile">
     <table><thead><tr><th>Substance</th><th>Mesurée</th><th>Limite</th>
       <th class="num">Fraction</th></tr></thead><tbody>
       <tr><td>ESA métolachlore</td><td>0,42 µg/L</td><td>0,9 µg/L</td>
@@ -3111,7 +3116,7 @@ def page_methode(con, version, calcule_le):
         <td class="num">2,5</td></tr>
       <tr><td colspan="3"><b>Indice, sur 3 substances</b></td>
         <td class="num"><b>3,4667</b></td></tr>
-    </tbody></table>
+    </tbody></table></div></div>
     <p class="bnote">Cet exemple n'est pas une commune réelle : c'est le bulletin de
       contrôle du programme, revérifié à chaque exécution des tests.</p>
     <p><b>Quatre règles décident de ce qui entre dans la somme :</b></p>

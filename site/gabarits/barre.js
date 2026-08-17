@@ -56,14 +56,14 @@
      tout seul, et c'est pour ça qu'ils sont écrits ainsi. Ce qui suit n'ajoute
      que le confort qu'on attend d'une barre de navigation — et rien de ce
      confort n'est nécessaire pour atteindre une page. */
-  var sous = Array.prototype.slice.call(document.querySelectorAll(".menu .sous"));
-  if(sous.length){
+  var deroules = Array.prototype.slice.call(document.querySelectorAll(".menu .deroule"));
+  if(deroules.length){
     /* Un seul ouvert à la fois. Deux panneaux déroulés se recouvrent, et le
        second se lit par-dessus le premier. */
-    sous.forEach(function(d){
+    deroules.forEach(function(d){
       d.addEventListener("toggle", function(){
         if(!d.open) return;
-        sous.forEach(function(a){ if(a !== d) a.open = false; });
+        deroules.forEach(function(a){ if(a !== d) a.open = false; });
       });
     });
 
@@ -73,14 +73,14 @@
        panneau flottant, et il se referme par le burger. */
     document.addEventListener("click", function(e){
       if(menu && menu.classList.contains("ouvert")) return;
-      sous.forEach(function(d){ if(d.open && !d.contains(e.target)) d.open = false; });
+      deroules.forEach(function(d){ if(d.open && !d.contains(e.target)) d.open = false; });
     });
 
     /* Échap referme le panneau et **rend le focus à son intitulé** : sans ce
        retour, la tabulation repartirait du début du document. */
     document.addEventListener("keydown", function(e){
       if(e.key !== "Escape") return;
-      sous.forEach(function(d){
+      deroules.forEach(function(d){
         if(!d.open) return;
         d.open = false;
         var s = d.querySelector("summary");
