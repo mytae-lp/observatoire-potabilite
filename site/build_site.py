@@ -2572,7 +2572,7 @@ def _poids(octets):
 
 # ---------------------------------------------------------------------------
 def construire(destination=None, db=DB_PATH, depts=None, communes=None,
-               sans_fiches=False):
+               sans_fiches=False, depts_fiches=None):
     """
     `communes` — un jeu de codes INSEE, et c'est un outil d'APERÇU, pas de
     publication. Ajouté le 16 août 2026 : juger une fiche demandait jusque-là
@@ -2857,7 +2857,8 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
             # l'adresse — le navigateur la recharge, il ne la manque pas.
             n_fiches = existantes
         else:
-            n_fiches = fiches_communes(con, version, lignes, public, communes)
+            n_fiches = fiches_communes(con, version, lignes, public,
+                                       communes, depts_fiches)
 
         # --- index de recherche ------------------------------------------
         index = [{"i": c["code_insee"], "n": c["commune"], "d": c["dept"],
@@ -2967,7 +2968,8 @@ def pages_departements(lignes, version, calcule_le, public):
     return n
 
 
-def fiches_communes(con, version, lignes, public, communes=None):
+def fiches_communes(con, version, lignes, public, communes=None,
+                    depts_fiches=None):
     """
     Une page par commune documentée, bâtie sur le MÊME corps et le MÊME rendu
     que la fiche autonome — mêmes obligations d'affichage, mêmes trois états,
@@ -2990,6 +2992,15 @@ def fiches_communes(con, version, lignes, public, communes=None):
             continue
         insee = c["code_insee"]
         if communes and insee not in communes:
+            continue
+        # AJOUT D'UN DÉPARTEMENT SANS TOUT REFAIRE. Le reste du site — carte,
+        # index de recherche, pages de département, totaux de l'accueil — est
+        # bâti sur le corpus ENTIER quelques lignes plus haut : le nouveau
+        # département y entre partout. Seules les fiches sont restreintes, et
+        # celles des autres départements restent en place telles quelles.
+        # À ne pas confondre avec `--depts`, qui restreint ce qui est PUBLIÉ et
+        # effacerait les autres de la carte.
+        if depts_fiches and c["dept"] not in depts_fiches:
             continue
         rat = BF.rattachements(con, version, [insee]).get(insee)
         if rat:
@@ -3117,6 +3128,13 @@ def main():
     p.add_argument("--depts", help="départements à publier, séparés par des virgules "
                                    "(ex. 28,81,69,09,31). Défaut : tous ceux qui sont "
                                    "figés — à n'utiliser que si aucun n'est partiel.")
+    p.add_argument("--fiches-depts",
+                   help="ne (re)construire QUE les fiches de ces départements, "
+                        "en laissant les autres en place. Le reste du site — "
+                        "carte, index, pages de département, accueil — est "
+                        "bâti sur le corpus entier : c'est ce qui permet "
+                        "d'ajouter un département sans refaire les 45 000 "
+                        "fiches des précédents.")
     p.add_argument("--sans-fiches", action="store_true",
                    help="reconstruit TOUT sauf les fiches de commune : les huit "
                         "pages communes, la carte, les départements et les "
@@ -3134,7 +3152,9 @@ def main():
         p.error("--communes exige --sortie : le site publié ne doit jamais "
                 "recevoir une construction partielle, ses liens seraient morts.")
     construire(destination=a.sortie, depts=depts, communes=communes,
-               sans_fiches=a.sans_fiches)
+               sans_fiches=a.sans_fiches,
+               depts_fiches={d.strip() for d in a.fiches_depts.split(",")
+                             if d.strip()} if a.fiches_depts else None)
 
 
 if __name__ == "__main__":
