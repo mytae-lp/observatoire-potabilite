@@ -1238,6 +1238,125 @@ def barres_html(d):
 
 
 # ---------------------------------------------------------------------------
+# L'alerte de panel et les repères « nourrissons » — 17 août 2026
+# ---------------------------------------------------------------------------
+# Deux blocs remis d'aplomb après une remarque de Yannick sur la publication.
+#
+# LES REPÈRES NOURRISSONS AVAIENT PUREMENT DISPARU. `reperes_nourrissons()`
+# calculait toujours la donnée ; le portage ne l'a jamais rendue. Du contenu
+# qui existait avant est parti en ligne en moins — c'est le défaut le plus
+# grave qu'un portage puisse produire, et le contrôle de charte ne pouvait pas
+# le voir : il mesure ce qui est présent, jamais ce qui manque.
+#
+# L'ALERTE DE PANEL ÉTAIT RELÉGUÉE EN BAS DE PAGE, encore fabriquée par
+# `fiche.js` dans le bloc non porté, sans couleur ni compteur. Or « la dernière
+# analyse complète de cette eau a 34 mois » est une information de premier
+# plan : elle conditionne la lecture de tout ce qui suit. Sa place est juste
+# après l'en-tête.
+
+
+def _gras(texte):
+    """Les paragraphes de `suivi_panel` portent leur emphase en `**…**` — la
+    convention d'écriture du dépôt. On la rend, on ne la réécrit pas."""
+    bouts = h(texte).split("**")
+    return "".join(b if i % 2 == 0 else f"<b>{b}</b>"
+                   for i, b in enumerate(bouts))
+
+
+def alerte_html(d):
+    """« Depuis ce prélèvement » — l'âge de la dernière analyse complète.
+
+    Le compteur est extrait du titre calculé par `suivi_panel`, jamais
+    recalculé ici : deux endroits qui comptent les mois finiraient par ne plus
+    dire le même nombre.
+    """
+    a = d.get("alerte_panel")
+    if not a or not a.get("titre"):
+        return ""
+    paras = a.get("paragraphes") or []
+    # Le dernier paragraphe porte le mécanisme administratif — la liste
+    # régionale arrêtée pour la durée d'un marché. Il se distingue des autres :
+    # c'est lui qui interdit d'y lire une intention (§2.1).
+    corps = "".join(f"<p>{_gras(p)}</p>" for p in paras[:-1])
+    if paras:
+        corps += f'<p class="note note--attention">{_gras(paras[-1])}</p>'
+
+    m = re.search(r"(\d+)\s*mois", a["titre"])
+    titre = (f'<span class="compteur">{m.group(1)}</span> mois — c\'est l\'âge '
+             "de la dernière analyse complète de cette eau" if m
+             else h(a["titre"]))
+    return ('<div class="alerte"><p class="surtitre">Depuis ce prélèvement</p>'
+            f"<h3>{titre}</h3>"
+            f'<div class="alerte-grille"><div>{corps}</div></div></div>')
+
+
+def nourrissons_html(d):
+    """Les repères « nourrissons » — et ce qu'ils ne sont pas.
+
+    Ce sont les valeurs que doit respecter une eau EMBOUTEILLÉE pour porter la
+    mention « convient à l'alimentation des nourrissons ». Une eau du robinet
+    parfaitement conforme peut se situer au-dessus : **ce n'est pas une
+    non-conformité**, et la fiche doit le dire dans la même phrase que le
+    chiffre, sans quoi elle fabrique une alerte là où il n'y en a pas (§2.2).
+
+    Deux barres par paramètre, et c'est tout l'intérêt du bloc : la limite au
+    robinet, puis le repère nourrissons, sur la même tuile. Une seule des deux
+    laisserait croire qu'il n'y a qu'un terme de comparaison.
+    """
+    lignes = d.get("nourrissons") or []
+    if not lignes:
+        return ""
+    tuiles = []
+    for n in lignes:
+        unite = n.get("unite") or ""
+        repere, limite = _f(n.get("repere")), _f(n.get("limite"))
+        part = n.get("part")
+        valeur = (part * repere) if (part is not None and repere) else None
+
+        barres = ""
+        if valeur is not None and limite:
+            pc = max(0, min(100, round(valeur / limite * 100)))
+            barres += (f'<div class="jg jg--ok" style="--pct:{pc}%">'
+                       f'<div class="jg-lg"><span>limite au robinet '
+                       f'<b>{h(n["limite"])} {h(unite)}</b></span>'
+                       f"<b>{pc} %</b></div>"
+                       '<div class="jg-piste"><em></em></div></div>')
+        if part is not None and repere:
+            pc = max(0, min(100, round(part * 100)))
+            droite = (f"× {_nb(round(part, 2))}" if n.get("au_dessus")
+                      else f"{pc} %")
+            mod = "jg--depasse" if n.get("au_dessus") else "jg--ok"
+            barres += (f'<div class="jg jg--repere {mod}" style="--pct:{pc}%">'
+                       f'<div class="jg-lg"><span>repère nourrissons '
+                       f'<b>{h(n["repere"])} {h(unite)}</b></span>'
+                       f"<b>{h(droite)}</b></div>"
+                       '<div class="jg-piste"><em></em></div></div>')
+
+        # La phrase dit les deux choses à la fois, et jamais l'une sans
+        # l'autre : au-dessus du repère, et conforme au robinet.
+        lecture = ("Conforme au robinet, <b>au-dessus du repère "
+                   "nourrissons</b> — ce qui n'est pas une non-conformité."
+                   if n.get("au_dessus")
+                   else "Sous le repère nourrissons comme sous la limite au "
+                        "robinet.")
+        tuiles.append(
+            f'<div class="ind ind--{"attention" if n.get("au_dessus") else "conforme"}">'
+            f'<h4>{h(n["libelle"])}</h4>'
+            f'<span class="val">{h(n.get("texte") or "—")}</span>'
+            f'<div class="jauges">{barres}</div><p>{lecture}</p></div>')
+
+    return _section(
+        "Repères « nourrissons »",
+        "Ces valeurs ne sont pas des limites au robinet",
+        "Ce sont les repères que doit respecter une eau <b>embouteillée</b> "
+        "pour porter la mention « convient à l'alimentation des nourrissons » "
+        "(arrêté du 14 mars 2007). Une eau parfaitement conforme peut se "
+        "situer au-dessus : cela ne la rend pas non conforme, cela dit "
+        "seulement qu'elle ne serait pas vendue sous cette mention.",
+        f'<div class="indicateurs">{"".join(tuiles)}</div>')
+
+
+# ---------------------------------------------------------------------------
 # Extraction
 # ---------------------------------------------------------------------------
 def analyses(con, version, insees=None, historique=False):
@@ -1891,10 +2010,12 @@ def construire(insees=None, destination=None, historique=False, db=DB_PATH):
             .replace("<!--__TETE__-->",
                      (tete_html(C[ORDER[0]]["tete"],
                                 prelevements_html(C, ORDER, ORDER[0]))
+                      + alerte_html(C[ORDER[0]])
                       + bascules_html(C[ORDER[0]])
                       + depassements_html(C[ORDER[0]])
                       + lectures_html(C[ORDER[0]], A[ORDER[0]])
                       + indicateurs_html(C[ORDER[0]], A[ORDER[0]])
+                      + nourrissons_html(C[ORDER[0]])
                       + pfas_html(C[ORDER[0]]) + registres_html(C[ORDER[0]])
                       + lq_html(C[ORDER[0]]) + barres_html(C[ORDER[0]]))
                      if ORDER else "")

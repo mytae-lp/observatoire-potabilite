@@ -3074,8 +3074,14 @@ def fiches_communes(con, version, lignes, public, communes=None,
             d, a = C[cle], A[cle]
             tete = BF.tete_html(
                 d["tete"], BF.prelevements_html(C, ORDER, cle, fichier))
+            # L'ALERTE DE PANEL EST DANS L'EN-TÊTE, pas en bas de page.
+            # « La dernière analyse complète de cette eau a 34 mois » n'est pas
+            # une note : c'est ce qui conditionne la lecture de tout ce qui
+            # suit. Elle était reléguée au bloc non porté, sans couleur.
+            tete += BF.alerte_html(d)
             sections = (BF.bascules_html(d) + BF.depassements_html(d)
                         + BF.lectures_html(d, a) + BF.indicateurs_html(d, a)
+                        + BF.nourrissons_html(d)
                         + BF.pfas_html(d) + BF.registres_html(d)
                         + BF.lq_html(d) + BF.barres_html(d))
 
