@@ -40,6 +40,7 @@ pas un garde-fou, ce serait une panne.
 
 Suppose que `site/public/` et la fiche autonome ont été construits.
 """
+import html
 import json
 import os
 import re
@@ -282,10 +283,19 @@ def prose_des_pages():
         # compté deux fois, avec ses échappements en prime.
         visible = _sans_balises(re.sub(r"<script.*?</script>", "", contenu,
                                        flags=re.S))
-        if visible.strip():
-            yield f, "page", "derive", visible
 
+        # La charge utile est lue AVANT le texte visible, et l'ordre compte :
+        # c'est elle qui dit ce que la page cite (cf. `_textes_cites`).
         bloc = BF.lire_commune_dans_page(contenu)
+
+        # LA CONCLUSION DE L'ARS N'EST PAS NOTRE PROSE. Elle est affichée entre
+        # guillemets, elle prescrit à un exploitant, et c'est le fait qu'elle
+        # rapporte. Une page qu'on ne sait pas relire garde en revanche son
+        # texte entier à l'examen : ne pas savoir lire ne vaut pas dispense.
+        examinable = _hors_citation(visible, _textes_cites(bloc))
+        if examinable.strip():
+            yield f, "page", "derive", examinable
+
         if bloc is None:
             prose_des_pages.pages_illisibles += 1
             continue
