@@ -136,7 +136,7 @@ def config():
     return valeurs
 
 
-def connexion(cfg, verifier=True):
+def connexion(cfg, verifier=True, silencieux=False):
     """Ouvre la session FTPS.
 
     `verifier=False` conserve le CHIFFREMENT mais renonce à vérifier l'identité
@@ -151,7 +151,8 @@ def connexion(cfg, verifier=True):
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        print("  ! identité du serveur NON vérifiée (--certificat-non-verifie)")
+        if not silencieux:
+            print("  ! identité du serveur NON vérifiée (--certificat-non-verifie)")
 
     ftp = FTPS(context=ctx, timeout=60)
     ftp.encoding = "utf-8"
@@ -179,6 +180,36 @@ def connexion(cfg, verifier=True):
 # --------------------------------------------------------------------------
 # Découverte de l'arborescence distante
 # --------------------------------------------------------------------------
+
+class Session:
+    """La connexion FTPS, et de quoi la ROUVRIR.
+
+    Écrit le 17 août 2026, après deux heures perdues. 45 617 fichiers ne
+    tiennent pas sur une seule session : l'hébergeur a coupé au 32e
+    département, et le script a continué à essayer d'écrire dans un tuyau
+    fermé — trois tentatives et six secondes de temporisation par fichier,
+    pendant deux heures, sans envoyer un octet ni afficher une ligne.
+
+    Le record précédent était 4 974 fichiers : la connexion tenait, et le
+    défaut ne pouvait pas se voir. Une page par prélèvement l'a révélé.
+    """
+
+    def __init__(self, cfg, verifier=True):
+        self.cfg, self.verifier = cfg, verifier
+        self.ftp = connexion(cfg, verifier)
+        self.reouvertures = 0
+
+    def rouvrir(self):
+        """Referme ce qui peut l'être, et rouvre. Une connexion coupée ne se
+        répare pas en réessayant d'écrire dedans."""
+        try:
+            self.ftp.close()
+        except Exception:
+            pass
+        self.ftp = connexion(self.cfg, self.verifier, silencieux=True)
+        self.reouvertures += 1
+        return self.ftp
+
 
 def explorer(ftp, depart="/", profondeur=3, _niveau=0):
     """Affiche l'arborescence distante, pour identifier le dossier du
@@ -302,18 +333,32 @@ def assurer_dossier(ftp, chemin, connus):
     connus.add(chemin)
 
 
-def envoyer(ftp, local, distant, connus, essais=3):
-    assurer_dossier(ftp, distant.rsplit("/", 1)[0], connus)
+def envoyer(session, local, distant, connus, essais=4):
+    """Envoie un fichier, en rouvrant la session si elle a lâché.
+
+    L'ordre compte : on temporise, PUIS on rouvre, PUIS on réessaie. Réessayer
+    sur la même connexion morte est ce qui a coûté deux heures le 17 août.
+    """
     for tentative in range(1, essais + 1):
         try:
+            assurer_dossier(session.ftp, distant.rsplit("/", 1)[0], connus)
             with open(local, "rb") as f:
-                ftp.storbinary(f"STOR {distant}", f, blocksize=131072)
+                session.ftp.storbinary(f"STOR {distant}", f, blocksize=131072)
             return True
-        except (ftplib.error_temp, OSError, EOFError) as e:
+        except (ftplib.error_temp, ftplib.error_proto, OSError, EOFError) as e:
             if tentative == essais:
-                print(f"  ! échec définitif : {distant} ({e})")
+                print(f"  ! échec définitif : {distant} ({e})", flush=True)
                 return False
             time.sleep(2 * tentative)
+            try:
+                session.rouvrir()
+                # Les dossiers déjà créés le restent côté serveur, mais le
+                # cache local de ce qui a été vérifié appartenait à la session
+                # perdue : on le laisse, il ne coûte qu'un MKD refusé.
+                print(f"    reconnexion #{session.reouvertures} "
+                      f"(après « {e} »)", flush=True)
+            except Exception as e2:
+                print(f"  ! reconnexion impossible : {e2}", flush=True)
     return False
 
 
@@ -343,7 +388,8 @@ def adopter(ftp, racine_distante, sauf=()):
     print("  Si le distant ne correspondait pas : relancer avec --forcer.")
 
 
-def publier(ftp, racine_distante, simulation=False, forcer=False, sauf=()):
+def publier(session, racine_distante, simulation=False, forcer=False,
+            sauf=(), jalon=500):
     if not os.path.isdir(PUBLIC):
         sys.exit(f"{PUBLIC} n'existe pas. Construire la vitrine d'abord :\n"
                  f"    python site/build_site.py")
@@ -352,7 +398,7 @@ def publier(ftp, racine_distante, simulation=False, forcer=False, sauf=()):
     if not locales:
         sys.exit(f"{PUBLIC} est vide — rien à publier.")
 
-    publiees = {} if forcer else lire_manifeste(ftp, racine_distante)
+    publiees = {} if forcer else lire_manifeste(session.ftp, racine_distante)
 
     import fnmatch
     a_envoyer = [r for r, h in locales.items() if publiees.get(r) != h]
@@ -394,24 +440,47 @@ def publier(ftp, racine_distante, simulation=False, forcer=False, sauf=()):
     envoyes = 0
     try:
         for r in a_envoyer:
-            if envoyer(ftp, os.path.join(PUBLIC, r.replace("/", os.sep)),
+            if envoyer(session, os.path.join(PUBLIC, r.replace("/", os.sep)),
                        f"{racine_distante}/{r}", connus):
                 etat[r] = locales[r]
                 envoyes += 1
                 if envoyes % 25 == 0 or envoyes == len(a_envoyer):
-                    print(f"    {envoyes}/{len(a_envoyer)} envoyés")
+                    print(f"    {envoyes}/{len(a_envoyer)} envoyés", flush=True)
+                # LE MANIFESTE SE POSE EN COURS DE ROUTE, et pas seulement à
+                # la fin. Il n'était écrit que dans le `finally` : une session
+                # tuée par un signal, ou une connexion morte au moment de
+                # l'écrire, et les heures d'envoi déjà faites étaient perdues
+                # — c'est ce qui s'est passé le 17 août. Un jalon tous les 500
+                # fichiers borne la perte à 500 fichiers.
+                if jalon and envoyes % jalon == 0:
+                    try:
+                        ecrire_manifeste(session.ftp, racine_distante, etat)
+                        print(f"    · jalon posé à {envoyes}", flush=True)
+                    except Exception as e:
+                        print(f"    ! jalon non posé ({e})", flush=True)
 
         for r in a_supprimer:
             try:
-                ftp.delete(f"{racine_distante}/{r}")
+                session.ftp.delete(f"{racine_distante}/{r}")
                 etat.pop(r, None)
-                print(f"    ✗ retiré : {r}")
+                print(f"    ✗ retiré : {r}", flush=True)
             except ftplib.error_perm as e:
-                print(f"  ! suppression refusée : {r} ({e})")
+                print(f"  ! suppression refusée : {r} ({e})", flush=True)
     finally:
         # Même après interruption, le manifeste reflète ce qui est réellement
         # en ligne : la reprise ne réenvoie que le reliquat. (Propriété 2)
-        ecrire_manifeste(ftp, racine_distante, etat)
+        #
+        # Et il se sauve même si la connexion est morte — c'est précisément le
+        # moment où on en a le plus besoin. Le 17 août, elle l'était, et deux
+        # heures d'envoi sont parties avec elle.
+        try:
+            ecrire_manifeste(session.ftp, racine_distante, etat)
+        except Exception:
+            try:
+                ecrire_manifeste(session.rouvrir(), racine_distante, etat)
+            except Exception as e:
+                print(f"  ! manifeste NON écrit ({e}) — la reprise "
+                      f"réenverra tout", flush=True)
 
     print(f"\n  Publié : {envoyes} fichier(s), {len(a_supprimer)} retiré(s).")
 
@@ -440,7 +509,8 @@ def main():
 
     cfg = config()
     print(f"  connexion à {cfg['OBS_FTP_HOTE']}:{cfg['OBS_FTP_PORT']} …")
-    ftp = connexion(cfg, verifier=not args.sans_verif)
+    session = Session(cfg, verifier=not args.sans_verif)
+    ftp = session.ftp
     try:
         if args.explorer:
             print(f"  connecté. Dossier courant : {ftp.pwd()}\n")
@@ -457,13 +527,18 @@ def main():
         if args.adopter:
             adopter(ftp, racine_distante, args.sauf)
         else:
-            publier(ftp, racine_distante, args.simulation, args.forcer,
-                    args.sauf)
+            publier(session, racine_distante, args.simulation,
+                    args.forcer, args.sauf)
     finally:
         try:
-            ftp.quit()
+            session.ftp.quit()
         except Exception:
-            ftp.close()
+            try:
+                session.ftp.close()
+            except Exception:
+                pass
+        if session.reouvertures:
+            print(f"  ({session.reouvertures} reconnexion(s) pendant l'envoi)")
 
 
 if __name__ == "__main__":
