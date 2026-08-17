@@ -592,6 +592,43 @@ def compter_hormonal(con, version, codes=None):
     return out
 
 
+# Familles qui n'ont pas leur place dans un registre de perturbateurs
+# endocriniens — décision de Yannick du 17 août 2026, après relecture de la
+# publication.
+#
+# LE CRITÈRE, en une phrase : le registre liste les substances dont la présence
+# est une question posée à la ressource ou aux sous-produits du traitement. Pas
+# la composition minérale de l'eau, pas une activité radiologique, pas un
+# dénombrement bactérien.
+#
+# CE N'EST PAS UNE RÉGRESSION DU PORTAGE mais un effet de bord du chantier C11.
+# La base du 13 août donnait 14 entrées sur Montech, toutes légitimes ; la
+# version enrichie en donne 24, avec le calcium, les hydrogénocarbonates, le
+# titre hydrotimétrique, le pH d'équilibre et l'activité bêta du potassium 40.
+# Plus de paramètres appariés au référentiel, donc plus d'entrées — et
+# personne n'avait décidé que celles-là devaient y figurer. Un titre
+# hydrotimétrique n'est pas une molécule, et une activité en becquerels ne peut
+# pas avoir de statut hormonal.
+#
+# Le précédent existe et il est daté : le §7.1 a écarté exactement ces
+# paramètres de l'indice de danger, parce qu'il « était dominé par le
+# potassium, les chlorures, les sulfates et le sodium ».
+#
+# `desinfection` — le chlore libre et le chlore total — est écarté À TITRE
+# PROVISOIRE, et la nuance compte : Yannick veut instruire les suspicions
+# portant sur cette substance avant de trancher. Ce n'est donc pas « le chlore
+# n'a pas sa place ici », c'est « on ne l'affiche pas tant que la question
+# n'est pas instruite ». À rouvrir. Rien à voir avec `sous-produit
+# desinfection` — les acides haloacétiques — qui sont de vrais sous-produits
+# et restent.
+FAMILLES_HORS_REGISTRE = {
+    "mineral",          # calcium, hydrogénocarbonates, titres, pH d'équilibre
+    "radiologique",     # activités alpha et bêta : pas des substances
+    "microbiologique",  # dénombrements bactériens
+    "desinfection",     # chlore libre et total — PROVISOIRE, cf. ci-dessus
+}
+
+
 def perturbateurs(con, a, version):
     """
     Les perturbateurs endocriniens quantifiés, dans TROIS registres distincts.
@@ -637,6 +674,12 @@ def perturbateurs(con, a, version):
     for lib, val, lq, quant, unite, seuil, famille, reg, sci in rows:
         cle, mention = statut_hormonal(reg, sci)
         if cle is None:
+            continue
+        # Le filtre ne porte QUE sur le registre « non documenté ». Une
+        # substance réellement avérée ou suspectée resterait affichée quelle
+        # que soit sa famille : on n'écarte pas un fait établi au motif d'un
+        # rangement.
+        if cle == "non_documente" and famille in FAMILLES_HORS_REGISTRE:
             continue
         groupes[cle].append({
             "libelle": lib, "texte": _texte_valeur(quant, val, lq, unite),
