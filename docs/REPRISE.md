@@ -1,5 +1,15 @@
 # Reprise — état au 8 août 2026
 
+> **17 août 2026, fin de journée — LA FICHE COMMUNALE EST EN LIGNE SUR LA
+> CHARTE v2**, une page par prélèvement, 45 617 pages. Recouvrement avec la
+> maquette : 21 % le matin, **88 / 85 / 82 %** le soir. Lisible sans
+> JavaScript : 2 817 caractères avant, plus de 19 000 après.
+>
+> **L'état complet du chantier, ce qui attend une reconstruction et ce qui
+> n'est pas commencé : `docs/EXPLOITATION.md` §9bis, section « ÉTAT AU
+> 17 AOÛT 2026, FIN DE SESSION ».** C'est là qu'il faut aller d'abord, pas
+> ici : ce fichier-ci porte l'état du 8 août et les chantiers de données.
+
 > **9 août 2026 — l'Eure-et-Loir (28) est collecté en entier, 363/363
 > communes, zéro erreur réseau.** `--termine` rend 0. Deuxième département
 > complet du corpus, après le Tarn. Chiffres et suites : §10 en bas de fichier.
