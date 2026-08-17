@@ -37,6 +37,7 @@ l'appliquent (§2.1).
 """
 import argparse
 import csv
+import glob
 import gzip
 import hashlib
 import json
@@ -2570,7 +2571,8 @@ def _poids(octets):
 
 
 # ---------------------------------------------------------------------------
-def construire(destination=None, db=DB_PATH, depts=None, communes=None):
+def construire(destination=None, db=DB_PATH, depts=None, communes=None,
+               sans_fiches=False):
     """
     `communes` — un jeu de codes INSEE, et c'est un outil d'APERÇU, pas de
     publication. Ajouté le 16 août 2026 : juger une fiche demandait jusque-là
@@ -2837,7 +2839,25 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None):
             fil=[("Accueil", "index.html"), ("Les valeurs qui ont bougé", None)]))
 
         # --- une page par commune documentée ------------------------------
-        n_fiches = fiches_communes(con, version, lignes, public, communes)
+        #
+        # LE SEUL POSTE COÛTEUX DE TOUTE LA CONSTRUCTION, et depuis le 16 août
+        # il l'est douze fois plus : une page par prélèvement, 45 617 fichiers,
+        # 4 h 55. Tout ce qui précède — les huit pages communes, la carte, les
+        # départements, les 1 243 pages de substance — tient en quelques
+        # minutes. Corriger une virgule sur `methode.html` ne doit donc pas
+        # coûter cinq heures.
+        if sans_fiches:
+            existantes = len(glob.glob(os.path.join(public, "commune", "*.html")))
+            print(f"  fiches de commune NON reconstruites (--sans-fiches) : "
+                  f"{existantes} page(s) laissées en place")
+            # Les anciennes fiches restent valides : `empreinte()` versionne
+            # les feuilles par une chaîne de requête (`?v=…`), pas par le nom
+            # du fichier. Une fiche non reconstruite continue donc de charger
+            # la feuille servie aujourd'hui, avec une empreinte périmée dans
+            # l'adresse — le navigateur la recharge, il ne la manque pas.
+            n_fiches = existantes
+        else:
+            n_fiches = fiches_communes(con, version, lignes, public, communes)
 
         # --- index de recherche ------------------------------------------
         index = [{"i": c["code_insee"], "n": c["commune"], "d": c["dept"],
@@ -3097,6 +3117,12 @@ def main():
     p.add_argument("--depts", help="départements à publier, séparés par des virgules "
                                    "(ex. 28,81,69,09,31). Défaut : tous ceux qui sont "
                                    "figés — à n'utiliser que si aucun n'est partiel.")
+    p.add_argument("--sans-fiches", action="store_true",
+                   help="reconstruit TOUT sauf les fiches de commune : les huit "
+                        "pages communes, la carte, les départements et les "
+                        "pages de substance. Les fiches déjà construites sont "
+                        "laissées en place. Quelques minutes au lieu de cinq "
+                        "heures — c'est la boucle des corrections de forme.")
     p.add_argument("--communes", help="APERÇU : ne rendre que ces codes INSEE, "
                                       "séparés par des virgules. Exige --sortie — "
                                       "un aperçu ne s'écrit jamais dans site/public.")
@@ -3107,7 +3133,8 @@ def main():
     if communes and not a.sortie:
         p.error("--communes exige --sortie : le site publié ne doit jamais "
                 "recevoir une construction partielle, ses liens seraient morts.")
-    construire(destination=a.sortie, depts=depts, communes=communes)
+    construire(destination=a.sortie, depts=depts, communes=communes,
+               sans_fiches=a.sans_fiches)
 
 
 if __name__ == "__main__":
