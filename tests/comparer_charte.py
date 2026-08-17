@@ -58,6 +58,8 @@ CORRESPONDANCES = [
     ("maquette-fiche-thiville.html",  "commune/28389.html"),
     ("maquette-fiche-tramayes.html",  "commune/71545.html"),
     ("maquette-accueil.html",         "index.html"),
+    ("maquette-dossiers.html",        "dossiers.html"),
+    ("maquette-dossier-panel-reduit.html", "dossier-panel-reduit.html"),
     ("maquette-carte.html",           "carte.html"),
     ("maquette-methode.html",         "methode.html"),
     ("maquette-sources.html",         "sources.html"),

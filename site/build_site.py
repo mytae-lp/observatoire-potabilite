@@ -58,17 +58,56 @@ sys.path.insert(0, os.path.join(RACINE, "sortie"))
 from common import DB_PATH, SEUIL_COMPLET, departements_publies  # noqa: E402
 import build_fiche as BF  # noqa: E402
 import dossier_page as DP  # noqa: E402
+import dossier_panel_reduit as DPR  # noqa: E402
 import identite as ID_SUB  # noqa: E402
 import indicateurs as IND  # noqa: E402
 
 GEOJSON = os.path.join(RACINE, "referentiel", "geo", "departements-simplifie.geojson")
 REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 
-PAGES = [("index.html", "Accueil"), ("carte.html", "Collecte"),
-         ("communes.html", "Communes"), ("substances.html", "Substances"),
-         ("reclassements.html", "Reclassements"),
-         ("methode.html", "Méthode"), ("sources.html", "Sources & données"),
-         ("contact.html", "Contact")]
+# LE MENU, EN DEUX NIVEAUX depuis le 17 août 2026.
+#
+# À plat, il atteignait onze entrées avec « À propos » — 1 049 px de barre
+# mesurés à neuf, et il se repliait déjà à 1080 px. Onze libellés alignés ne se
+# lisent plus : ils se balaient. Le regroupement n'est donc pas cosmétique, il
+# rend au menu sa fonction, qui est de dire en un coup d'œil ce que le site
+# contient.
+#
+# Trois premiers niveaux sans sous-menu — l'accueil, les dossiers — parce que
+# ce sont les deux portes que le projet veut voir prendre. Le reste se range
+# par question posée : où regarder, comment c'est fait, qui le fait.
+#
+# `None` en première position marque un groupe ; il n'a pas de page à lui.
+# **Un intitulé de groupe qui serait aussi un lien** aurait produit exactement
+# le défaut de l'index des dossiers : un libellé qui promet une page et n'en
+# ouvre aucune.
+#
+# Les mentions légales ne sont PAS ici. Elles vivent au pied, avec
+# l'avertissement et les licences : c'est là qu'un lecteur les cherche, et une
+# entrée de menu de plus pour un texte consulté deux fois l'an se paierait sur
+# tous les autres.
+PAGES = [
+    ("index.html", "Accueil", None),
+    ("dossiers.html", "Dossiers", None),
+    (None, "Explorer", [("communes.html", "Communes"),
+                        ("carte.html", "Collecte"),
+                        ("substances.html", "Substances"),
+                        ("reclassements.html", "Reclassements")]),
+    (None, "Méthode", [("methode.html", "Méthode"),
+                       ("sources.html", "Sources & données")]),
+    (None, "Le projet", [("a-propos.html", "À propos"),
+                         ("contact.html", "Contact")]),
+]
+
+# Les pages de navigation, à plat — pour tout ce qui compte ou parcourt sans
+# se soucier du regroupement. Dérivée, jamais recopiée : deux listes de pages
+# divergent à la première entrée ajoutée, et c'est déjà arrivé une fois sur la
+# barre de la page de contact.
+PAGES_PLATES = [(f, n) for f, n, sous in PAGES if f] + \
+               [(f, n) for _f, _n, sous in PAGES if sous for f, n in sous]
+
+# Le texte légal, au pied de chaque page.
+PAGES_PIED = [("mentions-legales.html", "Mentions légales")]
 
 
 # ---------------------------------------------------------------------------
@@ -236,11 +275,39 @@ def barre(page_courante, prefixe):
     Le menu se replie **à 1080 px** et pas à 900 : déployé, il réclame 1 049 px
     de barre. Mesuré, et c'est la mesure 2 du §7 qui l'avait attrapé — dans la
     plage 900-1080, la barre débordait sans que personne ne regarde jamais là.
+
+    LES SOUS-MENUS SONT DES `<details>`, ET C'EST LE POINT.
+    Un menu déroulant fabriqué en JavaScript disparaît quand le script ne
+    charge pas ; ici quatre des sept pages du site deviendraient alors
+    inatteignables. `<details>/<summary>` ouvre au clic **et au clavier** sans
+    une ligne de script, annonce son état replié ou déployé aux lecteurs
+    d'écran sans un seul attribut ARIA à tenir à jour, et se ferme à Échap. Le
+    script n'ajoute qu'un confort : refermer les autres quand on en ouvre un.
+
+    Le groupe qui contient la page courante s'ouvre à la construction — un
+    lecteur ne doit pas avoir à deviner sous quel intitulé se range la page
+    qu'il est en train de lire.
     """
-    liens = "".join(
-        f'<li><a href="{prefixe}{f}"'
-        f'{" aria-current=\"page\"" if f == page_courante else ""}>{h(n)}</a></li>'
-        for f, n in PAGES)
+    morceaux = []
+    for fichier, nom, sous in PAGES:
+        if not sous:
+            courant = ' aria-current="page"' if fichier == page_courante else ""
+            morceaux.append(f'<li><a href="{prefixe}{fichier}"{courant}>{h(nom)}</a></li>')
+            continue
+        ici = any(f == page_courante for f, _ in sous)
+        entrees = "".join(
+            f'<li><a href="{prefixe}{f}"'
+            f'{" aria-current=\"page\"" if f == page_courante else ""}>{h(n)}</a></li>'
+            for f, n in sous)
+        morceaux.append(
+            f'<li class="a-sous"><details class="sous{" sous--ici" if ici else ""}"'
+            f'{" open" if ici else ""}>'
+            f'<summary>{h(nom)}'
+            f'<svg class="sous-fleche" viewBox="0 0 24 24" fill="none" aria-hidden="true"'
+            f' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+            f' stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
+            f'</summary><ul class="sous-menu">{entrees}</ul></details></li>')
+    liens = "".join(morceaux)
     return f"""<header class="barre">
   <div class="zone zone-large barre-i">
     <a class="marque" href="{prefixe}index.html" aria-label="Accueil de l'Observatoire">
@@ -287,6 +354,14 @@ BANDEAUX = {
     "methode.html":       ("bandeau-fil-lumiere", "Fil dans la lumière", "25 mai 2022, 7 h 51"),
     "sources.html":       ("bandeau-plume", "Plume et rosée", "26 mai 2022, 9 h 15"),
     "departement":        ("bandeau-serie-gouttes", "Sept gouttes sur une tige", "20 juin 2022, 12 h 05"),
+    # SANS DATE, ET C'EST VOULU. L'EXIF a été retiré des copies du dépôt, et les
+    # dates ci-dessus viennent des originaux, sur la machine de Yannick. Écrire
+    # une date approchée pour aligner la ligne serait inventer une source — le
+    # crédit se lit comme une source, et une source fausse est pire qu'une
+    # source incomplète (§2.7). Le troisième terme est donc vide, et
+    # `bandeau()` sait ne rien afficher. À compléter le jour où l'EXIF revient.
+    "dossiers.html":      ("bandeau-toile-perlee", "Toile perlée", ""),
+    "dossier":            ("bandeau-branche-toile", "Branche et toile", ""),
 }
 
 
@@ -322,7 +397,7 @@ def bandeau(cle, titre, sous_titre, fil, prefixe, formule=False):
         {f'<p class="chapo">{sous_titre}</p>' if sous_titre else ''}
         {'<p class="formule">« Ce n\'est pas l\'eau qui est devenue potable. C\'est la limite qui a bougé. »</p>' if formule else ''}
       </div>
-      <p class="bandeau-credit"><b>{h(oeuvre)}</b> — {h(quand)}.
+      <p class="bandeau-credit"><b>{h(oeuvre)}</b>{f" — {h(quand)}" if quand else ""}.
         Photographie Maude&nbsp;Mytae, série <em>Quand l'eau rencontre la terre</em>,
         Éditions Mytae. Tous droits réservés.</p>
     </div>
@@ -330,16 +405,21 @@ def bandeau(cle, titre, sous_titre, fil, prefixe, formule=False):
 </div>"""
 
 
-def pied(version, calcule_le, corpus=None):
-    """Le pied : l'avertissement, les licences, et la traçabilité.
+def pied(version, calcule_le, corpus=None, prefixe=""):
+    """Le pied : l'avertissement, les licences, la traçabilité et le légal.
 
     L'avertissement est le seul texte du site qui protège son lecteur plutôt
     que de l'informer. Il passe en `.avert` — un bloc à filet ambre —, alors
     qu'il s'affichait sans style depuis toujours : la classe n'était définie
     nulle part, ni en v1 ni dans la première v2 (consigne §10.3).
+
+    Les mentions légales sont ici et non au menu (décision du 17 août 2026) :
+    c'est au pied qu'on les cherche, et une entrée de menu pour un texte
+    consulté deux fois l'an se paierait sur toutes les autres.
     """
     corpus_html = (f"<span><b>Corpus</b> <code>{h(corpus)}</code></span>"
                    if corpus else "")
+    legal = "".join(f'<a href="{prefixe}{f}">{h(n)}</a>' for f, n in PAGES_PIED)
     return f"""<footer class="pied">
   <div class="zone zone-large">
     <p class="avert"><strong>Avertissement.</strong> Cet observatoire est un outil
@@ -363,6 +443,7 @@ def pied(version, calcule_le, corpus=None):
       {corpus_html}
       <span><b>Porté par</b> Éditions Mytae</span>
     </div>
+    <div class="pied-legal">{legal}</div>
   </div>
 </footer>"""
 
@@ -469,7 +550,7 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 {corps}
 </main>
 
-{pied(version, calcule_le, corpus)}
+{pied(version, calcule_le, corpus, prefixe)}
 <script src="{prefixe}assets/{empreinte('barre.js')}"></script>
 {scripts}
 </body>
@@ -980,71 +1061,758 @@ REFUS = [
      "cause."),
 ]
 
+def chiffres_dossiers(con, version):
+    """
+    Les nombres des cartes qui SUIVENT le corpus, calculés à la construction.
+
+    Trois cartes seulement en portent : les autres citent un fait daté qui ne
+    bouge plus — la rupture du Tarn (627 → 344), les six enquêtes de sourçage,
+    les 2 653 communes de l'erreur du 13 août. Figer ce qui est daté et
+    calculer ce qui vit, c'est la même règle des deux côtés (§2.10).
+
+    Les maquettes portaient ces trois nombres en dur, et ils avaient déjà
+    vieilli quand elles nous sont arrivées : la maquette de l'index annonce
+    « 390 paramètres sans terme de comparaison » là où la vue en compte 380.
+    Un chiffre d'accroche écrit à la main est un chiffre faux à retardement —
+    le constat est celui de `page_accueil`, et il vaut ici mot pour mot.
+    """
+    ou, args = _filtre_dept()
+    bascules, sans_seuil = con.execute(f"""
+        SELECT COALESCE(SUM(nb_bascules), 0),
+               COALESCE(SUM(nb_mesures_lues - nb_mesures_notees), 0)
+        FROM analyses_figees WHERE version_referentiel = ?{ou}
+    """, [version] + args).fetchone()
+
+    # `v_parametres_sans_seuil`, et NON `v_parametres_non_apparies` : la carte
+    # parle de ce que le projet ne juge pas, pas de ce qu'il n'a pas su
+    # rapprocher du référentiel. Les deux ont eu la même réponse tant que le
+    # référentiel était pauvre ; le chantier C11 a rompu cette identité le
+    # 15 août 2026 (CLAUDE.md §4).
+    n_param = con.execute(
+        "SELECT COUNT(*) FROM v_parametres_sans_seuil").fetchone()[0]
+
+    # LE CHIFFRE DE LA CARTE VIENT DE LA MÊME LECTURE QUE LE DOSSIER.
+    # Écrit à la main de part et d'autre, l'accueil aurait fini par annoncer
+    # 18 communes pendant que le dossier en montrerait 39 — et c'est le lecteur
+    # qui aurait raison de ne plus croire ni l'un ni l'autre.
+    panel = DPR.faits()
+    return {"bascules": bascules, "sans_seuil": sans_seuil,
+            "parametres_sans_seuil": n_param,
+            "panel_communes": panel["n_communes"],
+            "panel_instruites": panel["instruites"],
+            "panel_departements": panel["departements_balayes"],
+            "panel_controles": panel["n_controles"]}
+
+
+def _n(x):
+    """12345 -> « 12 345 ». L'espace fine insécable est le séparateur du site."""
+    return f"{x:,}".replace(",", " ")
+
+
 # Les huit dossiers. Le chiffre de tête et le titre viennent de
 # COMMUNICATION_OBSERVATOIRE §2.6 ; l'ordre est le sien — le plus fort en tête,
 # l'erreur du projet en clôture, parce qu'annoncer l'aveu vaut mieux que de le
 # cacher au milieu.
+#
+# `chiffre` est un triplet (tête, mot du milieu, queue) — « 627 → 344 » et
+# « 18 communes » sont la même forme, avec ou sans queue. Un appelable reçoit
+# les nombres calculés ; une valeur littérale est un fait daté qui ne bouge
+# plus. Rien entre les deux : un nombre qui vit et qu'on écrit à la main est
+# exactement ce que ce fichier ne veut plus contenir.
+#
+# `etat` commande la balise : « publie » rend un <a>, tout le reste un <div>.
+# Une carte « en préparation » qui serait un lien mènerait à une page absente,
+# et c'est le coût le plus élevé qu'un index puisse faire payer (consigne §11.1).
 DOSSIERS = [
-    ("dossier--phare", "18 communes",
-     "Une conformité peut s'obtenir en cessant de mesurer",
-     "49 substances étaient en dépassement à la dernière analyse complète, et "
-     "n'ont plus été mesurées depuis au moins deux ans. Le « total des "
-     "pesticides » est une limite opposable, et c'est une somme : cesser d'en "
-     "mesurer les termes rend l'agrégat incalculable.",
-     "sujet le plus avancé · ouvert le 12 août 2026"),
-    ("dossier--bascule", None,
-     "Le déplacement des seuils",
-     "Des bulletins déclarés conformes aujourd'hui qui ne l'auraient pas été il "
-     "y a dix ans. Cas d'école : le chlorothalonil R471811, dont un "
-     "reclassement déplace deux verdicts le même jour — sa propre limite, et le "
-     "périmètre du total des pesticides dont il sort.",
-     "sujet fondateur"),
-    ("dossier--eau", "200 vs 700",
-     "On ne trouve que ce qu'on cherche",
-     "Une eau « correcte » sur 200 substances est une information plus faible "
-     "qu'une eau « moyenne » sur 700. Le nombre de substances recherchées n'est "
-     "pas un indicateur de qualité : c'est un indicateur d'effort. Sans cette "
-     "précaution, un territoire qui cherche bien passe pour un territoire qui "
-     "va mal.",
-     "effort de recherche"),
-    ("dossier--ambre", "627 → 344",
-     "La liste change, pas l'eau",
-     "Dans le Tarn, 298 substances disparaissent de la liste en trois semaines. "
-     "Mais la lecture naïve est fausse, et le projet l'a écartée lui-même : à "
-     "liste constante, le Tarn est plat sur onze ans. Le mécanisme est "
-     "administratif — la liste est régionale, et figée par les marchés "
-     "pluriannuels d'analyses.",
-     "rupture du panel 2019-2020"),
-    ("dossier--gris", None,
-     "Ce sur quoi rien ne se prononce",
-     "Des substances effectivement recherchées, effectivement mesurées, "
-     "qu'aucun texte ne compare à quoi que ce soit. Ce n'est pas un défaut du "
-     "projet : c'est un fait sur la norme. Une part massive de ce que les "
-     "laboratoires mesurent n'a aucune limite opposable en face.",
-     "trouvé le 12 août 2026"),
-    ("dossier--gris", "0 ≠ 0",
-     "Zéro n'est pas zéro",
-     "Un résultat à zéro signifie « en dessous de ce que le laboratoire sait "
-     "mesurer », jamais « absent ». Un laboratoire qui ne trouve rien ne mesure "
-     "pas zéro. Et il y a trois états, jamais deux : conforme, dépassement, et "
-     "<b>indéterminé</b>.",
-     "règle d'affichage"),
-    ("dossier--rouge", "6 / 6",
-     "Des substances sans aucune règle au monde",
-     "Six enquêtes de sourçage, six fois la même réponse : il n'existe nulle "
-     "part de valeur opposable à laquelle comparer cette mesure. Le projet a "
-     "refusé d'en choisir une — choisir une valeur, c'est produire le verdict "
-     "au lieu de le constater.",
-     "enquêtes rendues"),
-    ("dossier--aveu", "2 653 communes",
-     "Le mot employé fait partie du résultat",
-     "Le site écrivait « eau du réseau X » en désignant en réalité le "
-     "gestionnaire. Un même gestionnaire exploite souvent plusieurs réseaux, "
-     "qui ne distribuent pas la même eau. La phrase était sur 2 829 fiches ; "
-     "135 regroupements réunissaient des communes qui ne boivent pas la même "
-     "eau. Corrigé le jour même — et raconté ici.",
-     "erreur du projet, corrigée le 13 août 2026"),
+    {"cl": "dossier--phare dossier--rouge", "num": "01", "etat": "publie",
+     "lien": "dossier-panel-reduit.html",
+     "chiffre": lambda c: (_n(c["panel_communes"]), "communes", ""),
+     "titre": "Une conformité peut s'obtenir en cessant de mesurer",
+     "corps":
+         "49 substances étaient en dépassement à la dernière analyse complète, et "
+         "n'ont plus été mesurées depuis au moins deux ans. Le « total des "
+         "pesticides » est une limite opposable, et c'est une somme : cesser d'en "
+         "mesurer les termes rend l'agrégat incalculable.",
+     "corps_index":
+         "49 paramètres étaient en dépassement à la dernière analyse complète, et "
+         "n'ont plus été mesurés depuis deux à dix ans. Le «&nbsp;total des "
+         "pesticides&nbsp;» est une limite opposable, et c'est une <b>somme</b>&nbsp;: "
+         "cesser d'en mesurer les termes rend l'agrégat incalculable.",
+     # 61 et 55 viennent de `ANALYSE_2026-08-12.md`, qui les tire du corpus figé
+     # et non de la synthèse : ils restent dans l'argument versionné. 555 est
+     # dans la synthèse, donc il se calcule. La frontière est là, et nulle part
+     # ailleurs.
+     "precision": lambda c:
+         "Sur 61 analyses complètes de ces communes, 55 sont non conformes. "
+         f"<b>{_n(c['panel_controles'])} contrôles de routine</b> ont eu lieu "
+         "depuis&nbsp;: ce n'est jamais un abandon de surveillance.",
+     "pied": 'Lire le dossier <span aria-hidden="true">→</span>',
+     "tag": lambda c: "Ouvert le 12 août 2026 · "
+                      f"{c['panel_communes']} communes instruites une à une",
+     "tag_accueil": "sujet le plus avancé · ouvert le 12 août 2026"},
+
+    {"cl": "dossier--bascule", "num": "02", "etat": "attente",
+     # La carte parle du déplacement des seuils : son nombre est celui des
+     # mesures qui basculent, la même somme que l'accueil affiche déjà.
+     "chiffre": lambda c: (_n(c["bascules"]), "mesures", ""),
+     "titre": "Le déplacement des seuils",
+     "corps":
+         "Des bulletins déclarés conformes aujourd'hui qui ne l'auraient pas été il "
+         "y a dix ans. Cas d'école : le chlorothalonil R471811, dont un "
+         "reclassement déplace deux verdicts le même jour — sa propre limite, et le "
+         "périmètre du total des pesticides dont il sort.",
+     "corps_index":
+         "Des bulletins déclarés conformes aujourd'hui qui ne l'auraient pas été il "
+         "y a dix ans. Cas d'école&nbsp;: le chlorothalonil R471811, dont un "
+         "reclassement déplace deux verdicts le même jour.",
+     "pied": 'Les chiffres sont sur <a href="reclassements.html">reclassements</a>',
+     "tag_accueil": "sujet fondateur"},
+
+    {"cl": "dossier--ambre", "num": "03", "etat": "attente",
+     "chiffre": ("200", "vs", "700"),
+     "titre": "On ne trouve que ce qu'on cherche",
+     "corps":
+         "Une eau « correcte » sur 200 substances est une information plus faible "
+         "qu'une eau « moyenne » sur 700. Le nombre de substances recherchées n'est "
+         "pas un indicateur de qualité : c'est un indicateur d'effort. Sans cette "
+         "précaution, un territoire qui cherche bien passe pour un territoire qui "
+         "va mal.",
+     "corps_index":
+         "Une eau «&nbsp;correcte&nbsp;» sur 200 substances est une information plus "
+         "faible qu'une eau «&nbsp;moyenne&nbsp;» sur 700. Le nombre de substances "
+         "recherchées est un indicateur d'effort, pas de qualité.",
+     "pied": 'La règle est dans <a href="methode.html">la méthode</a>',
+     "tag_accueil": "effort de recherche"},
+
+    {"cl": "dossier--gris", "num": "04", "etat": "attente",
+     "chiffre": ("627", "→", "344"),
+     "titre": "La liste change, pas l'eau",
+     "corps":
+         "Dans le Tarn, 298 substances disparaissent de la liste en trois semaines. "
+         "Mais la lecture naïve est fausse, et le projet l'a écartée lui-même : à "
+         "liste constante, le Tarn est plat sur onze ans. Le mécanisme est "
+         "administratif — la liste est régionale, et figée par les marchés "
+         "pluriannuels d'analyses.",
+     "corps_index":
+         "Dans le Tarn, 298 substances disparaissent de la liste en trois semaines. "
+         "La lecture naïve est fausse et le projet l'a écartée lui-même&nbsp;: à "
+         "liste constante, le Tarn est plat sur onze ans.",
+     "pied": "Rupture de panel 2019-2020",
+     "tag_accueil": "rupture du panel 2019-2020"},
+
+    {"cl": "dossier--gris", "num": "05", "etat": "attente",
+     "chiffre": lambda c: (_n(c["sans_seuil"]), "mesures", ""),
+     "titre": "Ce sur quoi rien ne se prononce",
+     "corps":
+         "Des substances effectivement recherchées, effectivement mesurées, "
+         "qu'aucun texte ne compare à quoi que ce soit. Ce n'est pas un défaut du "
+         "projet : c'est un fait sur la norme. Une part massive de ce que les "
+         "laboratoires mesurent n'a aucune limite opposable en face.",
+     "corps_index":
+         "Des substances effectivement recherchées et mesurées, qu'aucun texte ne "
+         "compare à quoi que ce soit. Ce n'est pas un défaut du projet&nbsp;: c'est "
+         "un fait sur la norme.",
+     "pied": lambda c:
+         f"{c['parametres_sans_seuil']} paramètres sans terme de comparaison, dans "
+         '<a href="substances.html">le répertoire</a>',
+     "tag_accueil": "trouvé le 12 août 2026"},
+
+    {"cl": "dossier--gris", "num": "06", "etat": "attente",
+     "chiffre": ("0", "≠", "0"),
+     "titre": "Zéro n'est pas zéro",
+     "corps":
+         "Un résultat à zéro signifie « en dessous de ce que le laboratoire sait "
+         "mesurer », jamais « absent ». Un laboratoire qui ne trouve rien ne mesure "
+         "pas zéro. Et il y a trois états, jamais deux : conforme, dépassement, et "
+         "<b>indéterminé</b>.",
+     "corps_index":
+         "Un résultat à zéro signifie «&nbsp;en dessous de ce que le laboratoire sait "
+         "mesurer&nbsp;», jamais «&nbsp;absent&nbsp;». Et il y a trois états, jamais "
+         "deux&nbsp;: conforme, dépassement, <b>indéterminé</b>.",
+     "pied": 'Règle d\'affichage, dans <a href="methode.html">la méthode</a>',
+     "tag_accueil": "règle d'affichage"},
+
+    {"cl": "dossier--eau", "num": "07", "etat": "attente",
+     "chiffre": ("6", "/", "6"),
+     "titre": "Des substances sans aucune règle au monde",
+     "corps":
+         "Six enquêtes de sourçage, six fois la même réponse : il n'existe nulle "
+         "part de valeur opposable à laquelle comparer cette mesure. Le projet a "
+         "refusé d'en choisir une — choisir une valeur, c'est produire le verdict "
+         "au lieu de le constater.",
+     "corps_index":
+         "Six enquêtes de sourçage, six fois la même réponse&nbsp;: il n'existe nulle "
+         "part de valeur opposable. Le projet a refusé d'en choisir une — choisir "
+         "une valeur, c'est produire le verdict au lieu de le constater.",
+     "pied": "Enquêtes rendues",
+     "tag_accueil": "enquêtes rendues"},
+
+    {"cl": "dossier--aveu", "num": "08", "etat": "attente",
+     "chiffre": ("2 653", "communes", ""),
+     "titre": "Le mot employé fait partie du résultat",
+     "corps":
+         "Le site écrivait « eau du réseau X » en désignant en réalité le "
+         "gestionnaire. Un même gestionnaire exploite souvent plusieurs réseaux, "
+         "qui ne distribuent pas la même eau. La phrase était sur 2 829 fiches ; "
+         "135 regroupements réunissaient des communes qui ne boivent pas la même "
+         "eau. Corrigé le jour même — et raconté ici.",
+     "corps_index":
+         "Le site écrivait «&nbsp;eau du réseau X&nbsp;» en désignant en réalité le "
+         "gestionnaire. La phrase était sur 2 829 fiches&nbsp;; 135 regroupements "
+         "réunissaient des communes qui ne boivent pas la même eau. Corrigé le jour "
+         "même.",
+     "tag": "Erreur du projet · corrigée le 13 août 2026",
+     "pied": "À raconter en entier",
+     "tag_accueil": "erreur du projet, corrigée le 13 août 2026"},
 ]
+
+
+def _valeur(v, ctx):
+    """Une entrée de `DOSSIERS` est soit un fait daté, soit un calcul."""
+    return v(ctx) if callable(v) else v
+
+
+# Les quatre temps de la fabrication d'un dossier, en pied d'index. Le
+# quatrième n'est pas « fourni » : c'est la relecture humaine, et c'est elle
+# qui limite le débit.
+FABRICATION = [
+    ("1 · le fait", "Une requête, pas une intuition",
+     "Un dossier part d'un balayage du corpus figé, reproductible, dont le "
+     "script est au dépôt. Le fait est vérifiable ligne à ligne dans les "
+     "fichiers publiés.", True),
+    ("2 · le dénominateur", "Sur combien, et cherché où",
+     "Aucun compte n'est publié sans ce sur quoi il porte. «&nbsp;{communes} "
+     "communes&nbsp;» ne s'écrit jamais sans «&nbsp;sur {instruites} "
+     "instruites, dans {departements} départements&nbsp;».", True),
+    ("3 · le partage", "Établi, et non établi",
+     "Les deux listes sont écrites côte à côte, jamais l'une sous l'autre. "
+     "C'est la pièce la plus importante&nbsp;: elle empêche le constat de "
+     "glisser vers le procès.", True),
+    ("4 · la relecture", "Une personne, pas un lot",
+     "Chaque dossier nomme des communes, donc des exploitants implicites. Rien "
+     "n'est publié sans une lecture humaine, phrase par phrase. C'est ce qui "
+     "limite le débit à {debit}.", False),
+]
+
+
+def page_dossier_panel_reduit(version):
+    """
+    Le premier dossier — « une conformité peut s'obtenir en cessant de mesurer ».
+
+    Les douze sections du §11.2 de la consigne, dans leur ordre, et cet ordre
+    porte l'argument : le mécanisme AVANT tout chiffre, les 555 contrôles AVANT
+    la liste des abandons, l'hypothèse écartée AVANT celle retenue, et
+    « établi / non établi » côte à côte avant la conclusion.
+
+    **Le partage entre ce qui se calcule et ce qui s'écrit.** Tout ce que la
+    synthèse figée porte vient de `dossier_panel_reduit` — les quatre nombres,
+    les dix-huit communes, les douze paramètres, la chronologie, la géographie,
+    et jusqu'aux deux mesures du contraste, lues dans le dossier commune de
+    Nottonville. Ce qui reste en dur ici vient de `ANALYSE_2026-08-12.md`, le
+    fichier d'argument versionné : les 61 analyses complètes dont 55 non
+    conformes, et la série de nitrates 60 → 38,7 → 11,1, que l'étude d'ensemble
+    ne porte pas sous forme datée (consigne §11.5).
+
+    **Deux écarts à la maquette, tranchés par Yannick le 17 août 2026** :
+    le tableau des paramètres rend ses **douze lignes réelles** là où la
+    maquette en fond deux paires et n'en montre que dix — réunir deux
+    métabolites distincts ferait disparaître un abandon du décompte ; et la
+    chronologie rend **huit barres** au lieu de sept, 2017 compris bien qu'il
+    vaille zéro — une année sautée fait lire un cycle là où il y a un trou.
+    """
+    f = DPR.faits()
+    NITRATE, PESTICIDE = "Nitrates (en NO3)", "Atrazine déséthyl"
+    ctr = DPR.contraste("28283", [NITRATE, PESTICIDE])
+
+    # --- 3. les dix-huit communes ---------------------------------------
+    lignes_c = "".join(
+        f'<tr><td data-v="{h(c["commune"])}"><b class="commune">{h(c["commune"])}</b> '
+        f'<span style="color:var(--ink-faint)">({h(c["dept"])})</span></td>'
+        f'<td class="num" data-v="{c["nb_depassements"]}">{c["nb_depassements"]}</td>'
+        f'<td class="num" data-v="{c["nb_abandonnes"]}">{c["nb_abandonnes"]}</td>'
+        f'<td class="num" data-v="{c["nb_controles_depuis"]}">{c["nb_controles_depuis"]}</td>'
+        f'<td class="num" data-v="{c["plus_ancien_mois"]}">'
+        f'<b>{c["plus_ancien_mois"]}</b> mois</td></tr>'
+        for c in f["communes"])
+
+    # --- 4. ce qui cesse d'être mesuré ----------------------------------
+    def _plage(p):
+        return (f'{p["mois_min"]} mois' if p["mois_min"] == p["mois_max"]
+                else f'{p["mois_min"]} à {p["mois_max"]} mois')
+
+    # Les deux premiers sont mis en avant : ce sont eux le résultat.
+    lignes_p = "".join(
+        f'<tr><td>{"<b class=\"commune\">" if i < 2 else ""}{h(p["libelle"])}'
+        f'{"</b>" if i < 2 else ""}</td>'
+        f'<td class="num">{"<b class=\"commune\">" if i < 2 else ""}{p["communes"]}'
+        f'{"</b>" if i < 2 else ""}</td>'
+        f'<td>{_plage(p)}</td></tr>'
+        for i, p in enumerate(f["parametres"]))
+
+    # --- 6. la chronologie ----------------------------------------------
+    barres = "".join(
+        f'<div class="chrono-ligne{" chrono-ligne--pic" if a["pic"] else ""}">'
+        f'<span class="chrono-an">{a["annee"]}</span>'
+        f'<span class="chrono-piste"><i style="width:{a["part"]}%"></i></span>'
+        f'<span class="chrono-n">{a["n"]}</span></div>'
+        for a in f["chronologie"])
+    pics = [str(a["annee"]) for a in f["chronologie"] if a["pic"]]
+    pics_txt = ", ".join(pics[:-1]) + " et " + pics[-1] if len(pics) > 1 else "".join(pics)
+
+    # --- 8. la géographie ------------------------------------------------
+    lignes_g = "".join(
+        f'<tr><td>{h(d["nom"] or "—")} ({h(d["code"])})</td>'
+        f'<td class="num">{d["instruites"]}</td>'
+        f'<td class="num">{f"<b>{d["avec_abandon"]}</b>" if d["avec_abandon"] else 0}</td></tr>'
+        for d in f["departements"])
+    tete = f["departements"][0]
+    n_tete = next((d["avec_abandon"] for d in f["departements"]
+                   if d["code"] == tete["code"]), 0)
+
+    return f"""
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Le mécanisme, en trois temps</h2>
+    <div class="pieces">
+      <div class="piece"><span class="tag">1</span>
+        <h3>Une analyse complète trouve des dépassements</h3>
+        <p>Plus de 200 paramètres. Elle relève un ou plusieurs dépassements, et l'administration
+          prononce une <b>non-conformité</b>.</p></div>
+      <div class="piece"><span class="tag">2</span>
+        <h3>Les suivantes sont des contrôles de routine</h3>
+        <p>Vingt à quarante paramètres, tels que <b>la réglementation les prescrit</b> entre deux
+          analyses complètes.</p></div>
+      <div class="piece piece--fournie"><span class="tag">3</span>
+        <h3>Ces contrôles ne portent plus les paramètres en cause</h3>
+        <p>Ils concluent «&nbsp;conforme aux exigences de qualité en vigueur <b>pour l'ensemble des
+          paramètres mesurés</b>&nbsp;». Clause exacte, et que personne ne lit.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Le résultat, en quatre nombres</h2>
+    <div class="chiffres">
+      <div class="chiffre rouge"><span class="n">{f["n_communes"]}</span>
+        <span class="l">communes sur {f["instruites"]} instruites<br>dans
+          {f["departements_balayes"]} départements publiés</span></div>
+      <div class="chiffre rouge"><span class="n">{f["n_parametres"]}</span>
+        <span class="l">paramètres en dépassement<br>plus mesurés depuis au moins
+          {f["mois_abandon"] // 12} ans</span></div>
+      <div class="chiffre"><span class="n">{_n(f["n_controles"])}</span>
+        <span class="l">contrôles de routine depuis<br>l'eau est suivie de près</span></div>
+      <div class="chiffre gris"><span class="n">{f["plus_ancien_mois"]}</span>
+        <span class="l">mois pour le plus ancien abandon<br>dix ans</span></div>
+    </div>
+    <p class="bnote"><b>Sur les 61 analyses complètes que le corpus détient pour ces
+      {f["n_communes"]} communes, 55 sont non conformes — 90&nbsp;%. Et pour 15 communes sur
+      {f["n_communes"]}, elles le sont toutes.</b> Ce ne sont pas des accidents ponctuels&nbsp;:
+      c'est un état.</p>
+    <p class="bnote"><b>{_n(f["n_controles"])} contrôles, ce n'est pas un abandon de
+      surveillance</b> — c'est même l'inverse. Ces eaux sont suivies de près, sur un périmètre
+      restreint. Le dire est nécessaire, sinon tout ce qui suit se lit de travers.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Les {f["n_communes"]} communes</h2>
+    <p class="chapo" style="margin-bottom:var(--e-5)">Rangées par ancienneté du plus ancien
+      abandon. Les en-têtes trient&nbsp;: <b>aucun ordre n'est le bon</b>, et un classement par
+      nombre de dépassements dirait d'abord l'effort de recherche.</p>
+    <div class="tableau tableau--annuaire">
+      <div class="tableau-defile">
+        <table data-triable>
+          <thead>
+            <tr>
+              <th data-type="txt" aria-sort="none"><button class="th-tri" type="button">Commune</button></th>
+              <th class="num" data-type="num" aria-sort="none"><button class="th-tri" type="button">Dépassements</button></th>
+              <th class="num" data-type="num" aria-sort="none"><button class="th-tri" type="button">Abandonnés</button></th>
+              <th class="num" data-type="num" aria-sort="none"><button class="th-tri" type="button">Contrôles depuis</button></th>
+              <th class="num" data-type="num" aria-sort="descending"><button class="th-tri" type="button">Plus ancien abandon</button></th>
+            </tr>
+          </thead>
+          <tbody>{lignes_c}</tbody>
+        </table>
+      </div>
+    </div>
+    <p class="bnote">«&nbsp;Abandonnés&nbsp;» : parmi les paramètres en dépassement à la dernière
+      analyse complète, ceux dont la dernière mesure a plus de {f["mois_abandon"]} mois. <b>Un
+      paramètre recontrôlé une fois puis laissé compte ici comme abandonné</b> : ce qui se mesure
+      est l'ancienneté de la dernière mesure, pas son existence.</p>
+    <p class="bnote">Un dossier commune par commune existe pour chacune, avec la liste datée de ses
+      analyses. Ils sont dans le dépôt, sous
+      <code>data/etudes/conformite_sur_panel_reduit/</code>.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Ce qui cesse d'être mesuré — et ce n'est pas n'importe quoi</h2>
+    <div class="tableau" style="max-width:var(--l-standard)">
+      <div class="tableau-defile">
+        <table>
+          <thead><tr><th>Paramètre</th><th class="num">Communes</th>
+            <th>Ancienneté de la dernière mesure</th></tr></thead>
+          <tbody>{lignes_p}</tbody>
+        </table>
+      </div>
+    </div>
+    <p class="bnote" style="margin-top:var(--e-5)"><b>Ce sont des métabolites de pesticides, et
+      surtout ceux de l'atrazine.</b> L'atrazine est interdite en France depuis 2003&nbsp;; ce sont
+      ses produits de dégradation qui persistent dans les nappes vingt ans après. Le paramètre le
+      plus souvent laissé de côté est précisément celui qui témoigne d'une contamination ancienne
+      et durable.</p>
+    <p class="bnote">Les libellés sont ceux de la source, sans retouche&nbsp;: deux métabolites du
+      métazachlore comptent pour deux lignes, et non pour une. <b>Les réunir ferait disparaître un
+      abandon du décompte.</b></p>
+
+    <h3 class="sec" style="margin-top:var(--e-8)">Le mécanisme qui mérite d'être vu</h3>
+    <p class="chapo" style="margin-bottom:var(--e-5)">Le «&nbsp;total des pesticides
+      analysés&nbsp;» est laissé de côté dans <b>12 communes sur {f["n_communes"]}</b>. Ce n'est
+      pas un paramètre comme les autres&nbsp;: c'est une <b>limite de qualité opposable</b> —
+      0,5 µg/L — et c'est une <b>somme</b>.</p>
+    <p class="note note--attention"><b>Une somme ne se mesure pas&nbsp;: elle se calcule à partir
+      de ses termes.</b> Cesser de mesurer les pesticides individuels ne fait donc pas seulement
+      disparaître chaque pesticide de l'affichage — <b>cela rend l'agrégat opposable
+      incalculable</b>. Le paramètre le plus protecteur du dispositif s'éteint de lui-même quand
+      ses composants s'éteignent.</p>
+    <p class="bnote">C'est la règle du projet appliquée à l'inverse&nbsp;: <em>une somme ne se
+      compare jamais sans sa date et son périmètre</em> — ici, le périmètre est vide.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Quand les arrêts ont-ils lieu&nbsp;?</h2>
+    <p class="chapo" style="margin-bottom:var(--e-5)"><b>Une hypothèse séduisante, et
+      fausse&nbsp;: «&nbsp;vingt ans après l'interdiction&nbsp;».</b> L'atrazine est interdite en
+      2003&nbsp;; Thiville cesse de la suivre en octobre 2023. Vingt ans tout juste. <b>Le corpus
+      ne porte pas cette règle</b> — Oinville-Saint-Liphard s'arrête en 2016, Gas et Nottonville en
+      2018.</p>
+    <div class="chrono">{barres}</div>
+    <p class="bnote" style="margin-top:var(--e-6)"><b>Ce que la chronologie montre&nbsp;: des
+      pics.</b> {h(pics_txt)} — deux à trois ans d'écart, régulièrement. C'est la signature d'un
+      <b>cycle</b>, pas d'une décision prise molécule par molécule. Les années sans arrêt sont
+      montrées aussi&nbsp;: <b>une année sautée ferait lire un cycle là où il y a un trou.</b></p>
+    <p class="bnote">Le mécanisme candidat est connu&nbsp;: les <b>marchés pluriannuels d'analyses
+      des ARS</b>, qui figent la liste régionale des paramètres recherchés pour la durée du marché
+      (instruction DGS/EA4/2020/177, source <code>REG-05</code>).</p>
+    <p class="note note--attention"><b>Formulation tenue, et elle n'est pas négociable&nbsp;:</b>
+      «&nbsp;arrêts groupés en {h(pics_txt)}, <b>compatibles avec</b> des renouvellements de
+      marché&nbsp;» — jamais «&nbsp;causés par&nbsp;». Établir la cause demanderait les marchés
+      eux-mêmes&nbsp;: date de notification, durée, liste annexée. <b>Ces documents sont
+      publics</b>, et c'est le chantier qui prolonge cette étude.</p>
+    <p class="bnote">C'est exactement le piège déjà rencontré sur le Tarn, où une rupture de panel
+      de janvier 2020 avait failli être attribuée à une instruction de <b>décembre 2020</b> —
+      postérieure de onze mois. <b>Attribuer un effet à une date qui l'arrange</b> est l'erreur que
+      le projet s'interdit, transposée du seuil au programme d'analyse.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Le contraste, commune par commune</h2>
+    <p class="chapo" style="margin-bottom:var(--e-5)">Partout le même partage, et il est
+      net&nbsp;: <b>les nitrates continuent d'être mesurés</b>, 27 à 37 fois selon les communes, la
+      dernière il y a trois ou quatre mois. <b>Les pesticides ne le sont plus</b>&nbsp;: zéro à deux
+      fois, la dernière il y a trois à dix ans.</p>
+
+    <p class="surtitre" style="margin-bottom:var(--e-2)">Nottonville (28283) — même commune, même eau, même robinet</p>
+    <div class="contraste">
+      <div class="suivi">
+        <span class="lib">{h(NITRATE)}</span>
+        <span class="val">{ctr[NITRATE]["mesures_depuis"]} mesures</span>
+        <p>La dernière le {h(BF._date_fr(ctr[NITRATE]["derniere_mesure"]))}, il y a
+          {ctr[NITRATE]["mois"]} mois. Ils étaient à
+          <b>{h(ctr[NITRATE]["valeur"])}&nbsp;{h(ctr[NITRATE]["unite"])}</b> pour une limite de
+          {h(ctr[NITRATE]["limite"])}.</p>
+      </div>
+      <div class="abandon">
+        <span class="lib">{h(PESTICIDE)}</span>
+        <span class="val">{ctr[PESTICIDE]["mesures_depuis"]} mesure</span>
+        <p>Une seule, le {h(BF._date_fr(ctr[PESTICIDE]["derniere_mesure"]))}, et jamais depuis —
+          {ctr[PESTICIDE]["mois"]} mois. Elle était à
+          <b>{h(ctr[PESTICIDE]["valeur"])}&nbsp;{h(ctr[PESTICIDE]["unite"])}</b> pour une limite de
+          {h(ctr[PESTICIDE]["limite"])}.</p>
+      </div>
+    </div>
+
+    <p class="bnote" style="margin-top:var(--e-6)"><b>Et là où le nitrate a été traité, ça se
+      voit.</b> À Nottonville il passe de <b>60 mg/L</b> à <b>38,7</b> puis <b>11,1</b> en huit
+      mois, et il y reste. <b>Quelque chose a été fait, et ça a marché.</b> Il faut le dire aussi
+      nettement que le reste — c'est ce qui rend le silence sur les pesticides visible par
+      contraste, et c'est aussi ce qui prouve qu'une valeur peut baisser pour de bon.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">La géographie — et la prudence qu'elle impose</h2>
+    <p class="chapo" style="margin-bottom:var(--e-5)"><b>{n_tete} des {f["n_communes"]} communes
+      sont en {h(tete["nom"])}</b>, la Beauce. Les autres sont en Tarn-et-Garonne et dans le
+      Gers.</p>
+    <div class="tableau" style="max-width:var(--l-standard)">
+      <div class="tableau-defile">
+        <table>
+          <thead><tr><th>Département</th><th class="num">Communes instruites</th>
+            <th class="num">Avec abandon</th></tr></thead>
+          <tbody>{lignes_g}</tbody>
+        </table>
+      </div>
+    </div>
+    <p class="note note--attention" style="margin-top:var(--e-5)"><b>Ce tableau ne se lit pas comme
+      une carte de France.</b> Deux réserves, et elles sont dirimantes.</p>
+    <p class="bnote"><b>L'{h(tete["nom"])} pèse {tete["instruites"]} des {f["instruites"]} communes
+      instruites</b>, parce que c'est le département le plus profondément collecté du corpus —
+      plusieurs analyses complètes par commune, là où d'autres n'en ont qu'une. <b>Un département
+      mieux documenté produit mécaniquement plus de candidats.</b> On ne trouve que ce qu'on
+      cherche, et aucune comparaison de territoires ne se fait sans afficher l'effort de chaque
+      terme.</p>
+    <p class="bnote"><b>Le corpus couvrait {f["departements_balayes"]} départements au moment de
+      l'étude, pas la France.</b> Rien ici ne dit ce qu'il en est ailleurs.</p>
+    <p class="bnote">Ce qui reste vrai malgré ces réserves&nbsp;: <b>la Beauce est une zone de
+      grande culture céréalière, et les paramètres laissés de côté sont ceux des herbicides de
+      maïs.</b> La cohérence entre le territoire et les molécules n'est pas un artefact de
+      collecte.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Qui décide de ce qui est analysé</h2>
+    <p class="chapo" style="margin-bottom:var(--e-5)"><b>Ce n'est pas l'exploitant, et ce n'est pas
+      décidé commune par commune.</b> La liste des paramètres recherchés lors d'un contrôle
+      sanitaire est <b>régionale</b>, et elle est figée par les <b>marchés pluriannuels d'analyses
+      passés par les ARS</b>&nbsp;: le laboratoire retenu applique, pour la durée du marché, le
+      catalogue qui y est annexé.</p>
+    <p class="note note--attention"><b>Un exploitant n'a pas la main sur ce qu'on mesure chez
+      lui.</b> Chercher la responsabilité du côté de la commune ou du distributeur serait donc
+      doublement faux&nbsp;: contraire à la règle du projet — interroger la norme, jamais les
+      acteurs — et contraire au mécanisme.</p>
+    <p class="bnote"><b>Chantier ouvert, et il est documentaire, pas informatique&nbsp;:</b>
+      retrouver les marchés d'analyses de l'ARS Centre-Val de Loire — date de notification, durée,
+      liste de paramètres annexée. Ces pièces sont publiques. Elles transformeraient
+      «&nbsp;compatible avec un renouvellement de marché&nbsp;» en fait établi, <b>ou
+      l'infirmeraient</b>.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Ce que ce dossier établit — et ce qu'il n'établit pas</h2>
+    <p class="chapo" style="margin-bottom:var(--e-6)">Les deux listes sont écrites côte à côte, et
+      jamais l'une sous l'autre&nbsp;: <b>c'est la pièce la plus importante du dossier.</b></p>
+    <div class="etabli">
+      <div class="etabli-oui">
+        <h3>Établi, et vérifiable ligne à ligne</h3>
+        <ul>
+          <li>Dans <b>{f["n_communes"]} communes</b>, des paramètres qui rendaient l'eau non
+            conforme lors de la dernière analyse complète <b>ne sont plus mesurés depuis deux à dix
+            ans</b>.</li>
+          <li>Leur <b>dernière valeur connue était au-dessus de la limite</b> applicable ce
+            jour-là.</li>
+          <li>Les <b>{_n(f["n_controles"])} contrôles</b> qui ont suivi concluent
+            «&nbsp;conforme aux exigences de qualité en vigueur <b>pour l'ensemble des paramètres
+            mesurés</b>&nbsp;».</li>
+          <li>Les arrêts se <b>groupent en {h(pics_txt)}</b>.</li>
+        </ul>
+      </div>
+      <div class="etabli-non">
+        <h3>Non établi, et à ne jamais écrire</h3>
+        <ul>
+          <li><b>Que ces eaux seraient aujourd'hui non conformes.</b> Personne ne le sait, et c'est
+            exactement le point. Une ressource peut avoir été abandonnée, une interconnexion
+            réalisée, un traitement installé — les nitrates de Nottonville prouvent que ça arrive.
+            <b>L'absence de mesure ne dit rien sur la présence.</b></li>
+          <li><b>Une intention.</b> Écrire «&nbsp;on a cessé de mesurer pour ne plus voir&nbsp;»
+            serait une accusation que la donnée ne porte pas.</li>
+          <li><b>Un défaut de surveillance.</b> {_n(f["n_controles"])} contrôles en quelques
+            années, ce n'est pas un abandon.</li>
+          <li><b>Une cause aux arrêts groupés.</b> «&nbsp;Compatible avec&nbsp;» n'est pas
+            «&nbsp;causé par&nbsp;».</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note" style="margin-top:var(--e-6)"><b>La question, elle, est légitime et elle est
+      forte&nbsp;:</b> <em>un bulletin peut être déclaré conforme sur un panel qui ne contient plus
+      ce qui l'avait rendu non conforme.</em> La conformité affichée ne dit alors rien de
+      l'eau — elle dit ce qu'on a regardé. <b>Et quand le dernier regard large date de dix ans,
+      elle ne dit plus grand-chose du tout.</b></p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Ce que ça demande au projet</h2>
+    <div class="pieces">
+      <div class="piece piece--fournie"><span class="tag">1 · en cours</span>
+        <h3>Une alerte sur la fiche de chaque commune</h3>
+        <p><b>«&nbsp;Aucune analyse complète (plus de 200 paramètres) depuis X mois.&nbsp;»</b>
+          Avec ses deux compléments obligatoires&nbsp;: le <b>nombre de contrôles</b> intervenus
+          depuis, sans quoi l'alerte se lit comme un abandon&nbsp;; et le <b>nom des paramètres</b>
+          qui étaient en dépassement et ne sont plus mesurés, qui est l'information neuve.</p></div>
+      <div class="piece"><span class="tag">2 · outillé</span>
+        <h3>Étendre le balayage</h3>
+        <p>À chaque nouveau département dès que son ingestion est terminée. Le script est fait pour
+          ça, et la synthèse qu'il produit est datée&nbsp;: <b>ce dossier se rejoue, il ne se
+          retape pas.</b></p></div>
+      <div class="piece"><span class="tag">3 · à instruire</span>
+        <h3>Reprendre le critère</h3>
+        <p>Il exige aujourd'hui un dépassement à la dernière analyse complète. <b>Une commune
+          conforme en apparence, dont un paramètre approchait la limite et n'est plus mesuré,
+          échappe au filtre.</b></p></div>
+      <div class="piece"><span class="tag">4 · règle</span>
+        <h3>Ne rien publier sans relecture humaine</h3>
+        <p>Chaque dossier nomme une commune et un exploitant implicite. La nommer ne suffit
+          pas&nbsp;: il faut vérifier commune par commune <b>qu'aucune phrase ne glisse du constat
+          vers le procès</b>.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Limites de l'étude</h2>
+    <p class="bnote"><b>Le corpus couvrait {f["departements_balayes"]} départements</b> sur 96 au
+      moment du balayage, et inégalement.</p>
+    <p class="bnote"><b>Le critère de dépassement</b> est lu sur la limite de qualité <b>déclarée
+      par la source</b> dans chaque résultat, pas sur le référentiel daté du projet. Les limites
+      exprimées en plage — pH, conductivité — sont écartées faute de pouvoir être comparées sans
+      risque de faux positif.</p>
+    <p class="bnote"><b>Deux communes sur {f["candidates"]} n'ont rendu aucun résultat</b>
+      exploitable par l'API&nbsp;: {f["candidates"]} candidates, {f["instruites"]} instruites.</p>
+    <p class="bnote"><b>Les analyses de routine ne sont pas dans le corpus</b>&nbsp;: elles ont été
+      lues directement sur Hub'Eau pour cette étude. <b>Un rejeu ultérieur peut donc donner des
+      chiffres légèrement différents</b> si l'administration complète ses données.</p>
+
+    <div class="tracab" style="margin-top:var(--e-7)">
+      <span><b>Données</b> <code>Hub'Eau · qualite_eau_potable/resultats_dis</code></span>
+      <span><b>Consultée le</b> <code>{h(f["date_consultation"])}</code></span>
+      <span><b>Corpus</b> <code>{h(version)}</code></span>
+      <span><b>Méthode</b> <code>{h(f["script"])}</code></span>
+      <span><b>Synthèse</b> <code>{h(os.path.basename(f["source"]))}</code></span>
+    </div>
+  </div>
+</section>
+"""
+
+
+def page_dossiers(con, version, publies):
+    """
+    L'index des dossiers — et l'état de chacun, dit et non deviné.
+
+    `publies` est l'ensemble des adresses de dossier que CETTE construction a
+    réellement écrites. L'état ne se déclare donc pas dans une table qu'on
+    penserait à mettre à jour : il se constate. Une carte dont la page n'existe
+    pas reste un `<div>`, et le jour où la page est écrite, la carte devient un
+    lien sans que personne n'ait rien à basculer.
+
+    C'est le même mécanisme que la pastille « dossier » du répertoire des
+    substances, et pour la même raison : un lecteur qui clique et tombe sur
+    rien perd confiance, et c'est le coût le plus élevé qu'une page d'index
+    puisse faire payer (consigne §11.1).
+    """
+    ctx = chiffres_dossiers(con, version)
+    n_publies = sum(1 for d in DOSSIERS if d.get("lien") in publies)
+
+    cartes = []
+    for d in DOSSIERS:
+        lien = d.get("lien") if d.get("lien") in publies else None
+        etat = ("publié", "pill--dossier") if lien else ("en préparation", "pill--relire")
+        cl = d["cl"] + ("" if lien else " dossier--attente")
+
+        bouts = [f'<span class="pill {etat[1]} dossier-etat">{h(etat[0])}</span>',
+                 f'<span class="dossier-num">{h(d["num"])}</span>']
+        if d.get("tag"):
+            # La carte 08 marque son étiquette d'un modificateur : « erreur du
+            # projet » ne se lit pas comme les sept autres étiquettes.
+            sup = " dossier-tag--aveu" if d["cl"] == "dossier--aveu" else ""
+            bouts.append(f'<span class="dossier-tag{sup}">'
+                         f'{h(_valeur(d["tag"], ctx))}</span>')
+        if d.get("chiffre"):
+            tete, milieu, queue = _valeur(d["chiffre"], ctx)
+            bouts.append(f'<span class="dossier-chiffre">{h(tete)} '
+                         f'<span>{h(milieu)}</span>'
+                         + (f' {h(queue)}' if queue else "") + '</span>')
+        bouts.append(f'<h3>{h(d["titre"])}</h3>')
+        bouts.append(f'<p>{d.get("corps_index") or d["corps"]}</p>')
+        if d.get("precision"):
+            bouts.append('<p class="dossier-precision">'
+                         f'{_valeur(d["precision"], ctx)}</p>')
+        if d.get("pied"):
+            bouts.append(f'<span class="dossier-pied">'
+                         f'{_valeur(d["pied"], ctx)}</span>')
+
+        corps = "".join(bouts)
+        cartes.append(f'<a class="dossier {cl}" href="{h(lien)}">{corps}</a>'
+                      if lien else f'<div class="dossier {cl}">{corps}</div>')
+
+    # La phrase d'état se calcule elle aussi. Écrite en dur, elle annoncerait
+    # « un seul dossier est écrit » le jour où il y en aurait deux — et l'index
+    # dirait le contraire de la liste qu'il porte.
+    total = len(DOSSIERS)
+    if n_publies == 0:
+        etat_liste = (f"<b>Aucun dossier n'est encore publié.</b> Les {total} "
+                      "sujets sont instruits — les chiffres existent, la "
+                      "relecture non. Ils sont listés ici parce que les taire "
+                      "donnerait à croire que le projet n'a rien trouvé.")
+    elif n_publies == 1:
+        etat_liste = (f"<b>Un seul dossier est écrit à ce jour.</b> Les "
+                      f"{total - 1} autres sont instruits — les chiffres "
+                      "existent, la relecture non. Ils sont listés ici parce "
+                      "que les taire donnerait à croire que le projet n'a "
+                      "trouvé qu'une chose.")
+    else:
+        etat_liste = (f"<b>{n_publies} dossiers sont écrits à ce jour</b>, sur "
+                      f"{total} sujets instruits. Les autres attendent leur "
+                      "relecture, pas leurs chiffres.")
+
+    # « 0 dossier(s) publié(s) » ne se publie pas : la parenthèse de pluriel est
+    # une commodité de développeur, elle n'a rien à faire dans une page lue.
+    if n_publies == 0:
+        debit = f"aucun dossier publié sur {total} instruits"
+    elif n_publies == 1:
+        debit = f"un dossier publié sur {total} instruits"
+    else:
+        debit = f"{n_publies} dossiers publiés sur {total} instruits"
+
+    pieces = "".join(
+        f'<div class="piece{" piece--fournie" if fourni else ""}">'
+        f'<span class="tag">{h(tag)}</span><h3>{h(titre)}</h3>'
+        f'<p>{corps.format(communes=ctx["panel_communes"], instruites=ctx["panel_instruites"], departements=ctx["panel_departements"], debit=debit)}</p></div>'
+        for tag, titre, corps, fourni in FABRICATION)
+
+    return f"""
+<section class="section">
+  <div class="zone zone-large">
+    <p class="bnote"><b>Un dossier n'est pas un article d'opinion.</b> Chacun part d'un fait
+      vérifiable ligne à ligne dans les données publiées, expose ce qu'il établit <b>et ce qu'il
+      n'établit pas</b>, et interroge la norme — jamais ceux qui l'appliquent. Un dossier qui ne
+      peut pas séparer les deux n'est pas publié.</p>
+    <p class="bnote">{etat_liste}</p>
+
+    <div class="dossier-liste-tete" style="margin-top:var(--e-7)">
+      <h2 class="sec" style="margin:0;border:0;padding:0">Les {total} sujets</h2>
+    </div>
+
+    <div class="dossiers">{"".join(cartes)}</div>
+
+    <p class="bnote" style="margin-top:var(--e-6)"><b>Pourquoi un dossier «&nbsp;erreur du
+      projet&nbsp;» figure dans la même liste que les autres.</b> Un observatoire qui ne publie que
+      ce qui l'arrange demande qu'on le croie. Celui-ci publie ses corrections au même endroit et
+      dans la même forme que ses trouvailles.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="zone zone-large">
+    <h2 class="sec">Comment un dossier se construit</h2>
+    <div class="pieces">{pieces}</div>
+  </div>
+</section>
+"""
 
 
 def page_accueil(lignes, these, version, calcule_le, con):
@@ -1110,12 +1878,15 @@ def page_accueil(lignes, these, version, calcule_le, con):
       La requête est publiée telle quelle et se remplira à mesure de la collecte.</p>
     """
 
+    ctx = chiffres_dossiers(con, version)
     cartes = "".join(
-        f'<article class="dossier {cl}">'
-        + (f'<div class="dossier-chiffre">{h(chiffre)}</div>' if chiffre else "")
-        + f'<h3>{h(titre)}</h3><p>{corps}</p>'
-        f'<p class="dossier-tag">{h(tag)}</p></article>'
-        for cl, chiffre, titre, corps, tag in DOSSIERS)
+        f'<article class="dossier {d["cl"]}">'
+        + (f'<div class="dossier-chiffre">'
+           f'{h(" ".join(x for x in _valeur(d["chiffre"], ctx) if x))}</div>'
+           if d.get("chiffre") else "")
+        + f'<h3>{h(d["titre"])}</h3><p>{d["corps"]}</p>'
+        f'<p class="dossier-tag">{h(d["tag_accueil"])}</p></article>'
+        for d in DOSSIERS)
 
     liste_refus = "".join(
         f"<li><b>{h(fort)}</b> {suite}</li>" for fort, suite in REFUS)
@@ -2599,7 +3370,7 @@ def _poids(octets):
 
 # ---------------------------------------------------------------------------
 def construire(destination=None, db=DB_PATH, depts=None, communes=None,
-               sans_fiches=False, depts_fiches=None):
+               sans_fiches=False, depts_fiches=None, legal_incomplet=False):
     """
     `communes` — un jeu de codes INSEE, et c'est un outil d'APERÇU, pas de
     publication. Ajouté le 16 août 2026 : juger une fiche demandait jusque-là
@@ -2690,7 +3461,7 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
         assets = os.path.join(public, "assets")
         os.makedirs(assets, exist_ok=True)
         for f in ("observatoire.css", "observatoire-v2.css", "polices.css",
-                  "fiche.js", "recherche.js", "carte.js", "tableau.js",
+                  "fiche.js", "recherche.js", "carte.js", "tableau.js", "tri.js",
                   "barre.js", "marque.svg", "partage.png"):
             shutil.copyfile(os.path.join(GABARITS, f), os.path.join(assets, f))
         # Les polices et les bandeaux, à plat dans `assets/`. Les trois `.woff2`
@@ -2750,6 +3521,79 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
                        "ouvertes. Il sépare <b>la mesure</b>, qui est un fait, du "
                        "<b>verdict</b>, qui est une convention administrative datée.",
             scripts=f'<script src="assets/{empreinte("recherche.js")}"></script>'))
+
+        # LE PREMIER DOSSIER. Écrit AVANT l'index, et l'ordre compte : c'est
+        # cet ensemble qui décide si la carte 01 sera un lien ou un `<div>`.
+        # Rien à basculer à la main le jour où le deuxième arrivera.
+        ecrire(os.path.join(public, "dossier-panel-reduit.html"), page(
+            "Une conformité peut s'obtenir en cessant de mesurer",
+            page_dossier_panel_reduit(version), "dossiers.html",
+            "Dans 18 communes, des paramètres en dépassement à la dernière "
+            "analyse complète n'ont plus été mesurés depuis deux à dix ans. "
+            "La conformité affichée dit alors ce qu'on a regardé.",
+            version, calcule_le, formule=False, largeur="large",
+            cle_bandeau="dossier",
+            sous_titre="Un bulletin peut être déclaré conforme sur un panel qui ne "
+                       "contient plus ce qui l'avait rendu non conforme. "
+                       "<b>L'absence de mesure ne dit rien sur la présence</b> — "
+                       "et c'est exactement le point.",
+            fil=[("Accueil", "index.html"), ("Les dossiers", "dossiers.html"),
+                 ("Conformité sur panel réduit", None)],
+            scripts=f'<script src="assets/{empreinte("tri.js")}"></script>'))
+        dossiers_publies = {"dossier-panel-reduit.html"}
+        # --- à propos, et le texte légal ----------------------------------
+        ecrire(os.path.join(public, "a-propos.html"), page(
+            "À propos de l'Observatoire",
+            lire("a-propos-corps.html"), "a-propos.html",
+            "Qui porte l'Observatoire de la potabilité réglementaire, ce qu'il "
+            "cherche à rendre visible, et ce qu'il s'interdit.",
+            version, calcule_le, formule=False, cle_bandeau="",
+            sous_titre="Un travail citoyen sur données ouvertes, qui sépare "
+                       "<b>la mesure</b> — un fait — du <b>verdict</b> — une "
+                       "convention administrative datée.",
+            fil=[("Accueil", "index.html"), ("À propos", None)]))
+
+        # LES MENTIONS LÉGALES NE SE PUBLIENT PAS À MOITIÉ.
+        # Le corps porte des marques `A_COMPLETER` là où l'information manquait
+        # et n'a pas été inventée. Une mention légale approximative est pire
+        # qu'une mention absente : elle a l'air d'en être une, et personne ne
+        # revient la relire. La construction compte les marques et le dit fort ;
+        # `--legal-incomplet` est le geste explicite qui accepte de la produire
+        # quand même, pour la relire en local.
+        corps_legal = lire("mentions-legales-corps.html")
+        n_trous = corps_legal.count("A_COMPLETER")
+        if n_trous and not legal_incomplet:
+            print(f"  ! mentions-legales.html NON écrite : {n_trous} information(s) "
+                  "manquante(s) marquées A_COMPLETER dans "
+                  "gabarits/mentions-legales-corps.html.\n"
+                  "    Les compléter, ou passer --legal-incomplet pour relire "
+                  "la page en local.")
+        else:
+            if n_trous:
+                print(f"  ! mentions-legales.html écrite avec {n_trous} trou(s) "
+                      "A_COMPLETER — NE PAS PUBLIER.")
+            ecrire(os.path.join(public, "mentions-legales.html"), page(
+                "Mentions légales",
+                corps_legal, "mentions-legales.html",
+                "Éditeur, hébergeur, licences et données personnelles de "
+                "l'Observatoire de la potabilité réglementaire.",
+                version, calcule_le, formule=False, cle_bandeau="",
+                fil=[("Accueil", "index.html"), ("Mentions légales", None)]))
+
+        ecrire(os.path.join(public, "dossiers.html"), page(
+            "Les dossiers",
+            page_dossiers(con, version, dossiers_publies), "dossiers.html",
+            "Les pièces d'enquête de l'Observatoire : ce que chacune établit, "
+            "ce qu'elle n'établit pas, et sur combien de communes elle porte.",
+            version, calcule_le, formule=False, largeur="large",
+            # Le chapô de la maquette, mot pour mot : il dit la seule chose que
+            # le lecteur doit savoir avant la liste — aucun de ces huit sujets
+            # n'était cherché, ils sont sortis de la donnée.
+            sous_titre="Huit mécanismes trouvés en chemin. <b>Aucun n'était visé "
+                       "au départ&nbsp;:</b> ils sont sortis de la donnée, et chacun "
+                       "porte sa date — le corpus grossit, et un chiffre sans sa "
+                       "date est un chiffre faux.",
+            fil=[("Accueil", "index.html"), ("Les dossiers", None)]))
 
         ecrire(os.path.join(public, "carte.html"), page(
             "Où en est la collecte",
@@ -2941,7 +3785,7 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
                 for r, _, fs in os.walk(public) for f in fs)
     print(f"vitrine générée : {public}")
     print(f"  référentiel version {version}, calculé le {calcule_le}")
-    print(f"  {len(PAGES)} pages, {n_depts} page(s) de département, "
+    print(f"  {len(PAGES_PLATES)} pages, {n_depts} page(s) de département, "
           f"{n_fiches} fiche(s) de commune, "
           f"{len(exports)} export(s) — {_poids(total)} au total")
     n_nd = sum(1 for c in lignes if c["statut"] == "non_documentee")
@@ -3204,6 +4048,9 @@ def fiches_communes(con, version, lignes, public, communes=None,
 def main():
     p = argparse.ArgumentParser(description="Génère la vitrine publique statique")
     p.add_argument("--sortie", help="dossier de destination (défaut : site/public)")
+    p.add_argument("--legal-incomplet", action="store_true",
+                   help="écrire mentions-legales.html malgré ses marques "
+                        "A_COMPLETER — pour relire en local, JAMAIS pour publier")
     p.add_argument("--depts", help="départements à publier, séparés par des virgules "
                                    "(ex. 28,81,69,09,31). Défaut : tous ceux qui sont "
                                    "figés — à n'utiliser que si aucun n'est partiel.")
@@ -3231,7 +4078,7 @@ def main():
         p.error("--communes exige --sortie : le site publié ne doit jamais "
                 "recevoir une construction partielle, ses liens seraient morts.")
     construire(destination=a.sortie, depts=depts, communes=communes,
-               sans_fiches=a.sans_fiches,
+               sans_fiches=a.sans_fiches, legal_incomplet=a.legal_incomplet,
                depts_fiches={d.strip() for d in a.fiches_depts.split(",")
                              if d.strip()} if a.fiches_depts else None)
 

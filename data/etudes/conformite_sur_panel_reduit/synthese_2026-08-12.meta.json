@@ -1,0 +1,11 @@
+{
+  "_pourquoi": "Le perimetre du balayage, fige avec la synthese. Le CSV porte ce qui a ete instruit ; il ne porte pas sur QUOI on a balaye. Lire departements_publies.csv a la construction du site donnerait le chiffre du jour (17 au 17 aout 2026) et ferait dire au dossier qu'il a balaye 17 departements la ou il en a balaye 11 : un denominateur faux, et faux dans le sens qui grossit le constat. Ecrit a la main le 17 aout 2026 d'apres ANALYSE_2026-08-12.md ; les syntheses suivantes le recoivent de etude_panel_reduit.py.",
+  "date_etude": "2026-08-12",
+  "date_consultation": "2026-08-12",
+  "mois_min": 24,
+  "candidates": 39,
+  "instruites": 37,
+  "departements_publies": 11,
+  "source": "Hub'Eau, qualite_eau_potable/resultats_dis",
+  "script": "src/etude_panel_reduit.py"
+}

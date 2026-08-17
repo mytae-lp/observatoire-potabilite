@@ -60,11 +60,15 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RACINE, "src"))
 
 try:
-    from common import DB_PATH, SEUIL_COMPLET, USER_AGENT
+    from common import (DB_PATH, SEUIL_COMPLET, USER_AGENT,
+                        departements_publies)
 except Exception:                                    # exécution hors dépôt
     DB_PATH = os.path.join(RACINE, "data", "eau.duckdb")
     SEUIL_COMPLET = 200
     USER_AGENT = "Observatoire-potabilite"
+
+    def departements_publies():
+        return []
 
 API = "https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/resultats_dis"
 EXPORT = os.path.join(RACINE, "site", "public", "donnees", "bulletins.csv")
@@ -459,6 +463,33 @@ def main():
             w.writeheader()
             w.writerows(synthese)
         print("\nsynthèse : %s" % f_csv)
+
+        # LE PÉRIMÈTRE DU BALAYAGE, écrit à côté de la synthèse.
+        # Le CSV dit ce qui a été instruit ; il ne dit pas sur quoi on a
+        # balayé. Sans ce fichier, la page qui rend le dossier n'a d'autre
+        # choix que de relire `departements_publies.csv` — c'est-à-dire l'état
+        # du dépôt le jour de la CONSTRUCTION, pas celui de l'ÉTUDE. Au 12 août
+        # 2026 le balayage portait sur 11 départements ; cinq jours plus tard
+        # le dépôt en comptait 17. Le dossier aurait annoncé 17, et l'erreur
+        # allait dans le sens qui GROSSIT le constat.
+        # C'est le §2.8 appliqué à l'étude elle-même : un résultat sans son
+        # dénominateur est une demi-vérité, et le dénominateur se fige avec le
+        # numérateur ou il ne fige rien.
+        meta = {
+            "date_etude": aujourd_hui.isoformat(),
+            "date_consultation": aujourd_hui.isoformat(),
+            "mois_min": a.mois,
+            "candidates": len(cands),
+            "instruites": len(synthese),
+            "departements_publies": len(departements_publies()),
+            "source": "Hub'Eau, qualite_eau_potable/resultats_dis",
+            "script": "src/etude_panel_reduit.py",
+        }
+        f_meta = os.path.splitext(f_csv)[0] + ".meta.json"
+        with open(f_meta, "w", encoding="utf-8") as f:
+            json.dump(meta, f, ensure_ascii=False, indent=2)
+        print("périmètre : %s" % f_meta)
+
         avec = [s for s in synthese if s["nb_jamais_recherches"]]
         print("%d commune(s) sur %d portent au moins un dépassement jamais "
               "recherché depuis." % (len(avec), len(synthese)))

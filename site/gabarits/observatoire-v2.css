@@ -1672,3 +1672,152 @@ h3.sec + .bnote {
 .refus-simple li::before { content: ""; position: absolute; left: 0; top: .55em;
   width: 10px; height: 2px; background: var(--eau); }
 .refus-simple b { color: var(--ink); }
+
+/* ===========================================================================
+   29. LES PAGES DOSSIER
+   ===========================================================================
+   `dossiers.html` réemploie les cartes de l'accueil (§ .dossiers) et n'ajoute
+   qu'un état de publication. Le dossier lui-même ajoute trois pièces, et
+   chacune répond à un problème de lecture précis.
+   -------------------------------------------------------------------------- */
+
+/* -- l'index : l'état de chaque dossier, dit et non deviné ----------------
+   L'état se lit avant le titre : un lecteur qui clique sur un dossier « en
+   préparation » et tombe sur rien perd confiance. Le numéro, lui, recule à
+   gauche de l'état — deux repères dans le même coin s'annulent. */
+.dossiers .dossier-etat { position: absolute; top: var(--e-4); right: var(--e-5); }
+.dossiers .dossier-etat ~ .dossier-num { right: auto; left: var(--e-5); }
+.dossier--attente { opacity: .82; }
+.dossier--attente:hover { transform: none; }
+.dossier-liste-tete { display: flex; flex-wrap: wrap; gap: var(--e-4);
+  align-items: baseline; margin-bottom: var(--e-6); }
+
+/* -- la chronologie des arrêts -------------------------------------------
+   Sept années, sept barres. Un tableau de sept lignes se lit mal ; la forme
+   fait voir les pics — 2018, 2020, 2023 — qui sont le fait de l'étude. Elle
+   ne les explique pas, et la légende dit que la cause n'est pas établie.
+   -------------------------------------------------------------------------- */
+.chrono { display: grid; gap: var(--e-2); margin: var(--e-5) 0 0; max-width: 640px; }
+.chrono-ligne { display: grid; grid-template-columns: 4.5rem 1fr 2.5rem; gap: var(--e-4);
+  align-items: center; font-variant-numeric: tabular-nums; }
+.chrono-an { font-size: var(--t-sm); color: var(--ink-soft); }
+.chrono-piste { height: 22px; background: var(--card-alt); border-radius: var(--r-sm); overflow: hidden; }
+.chrono-piste i { display: block; height: 100%; background: var(--eau); border-radius: var(--r-sm); }
+.chrono-n { font-size: var(--t-sm); font-weight: 650; color: var(--ink); text-align: right; }
+.chrono-ligne--pic .chrono-piste i { background: var(--ambre); }
+.chrono-ligne--pic .chrono-an,
+.chrono-ligne--pic .chrono-n { color: var(--ambre); font-weight: 700; }
+
+/* -- établi / non établi : deux colonnes qui ne se mélangent pas ---------
+   C'est la pièce la plus importante d'un dossier. Les mettre l'une sous
+   l'autre laisserait croire à une gradation ; côte à côte, elles se lisent
+   comme ce qu'elles sont : deux listes de nature différente.
+   -------------------------------------------------------------------------- */
+.etabli { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-5); }
+.etabli > div { border-radius: var(--r-lg); padding: var(--e-6); border: 1px solid; }
+.etabli-oui { background: var(--vert-bg); border-color: color-mix(in srgb, var(--vert) 32%, transparent); }
+.etabli-non { background: var(--rouge-bg); border-color: color-mix(in srgb, var(--rouge) 32%, transparent); }
+.etabli h3 { font-size: var(--t-lg); margin: 0 0 var(--e-4); }
+.etabli-oui h3 { color: var(--vert); }
+.etabli-non h3 { color: var(--rouge); }
+.etabli ul { list-style: none; padding: 0; margin: 0; }
+.etabli li { position: relative; padding-left: var(--e-6); margin-bottom: var(--e-4);
+  font-size: var(--t-sm); line-height: 1.6; color: var(--ink); }
+.etabli li:last-child { margin-bottom: 0; }
+.etabli-oui li::before { content: "✓"; position: absolute; left: 0; color: var(--vert); font-weight: 700; }
+.etabli-non li::before { content: "✕"; position: absolute; left: 0; color: var(--rouge); font-weight: 700; }
+@media (max-width: 900px) { .etabli { grid-template-columns: minmax(0, 1fr); } }
+
+/* -- le contraste, deux mesures dans la même eau -------------------------- */
+.contraste { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-4); margin-top: var(--e-5); }
+.contraste > div { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--e-5); position: relative; overflow: hidden; }
+.contraste > div::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; }
+.contraste .suivi::before   { background: var(--vert); }
+.contraste .abandon::before { background: var(--gris); }
+.contraste .lib { display: block; font-size: var(--t-xs); font-weight: 650; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-faint); margin-bottom: var(--e-2); }
+.contraste .val { display: block; font-family: var(--f-titre); font-size: var(--t-xl);
+  font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.contraste p { font-size: var(--t-sm); color: var(--ink-soft); margin: var(--e-3) 0 0; max-width: none; }
+@media (max-width: 620px) { .contraste { grid-template-columns: minmax(0, 1fr); } }
+/* La carte « erreur du projet » ferme la liste sur toute la largeur : le projet
+   publie ses corrections au même endroit et dans la même forme que ses
+   trouvailles, et cette carte-là ne doit pas avoir l'air d'un reste. */
+.dossiers .dossier--aveu { grid-column: 1 / -1; }
+/* Un pied de carte qui porte une phrase ET un lien ne se répartit pas aux deux
+   bords : il se lit d'une traite. */
+.dossier--attente .dossier-pied { display: block; text-transform: none; letter-spacing: 0;
+  font-size: var(--t-sm); font-weight: 500; color: var(--ink-soft); }
+.dossier--attente .dossier-pied a { color: var(--eau); font-weight: 650; }
+
+/* ===========================================================================
+   30. LE MENU À DEUX NIVEAUX
+   ===========================================================================
+   Ajouté le 17 août 2026. Ce composant n'est PAS dans la charte de référence :
+   les maquettes portent un menu à plat, qui tenait à neuf entrées et ne tient
+   plus à onze. La décision et son motif sont dans `docs/CHARTE_GRAPHIQUE.md`.
+
+   La mécanique est un `<details>`, pas du JavaScript. Ouverture au clic et au
+   clavier, état annoncé aux lecteurs d'écran, fermeture à Échap — le tout sans
+   un script. Ce qui compte ici : sans JavaScript, quatre des sept pages du
+   site seraient inatteignables si le déroulé en dépendait.
+
+   PAS D'OUVERTURE AU SURVOL. Un menu qui s'ouvre quand la souris passe s'ouvre
+   aussi quand elle ne fait que traverser, et il n'a aucun équivalent au doigt.
+   L'ouverture est un geste, dans les deux cas.
+   -------------------------------------------------------------------------- */
+.menu .a-sous { position: relative; }
+.sous > summary {
+  display: flex; align-items: center; gap: var(--e-1); cursor: pointer;
+  padding: var(--e-2) var(--e-3); border-radius: var(--r-sm);
+  font-size: var(--t-sm); font-weight: 550; color: var(--ink-soft);
+  list-style: none; user-select: none; white-space: nowrap;
+}
+/* Le triangle natif de `summary` est rendu par deux moteurs de deux façons ;
+   la flèche du site le remplace, et elle tourne. */
+.sous > summary::-webkit-details-marker { display: none; }
+.sous > summary::marker { content: ""; }
+.sous > summary:hover { background: var(--line-soft); color: var(--ink); }
+.sous > summary:focus-visible { outline: 2px solid var(--eau); outline-offset: 1px; }
+.sous-fleche { width: 13px; height: 13px; transition: transform .15s ease; }
+.sous[open] > summary { color: var(--ink); }
+.sous[open] .sous-fleche { transform: rotate(180deg); }
+/* La page courante se signale sur l'intitulé du groupe AUSSI : replié, le
+   soulignement du lien actif serait caché, et la barre ne dirait plus où on
+   est. */
+.sous--ici > summary { color: var(--ink); box-shadow: inset 0 -2px 0 var(--eau); border-radius: 0; }
+
+/* ALIGNÉ À DROITE, ET C'EST UNE CORRECTION MESURÉE.
+   Aligné à gauche (`left: 0`), le panneau du dernier groupe — « Le projet »,
+   collé au bord droit de la barre — sortait de l'écran de 18 px à 1100, 1280
+   et 1440 px. La mesure 2 ne l'a vu que sur `a-propos.html` : c'est la seule
+   page où ce groupe s'ouvre à la construction, les panneaux fermés ne
+   débordant de rien. Un défaut visible sur une page sur dix. */
+.sous-menu {
+  position: absolute; top: calc(100% + var(--e-2)); right: 0; left: auto; z-index: 40;
+  min-width: 208px; margin: 0; padding: var(--e-2); list-style: none;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-md); box-shadow: var(--ombre-haut);
+}
+.sous-menu a { white-space: nowrap; }
+
+/* Replié, le sous-menu cesse de flotter : il s'indente sous son intitulé.
+   Une liste flottante dans un menu déjà en colonne sortirait de l'écran. */
+@media (max-width: 1080px) {
+  .menu.ouvert .a-sous { position: static; }
+  .menu.ouvert .sous > summary { font-size: var(--t-base); padding: var(--e-3) var(--e-4); }
+  .menu.ouvert .sous-menu {
+    position: static; inset: auto; min-width: 0; border: 0; box-shadow: none; background: none;
+    padding: 0 0 var(--e-2) var(--e-4);
+    border-left: 2px solid var(--line);
+    margin-left: var(--e-4);
+  }
+  .menu.ouvert .sous--ici > summary { box-shadow: inset 3px 0 0 var(--eau); border-radius: 0; }
+}
+
+/* Le texte légal, au pied. Il se lit comme le reste du pied, en plus discret
+   encore : on le cherche, on ne tombe pas dessus. */
+.pied-legal { display: flex; flex-wrap: wrap; gap: var(--e-4); margin-top: var(--e-4); }
+.pied-legal a { font-size: var(--t-sm); color: var(--ink-faint); }
+.pied-legal a:hover { color: var(--ink-soft); }
