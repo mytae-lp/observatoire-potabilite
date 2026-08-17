@@ -738,6 +738,49 @@ LEGENDE_PISTE = (
     "</div>")
 
 
+def _replier(items, mot, seuil=10):
+    """Les `seuil` premiers, le reste sous un repli qui dit combien il cache.
+
+    Une liste de vingt-quatre lignes n'est pas lue : elle est sautée, et ce
+    qu'elle contient de notable est perdu avec le reste. Mais on ne TRONQUE
+    pas — un compteur et une liste qui se contredisent sur le même écran sont
+    ce que le §2.8 interdit. Donc tout est là, et le repli dit son nombre.
+    """
+    if len(items) <= seuil:
+        return "".join(items)
+    reste = items[seuil:]
+    return ("".join(items[:seuil])
+            + f'<details class="plus"><summary>Afficher les {len(reste)} '
+              f'{mot} restant{"s" if len(reste) > 1 else ""}</summary>'
+            + "".join(reste) + "</details>")
+
+
+def lien_substance(libelle, slugs, prefixe="../", detail=None):
+    """Le nom d'un paramètre mène à son dossier, quand ce dossier existe.
+
+    Écrit le 17 août 2026 : la fiche nommait des dizaines de substances sans
+    qu'aucune ne mène nulle part, alors que le site porte 1 243 pages de
+    substance. Le lecteur devait retenir un nom et le retaper dans une
+    recherche.
+
+    **Le lien n'est posé que si la page existe.** Le jeu de slugs est calculé
+    à la construction, à partir de ce qui est réellement écrit sur le disque ;
+    fabriquer l'adresse à l'aveugle produirait des liens morts sur des milliers
+    de fiches, et rien ne les signalerait.
+
+    `detail` alimente l'infobulle native du navigateur. Ce n'est pas l'encart
+    au survol que la charte pourrait porter — celui-là demande un composant
+    qui n'existe pas encore et se décide dans `docs/CHARTE_GRAPHIQUE.md` —,
+    mais il donne déjà la valeur sans quitter la page.
+    """
+    import dossier_page as _DP
+    s = _DP.slug(libelle)
+    if not slugs or s not in slugs:
+        return h(libelle)
+    titre = f' title="{h(detail)}"' if detail else ""
+    return f'<a href="{prefixe}substance/{h(s)}.html"{titre}>{h(libelle)}</a>'
+
+
 def _section(surtitre, titre, chapo, contenu):
     """Une section de la fiche : son surtitre, son titre, son chapô, sa
     matière. `main` est nu et chaque section porte sa zone — c'est ce qui
@@ -1058,7 +1101,7 @@ REGISTRES = [
 ]
 
 
-def registres_html(d):
+def registres_html(d, slugs=None):
     """Trois registres, jamais fusionnés (§2.15).
 
     `pe_reglementaire`, `pe_scientifique`, `cancerogenicite_circ` disent trois
@@ -1073,9 +1116,10 @@ def registres_html(d):
     for cle, mod, titre, sous in REGISTRES:
         subs = pe.get(cle) or []
         if subs:
-            items = "".join(
-                f'<li><b>{h(s["libelle"])}</b> <span>{h(s.get("texte") or "")}'
-                f"</span></li>" for s in subs)
+            items = _replier(
+                [f'<li><b>{lien_substance(x["libelle"], slugs, detail=x.get("texte"))}'
+                 f'</b> <span>{h(x.get("texte") or "")}</span></li>'
+                 for x in subs], "substances")
         else:
             items = ('<li class="vide">Aucune substance quantifiée dans ce '
                      "registre</li>")
@@ -1093,7 +1137,7 @@ def registres_html(d):
         f'<div class="registres">{"".join(blocs)}</div>')
 
 
-def lq_html(d):
+def lq_html(d, slugs=None):
     """Quand la limite de quantification passe au-dessus du seuil (§8bis n° 11).
 
     Sous cette valeur, l'analyse ne voit rien — là précisément où la
@@ -1132,7 +1176,7 @@ def lq_html(d):
                     "fine <b>identifiée</b>, pas la plus fine possible.</p>")
         blocs.append(
             '<div class="lq"><div class="lq-tete">'
-            f'<b>{h(l["libelle"])}</b>'
+            f'<b>{lien_substance(l["libelle"], slugs, detail=l.get("mention"))}</b>'
             f'<span class="lq-mult">× {h(_nb(l.get("rapport")))}</span></div>'
             f'<p>{h(l.get("mention") or "")}</p>{echelle}{base}</div>')
 
@@ -1190,7 +1234,7 @@ def pfas_html(d):
         f'<div class="pfas-familles">{"".join(blocs)}</div>')
 
 
-def barres_html(d):
+def barres_html(d, slugs=None):
     """Ce qui pèse dans l'indice de danger, mesure par mesure.
 
     Trois contraintes non négociables du §7.1, et elles sont dans le code
@@ -1208,7 +1252,9 @@ def barres_html(d):
     def ligne(p):
         part = p.get("part")
         largeur = max(0.0, min(100.0, (part or 0) * 100 / 3))
-        return (f'<li><div><div class="nom">{h(p["p"])}</div>'
+        detail = f'{p["v"]} {p.get("u") or ""}'.strip()
+        return (f'<li><div><div class="nom">'
+                f'{lien_substance(p["p"], slugs, detail=detail)}</div>'
                 f'<div class="det">{h(p["v"])} {h(p.get("u") or "")} pour une '
                 f'limite de {h(p.get("s") or "—")}</div>'
                 f'<div class="jauge"><i style="width:{largeur:.4g}%"></i>'
@@ -1288,6 +1334,33 @@ def alerte_html(d):
     return ('<div class="alerte"><p class="surtitre">Depuis ce prélèvement</p>'
             f"<h3>{titre}</h3>"
             f'<div class="alerte-grille"><div>{corps}</div></div></div>')
+
+
+def emprunt_html(d, insee_source=None):
+    """« L'analyse présentée ici a été prélevée ailleurs » — et on peut y aller.
+
+    §8bis n° 5 : quand l'analyse est empruntée au réseau, dire OÙ elle a été
+    prélevée. Le bandeau le disait déjà ; il nommait la commune sans y mener,
+    alors que sa fiche existe et est à un clic. Le lecteur devait retenir le
+    nom et le retaper dans la recherche.
+
+    Le lien n'est posé que si l'INSEE de la commune de prélèvement est connu :
+    fabriquer une adresse à partir d'un nom produirait des liens morts sur les
+    homonymes, et il y en a.
+    """
+    if not d.get("rattachee"):
+        return ""
+    ou = d.get("commune_prelevement") or "une autre commune"
+    lien = (f'<a href="{h(insee_source)}.html">{h(ou)}</a>' if insee_source
+            else f"<b>{h(ou)}</b>")
+    return ('<div class="alerte"><p class="surtitre">Analyse empruntée au '
+            "réseau</p>"
+            "<h3>Aucun bulletin complet n'a été prélevé dans cette commune</h3>"
+            f'<div class="alerte-grille"><div><p>Celui présenté ici porte sur '
+            f"la même eau, prélevée à {lien}, sur le réseau qui alimente les "
+            "deux communes. C'est la règle de repli du projet : montrer l'eau "
+            "réellement bue plutôt qu'une case vide — et dire d'où vient "
+            "l'analyse, toujours.</p></div></div></div>")
 
 
 def nourrissons_html(d):

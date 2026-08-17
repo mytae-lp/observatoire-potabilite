@@ -482,7 +482,13 @@ figcaption { font-size: var(--t-base); color: var(--ink-soft); margin-top: var(-
 /* --------------------------------------------------------------------------
    15. FIL D'ARIANE ET EN-TÊTE DE FICHE
    -------------------------------------------------------------------------- */
-.fil { font-size: var(--t-sm); color: var(--ink-soft); padding-block: var(--e-4); }
+/* Le fil tient sur UNE ligne et défile plutôt que de passer à la ligne :
+   sur une page de bulletin il compte cinq niveaux — accueil, communes,
+   département, commune, date du prélèvement — et un retour à la ligne
+   repousse tout l'en-tête vers le bas. Même parti que `.prelevements--serie`,
+   qui défile pour la même raison. Décision du 17 août 2026. */
+.fil { font-size: var(--t-sm); color: var(--ink-soft); padding-block: var(--e-4);
+       white-space: nowrap; overflow-x: auto; }
 .fil a { color: var(--ink-soft); }
 .fil span { color: var(--ink-faint); margin-inline: var(--e-2); }
 

@@ -182,15 +182,23 @@ def fil_ariane(fil, prefixe):
     """
     if not fil:
         return ""
+    # PAS DE `<ol><li>` — corrigé le 17 août 2026, sur remarque de Yannick.
+    # La feuille v2 ne porte aucune règle pour `.fil ol` ni `.fil li` : les
+    # éléments de liste restaient donc des blocs, et le fil s'empilait
+    # verticalement en repoussant tout l'en-tête vers le bas. La maquette
+    # n'emploie pas de liste — des `<a>` séparés par des `<span>` —, et
+    # `.fil a` comme `.fil span` sont déjà stylés. On produit ce que la charte
+    # décrit plutôt que d'ajouter deux règles pour rattraper autre chose.
     bouts = []
     for i, (libelle, url) in enumerate(fil):
-        dernier = i == len(fil) - 1
-        if dernier or not url:
-            bouts.append(f'<li aria-current="page">{h(libelle)}</li>')
+        if i:
+            bouts.append("<span>›</span>")
+        if i == len(fil) - 1 or not url:
+            bouts.append(f'<span aria-current="page">{h(libelle)}</span>')
         else:
-            bouts.append(f'<li><a href="{prefixe}{h(url)}">{h(libelle)}</a></li>')
+            bouts.append(f'<a href="{prefixe}{h(url)}">{h(libelle)}</a>')
     return ('<nav class="fil" aria-label="Fil d\'Ariane"><div class="zone zone-large">'
-            f'<ol>{"".join(bouts)}</ol></div></nav>')
+            f'{"".join(bouts)}</div></nav>')
 
 
 # La marque, inlinée. 625 octets : une seconde requête coûterait plus cher que
@@ -2784,6 +2792,11 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
         # fois.
         substances = DP.publiables()
         dossiers = {s for s, _l, _o in substances}
+        # Les adresses de substance RÉELLEMENT écrites : c'est ce jeu qui
+        # autorise la fiche à faire un lien. Le déduire d'un libellé à
+        # l'aveugle produirait des liens morts sur des milliers de fiches,
+        # et rien ne les signalerait.
+        slugs_substances = set(dossiers)
         identites = ID_SUB.charger()
         rep = DP.repertoire(con, version)
 
@@ -2798,6 +2811,7 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
                 fil=[("Accueil", "index.html"),
                      ("Reclassements", "reclassements.html"), (titre_s, None)]))
 
+        slugs_substances |= {f["slug"] for f in rep}
         for f in rep:
             if f["slug"] in dossiers:
                 continue                     # le dossier long l'emporte
@@ -2858,7 +2872,8 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
             n_fiches = existantes
         else:
             n_fiches = fiches_communes(con, version, lignes, public,
-                                       communes, depts_fiches)
+                                       communes, depts_fiches,
+                                       slugs_substances)
 
         # --- index de recherche ------------------------------------------
         index = [{"i": c["code_insee"], "n": c["commune"], "d": c["dept"],
@@ -2969,7 +2984,7 @@ def pages_departements(lignes, version, calcule_le, public):
 
 
 def fiches_communes(con, version, lignes, public, communes=None,
-                    depts_fiches=None):
+                    depts_fiches=None, slugs=None):
     """
     Une page par commune documentée, bâtie sur le MÊME corps et le MÊME rendu
     que la fiche autonome — mêmes obligations d'affichage, mêmes trois états,
@@ -3049,6 +3064,15 @@ def fiches_communes(con, version, lignes, public, communes=None,
         j = lambda x: json.dumps(x, ensure_ascii=False)  # noqa: E731
         situation = bloc_situation(c, groupes.get(c["dept"], []),
                                    rat["commune_prelevement"] if rat else None)
+        # L'INSEE de la commune où le prélèvement a réellement eu lieu — pour
+        # que le bandeau d'emprunt y mène. Le nom seul ne suffit pas : il y a
+        # des homonymes, et un lien mort est pire que pas de lien.
+        insee_source = None
+        if rat:
+            r = con.execute(
+                "SELECT code_insee FROM prelevements WHERE code_prelevement = ?",
+                [rat["code_prelevement"]]).fetchone()
+            insee_source = r[0] if r else None
 
         # UNE PAGE PAR PRÉLÈVEMENT — décision de Yannick, 16 août 2026.
         #
@@ -3078,12 +3102,12 @@ def fiches_communes(con, version, lignes, public, communes=None,
             # « La dernière analyse complète de cette eau a 34 mois » n'est pas
             # une note : c'est ce qui conditionne la lecture de tout ce qui
             # suit. Elle était reléguée au bloc non porté, sans couleur.
-            tete += BF.alerte_html(d)
+            tete += BF.emprunt_html(d, insee_source) + BF.alerte_html(d)
             sections = (BF.bascules_html(d) + BF.depassements_html(d)
                         + BF.lectures_html(d, a) + BF.indicateurs_html(d, a)
                         + BF.nourrissons_html(d)
-                        + BF.pfas_html(d) + BF.registres_html(d)
-                        + BF.lq_html(d) + BF.barres_html(d))
+                        + BF.pfas_html(d) + BF.registres_html(d, slugs)
+                        + BF.lq_html(d, slugs) + BF.barres_html(d, slugs))
 
             html = page(
                 d["name"],
