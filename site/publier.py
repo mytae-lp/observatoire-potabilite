@@ -59,6 +59,7 @@ USAGE
 """
 
 import argparse
+import concurrent.futures
 import ftplib
 import getpass
 import hashlib
@@ -66,6 +67,7 @@ import json
 import os
 import ssl
 import sys
+import threading
 import time
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -389,7 +391,7 @@ def adopter(ftp, racine_distante, sauf=()):
 
 
 def publier(session, racine_distante, simulation=False, forcer=False,
-            sauf=(), jalon=500):
+            sauf=(), jalon=500, fils=6):
     if not os.path.isdir(PUBLIC):
         sys.exit(f"{PUBLIC} n'existe pas. Construire la vitrine d'abord :\n"
                  f"    python site/build_site.py")
@@ -438,26 +440,74 @@ def publier(session, racine_distante, simulation=False, forcer=False,
     connus = set()
     etat = dict(publiees)
     envoyes = 0
-    try:
-        for r in a_envoyer:
-            if envoyer(session, os.path.join(PUBLIC, r.replace("/", os.sep)),
+    verrou = threading.Lock()
+
+    def un_fichier(r):
+        """Le travail d'un ouvrier : un fichier, sur SA propre session."""
+        nonlocal envoyes
+        s = threading.current_thread().session
+        if not envoyer(s, os.path.join(PUBLIC, r.replace("/", os.sep)),
                        f"{racine_distante}/{r}", connus):
-                etat[r] = locales[r]
-                envoyes += 1
-                if envoyes % 25 == 0 or envoyes == len(a_envoyer):
-                    print(f"    {envoyes}/{len(a_envoyer)} envoyés", flush=True)
-                # LE MANIFESTE SE POSE EN COURS DE ROUTE, et pas seulement à
-                # la fin. Il n'était écrit que dans le `finally` : une session
-                # tuée par un signal, ou une connexion morte au moment de
-                # l'écrire, et les heures d'envoi déjà faites étaient perdues
-                # — c'est ce qui s'est passé le 17 août. Un jalon tous les 500
-                # fichiers borne la perte à 500 fichiers.
-                if jalon and envoyes % jalon == 0:
-                    try:
-                        ecrire_manifeste(session.ftp, racine_distante, etat)
-                        print(f"    · jalon posé à {envoyes}", flush=True)
-                    except Exception as e:
-                        print(f"    ! jalon non posé ({e})", flush=True)
+            return
+        with verrou:
+            etat[r] = locales[r]
+            envoyes += 1
+            n = envoyes
+        if n % 100 == 0 or n == len(a_envoyer):
+            print(f"    {n}/{len(a_envoyer)} envoyés", flush=True)
+        # LE MANIFESTE SE POSE EN COURS DE ROUTE, et pas seulement à la fin.
+        # Il n'était écrit que dans le `finally` : une session tuée par un
+        # signal, ou une connexion morte au moment de l'écrire, et les heures
+        # d'envoi déjà faites étaient perdues — c'est ce qui s'est passé le
+        # 17 août. Un jalon tous les 500 fichiers borne la perte à 500.
+        if jalon and n % jalon == 0:
+            with verrou:
+                instantane = dict(etat)
+            try:
+                ecrire_manifeste(s.ftp, racine_distante, instantane)
+                print(f"    · jalon posé à {n}", flush=True)
+            except Exception as e:
+                print(f"    ! jalon non posé ({e})", flush=True)
+
+    def ouvrier_pret():
+        """Chaque fil ouvre SA session : un objet ftplib n'est pas partageable
+        entre fils, et c'est justement le point — N connexions, N latences qui
+        se recouvrent.
+
+        L'hébergement borne le nombre de sessions simultanées, et il ne le
+        publie pas. On réessaie donc plutôt que d'abandonner : un fil qui
+        n'obtient pas sa connexion tuerait tout le lot qui lui est confié.
+        """
+        for essai in range(1, 5):
+            try:
+                threading.current_thread().session = Session(session.cfg,
+                                                             session.verifier)
+                return
+            except Exception as e:
+                if essai == 4:
+                    raise
+                print(f"    connexion d'ouvrier refusée ({e}), "
+                      f"nouvelle tentative", flush=True)
+                time.sleep(3 * essai)
+
+    try:
+        # DEUX PHASES, et la barrière entre elles n'est pas une commodité :
+        # « les ressources d'abord, les pages ensuite » (Propriété 3). Une page
+        # mise en ligne avant la feuille qu'elle appelle s'affiche nue le temps
+        # que l'autre arrive. En parallèle, l'ordre d'une liste ne garantit
+        # plus rien — seule une barrière le garantit.
+        for phase, lot in (("ressources", [r for r in a_envoyer
+                                           if not r.endswith(".html")]),
+                           ("pages", [r for r in a_envoyer
+                                      if r.endswith(".html")])):
+            if not lot:
+                continue
+            n_fils = min(fils, len(lot))
+            print(f"\n  {phase} : {len(lot)} fichier(s) sur {n_fils} "
+                  f"connexion(s)", flush=True)
+            with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=n_fils, initializer=ouvrier_pret) as pool:
+                list(pool.map(un_fichier, lot))
 
         for r in a_supprimer:
             try:
@@ -502,6 +552,11 @@ def main():
                    dest="sans_verif",
                    help="conserve le chiffrement mais ne vérifie pas "
                         "l'identité du serveur (cas d'une connexion par IP)")
+    p.add_argument("--fils", type=int, default=6, metavar="N",
+                   help="nombre de connexions FTPS simultanées (défaut 6). "
+                        "Ce qui coûte n'est pas le débit mais le temps par "
+                        "fichier : mesuré le 17 août, une connexion tenait "
+                        "593 Ko/s là où trois en cumulaient 9 585.")
     p.add_argument("--adopter", action="store_true",
                    help="déclare le distant conforme au local sans rien "
                         "envoyer, après un premier transfert fait autrement")
@@ -528,7 +583,7 @@ def main():
             adopter(ftp, racine_distante, args.sauf)
         else:
             publier(session, racine_distante, args.simulation,
-                    args.forcer, args.sauf)
+                    args.forcer, args.sauf, fils=args.fils)
     finally:
         try:
             session.ftp.quit()
