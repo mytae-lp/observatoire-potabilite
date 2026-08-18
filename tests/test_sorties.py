@@ -187,28 +187,59 @@ def _textes_cites(bloc):
     return cites
 
 
-def _hors_citation(visible, cites):
+def _valeurs_de_champ(bloc):
     """
-    Le texte visible, débarrassé des phrases qui appartiennent à une citation.
+    Ce que la page AFFICHE comme donnée : les valeurs de la réglette d'identité.
 
-    Le tri se fait phrase par phrase et par APPARTENANCE : une phrase est
-    écartée si elle se retrouve telle quelle dans un texte cité. Retirer la
-    citation d'un bloc, par découpe de chaîne, laisserait passer les variantes
-    tronquées que la fiche affiche aussi (le titre coupé à l'ellipse).
+    « FILTRATION DE LABADERQUE » est le nom d'une installation de production,
+    tel que la source l'écrit. Le mot « filtration » y est un fait
+    d'état civil, pas un conseil — et le §8bis n° 5 demande précisément
+    d'afficher d'où vient l'eau. Le contrôle n'a pas à juger un nom propre.
 
-    Ce qui n'appartient à aucune citation reste examiné — y compris à
-    l'intérieur du bloc de double lecture. On n'exclut pas une zone de la
-    page, on exclut une matière.
+    Seules les VALEURS sont retenues, jamais les intitulés : l'intitulé est de
+    nous, et il reste sous examen.
     """
-    if not cites:
-        return visible
-    gardees = []
-    for p in re.split(r"(?<=[.!?])\s+", visible):
-        plat = _aplati(p)
-        if plat and any(plat in c for c in cites):
+    valeurs = []
+    for d in (bloc or {}).values():
+        if not isinstance(d, dict):
             continue
-        gardees.append(p)
-    return " ".join(gardees)
+        for paire in (d.get("meta") or []):
+            if isinstance(paire, (list, tuple)) and len(paire) >= 2:
+                v = _aplati(_sans_balises(str(paire[1])))
+                # Une valeur très courte retirée du texte y ouvrirait des
+                # trous partout — « 100 % », « 12 ». On ne retire que ce qui
+                # est assez long pour désigner quelque chose.
+                if len(v) >= 8:
+                    valeurs.append(v)
+    return valeurs
+
+
+def _hors_matiere_citee(visible, cites, valeurs):
+    """
+    Le texte visible, débarrassé de ce que la page cite et de ce qu'elle affiche.
+
+    LE RETRAIT SE FAIT PAR CHAÎNE, ET C'EST UNE CORRECTION.
+    La première version triait phrase par phrase, en écartant celles qui se
+    retrouvaient dans un texte cité. Elle a laissé passer un cas, et le cas
+    montre pourquoi la méthode était mauvaise : à Varennes-le-Grand, la
+    « phrase » commence par nos propres intertitres — « La double lecture ·
+    Le même prélèvement, noté deux fois · Lecture officielle » — qui n'ont pas
+    de point final, puis enchaîne sur la citation. La phrase déborde donc de
+    la citation des deux côtés, et aucune appartenance ne pouvait la
+    reconnaître. Retirer la chaîne, elle, ne dépend d'aucune ponctuation.
+
+    **La propriété qui rend le retrait sûr est conservée** : ce qu'on retire
+    est la valeur exacte portée par la charge utile. Une prescription glissée
+    dans le texte affiché ne s'y trouve pas, n'est donc pas retirée, et reste
+    examinée. On ne peut pas se mettre à l'abri en se déguisant en citation.
+    """
+    plat = _aplati(visible)
+    # Le plus long d'abord : retirer « SIE ARBAS » avant « SIE ARBAS ET BAS
+    # SALAT » laisserait le reste du nom en morceaux dans le texte.
+    for m in sorted(list(cites) + list(valeurs), key=len, reverse=True):
+        if m:
+            plat = plat.replace(m, " ")
+    return plat
 
 
 def _phrases(texte):
@@ -292,7 +323,8 @@ def prose_des_pages():
         # guillemets, elle prescrit à un exploitant, et c'est le fait qu'elle
         # rapporte. Une page qu'on ne sait pas relire garde en revanche son
         # texte entier à l'examen : ne pas savoir lire ne vaut pas dispense.
-        examinable = _hors_citation(visible, _textes_cites(bloc))
+        examinable = _hors_matiere_citee(visible, _textes_cites(bloc),
+                                         _valeurs_de_champ(bloc))
         if examinable.strip():
             yield f, "page", "derive", examinable
 
