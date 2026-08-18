@@ -3213,6 +3213,32 @@ def page_sources(con, version, calcule_le, exports):
 
     <h4>Télécharger</h4>
     <ul>{liste_exports}</ul>
+
+    <h4>Comment citer l'Observatoire</h4>
+    <p>Ces fichiers sont sous <b>ODbL 1.0</b>. La licence demande une mention, et nous en
+      écrivons la forme — <b>elle est due dès l'usage public</b>, pas seulement si vous
+      redistribuez les fichiers&nbsp;: dès que vous publiez une carte, un tableau, un article
+      chiffré ou une application qui s'appuie dessus.</p>
+    <p class="note note--attention">Contient des informations de l'<b>Observatoire de la
+      potabilité réglementaire</b> (Éditions Mytae), mises à disposition
+      <a href="index.html">ici</a> sous
+      <a href="https://opendatacommons.org/licenses/odbl/1-0/" rel="license noopener"
+         target="_blank">Open Database License (ODbL) 1.0</a>.</p>
+    <p class="bnote"><b>Le lien pointe vers l'accueil</b>, et non vers une page intérieure&nbsp;:
+      c'est là que se trouvent la méthode, les limites et la traçabilité sans lesquelles un
+      chiffre de ce projet ne veut rien dire. Nous n'interdisons à personne de lier la page de
+      son choix — nous disons seulement où l'attribution renvoie.</p>
+    <p class="bnote">Quand la place le permet&nbsp;: <b>Observatoire de la potabilité
+      réglementaire</b> — <a href="index.html">eau.yannick-mytae.fr</a> — un projet des
+      <a href="https://editions.mytae.fr/" rel="noopener" target="_blank">Éditions Mytae</a>,
+      porté par <a href="https://yannick-mytae.fr/" rel="noopener" target="_blank">Yannick
+      Mytae</a>. <b>La mention courte suffit toujours</b> — une obligation trop lourde ne
+      serait pas respectée.</p>
+    <p class="bnote"><b>Les mesures, elles, ne sont pas à nous.</b> Elles viennent de SISE-Eaux
+      via Hub'Eau, sous Licence Ouverte 2.0, et chacun peut aller les chercher. Ce que l'ODbL
+      couvre est le <b>rapprochement</b>&nbsp;: un référentiel de seuils daté et sourcé, et les
+      verdicts qu'il produit. Et <b>citer n'est pas être approuvé</b> — voir
+      <a href="mentions-legales.html">les mentions légales</a>.</p>
     <p>Les fichiers portent la version de référentiel <code>{h(version)}</code> et la
       date de calcul <code>{h(calcule_le)}</code>. Refiger après modification du
       référentiel produit une nouvelle version : les deux coexistent, et leur comparaison
@@ -3362,6 +3388,64 @@ def exporter(con, version, dossier):
          "l'étendue des limites de quantification observées, paramètre par paramètre")
 
     shutil.copyfile(REF_CSV, os.path.join(dossier, "referentiel_seuils.csv"))
+    # L'ATTRIBUTION, DÉPOSÉE À CÔTÉ DES FICHIERS.
+    #
+    # Elle n'est PAS mise en en-tête des CSV, et c'est un arbitrage : une ligne
+    # de commentaire en tête casse `read_csv` chez qui ne l'attend pas, et la
+    # promesse de ces exports est d'être « directement ouvrables ». Une
+    # attribution qui casse le fichier qu'elle accompagne ne sera pas
+    # respectée, elle sera supprimée.
+    #
+    # Déposée à côté, elle voyage avec le dossier — c'est ce qu'on télécharge —
+    # et elle se lit sans outil. C'est le meilleur compromis trouvé ; si un
+    # jour les exports partent fichier par fichier, la question se reposera.
+    with open(os.path.join(dossier, "ATTRIBUTION.txt"), "w",
+              encoding="utf-8") as fh:
+        fh.write(f"""OBSERVATOIRE DE LA POTABILITÉ RÉGLEMENTAIRE — attribution
+================================================================
+
+Ces fichiers sont mis à disposition sous Open Database License (ODbL) 1.0.
+   https://opendatacommons.org/licenses/odbl/1-0/
+
+MENTION À REPRENDRE, et elle est due dès l'usage public — pas seulement si
+vous redistribuez ces fichiers, mais dès que vous publiez une carte, un
+tableau, un article chiffré ou une application qui s'appuie dessus :
+
+   Contient des informations de l'Observatoire de la potabilité
+   réglementaire (Éditions Mytae), https://eau.yannick-mytae.fr/,
+   sous Open Database License (ODbL) 1.0.
+
+Le lien pointe vers l'accueil : c'est là que se trouvent la méthode, les
+limites et la traçabilité sans lesquelles un chiffre de ce projet ne veut
+rien dire.
+
+   Observatoire   https://eau.yannick-mytae.fr/
+   Éditions Mytae https://editions.mytae.fr/
+   Yannick Mytae  https://yannick-mytae.fr/
+
+CE QUE CES FICHIERS SONT
+Les mesures brutes viennent de SISE-Eaux (ministère chargé de la santé) via
+l'API publique Hub'Eau, sous Licence Ouverte 2.0 — elles ne nous
+appartiennent pas et chacun peut aller les chercher. Ce qui est à nous, et
+que l'ODbL couvre, est le RAPPROCHEMENT : un référentiel de seuils daté et
+sourcé, et les verdicts qu'il produit.
+
+PARTAGE À L'IDENTIQUE
+Une base dérivée publiquement utilisée reste sous ODbL, et vous devez en
+offrir une copie lisible par machine (ODbL §4.4 et §4.6).
+
+ATTRIBUTION N'EST PAS CAUTION
+Citer l'Observatoire ne vaut pas approbation de ce qui en est tiré. Le
+projet ne recommande aucun équipement, aucun traitement domestique de l'eau
+et aucun produit.
+
+Version du référentiel : {version}
+Licences complètes : LICENCE.md du dépôt.
+""")
+    produits.append(("ATTRIBUTION.txt",
+                     "la mention à reprendre, et ce qu'elle couvre",
+                     os.path.getsize(os.path.join(dossier, "ATTRIBUTION.txt"))))
+
     produits.append(("referentiel_seuils.csv", "le référentiel daté de seuils, source de vérité du projet",
                      os.path.getsize(REF_CSV)))
     return produits
