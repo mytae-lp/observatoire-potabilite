@@ -1304,6 +1304,47 @@ FABRICATION = [
 ]
 
 
+def page_a_propos(con, version, calcule_le):
+    """
+    « Pourquoi ce site existe » — le mot personnel, la méthode, puis la zone
+    Éditions Mytae.
+
+    AUCUN CHIFFRE DE CORPUS N'EST ÉCRIT DANS LE GABARIT, et c'est la raison
+    d'être de cette fonction. Le document de réécriture du 19 août 2026 en
+    portait quatre, arrêtés au 13 août : 25 284 analyses, 17 départements,
+    1 151 bascules, 772 bulletins. Six jours plus tard le corpus avait doublé.
+    Une page qui reproche aux autres leurs chiffres non datés ne peut pas
+    publier les siens périmés — ils se recalculent donc à chaque construction,
+    et la page affiche la date à côté.
+
+    Les huit refus sont rendus ICI, dépliables, et non derrière un lien : le
+    document demandait « une page autonome et citable », qui n'existe pas. Les
+    mettre sous la main du lecteur vaut mieux qu'un lien vers une ancre de
+    l'accueil — et évite d'annoncer une page qui n'est pas écrite.
+    """
+    ou, args = _filtre_dept()
+    n_bulletins, n_bascules, n_these, n_depts = con.execute(f"""
+        SELECT COUNT(*), COALESCE(SUM(nb_bascules), 0),
+               COUNT(*) FILTER (WHERE est_complet AND nb_depasse_applicable = 0
+                                  AND nb_bascules > 0),
+               COUNT(DISTINCT dept)
+        FROM analyses_figees WHERE version_referentiel = ?{ou}
+    """, [version] + args).fetchone()
+
+    refus = "".join(f"<li><b>{h(fort)}</b> {suite}</li>" for fort, suite in REFUS)
+
+    corps = lire("a-propos-corps.html")
+    for cle, val in (("n_bulletins", _n(n_bulletins)),
+                     ("n_bascules", _n(n_bascules)),
+                     ("n_these", _n(n_these)),
+                     ("n_depts", str(n_depts)),
+                     ("calcule_le", BF._date_fr(calcule_le)),
+                     ("version", version),
+                     ("refus", refus)):
+        corps = corps.replace("{{" + cle + "}}", val)
+    return corps
+
+
 def page_dossier_panel_reduit(version):
     """
     Le premier dossier — « une conformité peut s'obtenir en cessant de mesurer ».
@@ -3641,14 +3682,12 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
         dossiers_publies = {"dossier-panel-reduit.html"}
         # --- à propos, et le texte légal ----------------------------------
         ecrire(os.path.join(public, "a-propos.html"), page(
-            "À propos de l'Observatoire",
-            lire("a-propos-corps.html"), "a-propos.html",
+            "Pourquoi ce site existe",
+            page_a_propos(con, version, calcule_le), "a-propos.html",
             "Qui porte l'Observatoire de la potabilité réglementaire, ce qu'il "
             "cherche à rendre visible, et ce qu'il s'interdit.",
             version, calcule_le, formule=False, cle_bandeau="",
-            sous_titre="Un travail citoyen sur données ouvertes, qui sépare "
-                       "<b>la mesure</b> — un fait — du <b>verdict</b> — une "
-                       "convention administrative datée.",
+            sous_titre="Ce que «&nbsp;conforme&nbsp;» veut dire, et depuis quand.",
             fil=[("Accueil", "index.html"), ("À propos", None)]))
 
         # LES MENTIONS LÉGALES NE SE PUBLIENT PAS À MOITIÉ.
