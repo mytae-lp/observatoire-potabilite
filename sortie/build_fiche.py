@@ -1201,8 +1201,46 @@ def pfas_html(d):
     jamais sans son périmètre** (§2.13, §2.14) : c'est ce que ce bloc montre.
     """
     pfas = d.get("pfas") or {}
+
+    # NE PAS AVOIR CHERCHÉ EST LE SIGNAL LE PLUS FORT DE LA FICHE, et il doit
+    # s'écrire. Le portage en Python rendait une chaîne vide quand rien
+    # n'avait été cherché : le bloc disparaissait, et une page silencieuse se
+    # lit comme une page rassurante. C'est l'inverse.
+    #
+    # Le défaut avait DÉJÀ été corrigé une fois, dans `gabarits/fiche.js`,
+    # dont le commentaire est resté sur place pendant que la branche, elle,
+    # n'a pas été portée. Rétabli le 19 août 2026, après que Yannick a
+    # constaté sur les fiches de l'Oise que le bloc s'évanouissait : 93 % de
+    # ses bulletins n'ont aucun PFAS recherché, le programme départemental
+    # n'en porte que depuis 2026.
     if pfas.get("rien_de_cherche") or not pfas.get("cherchees_total"):
-        return ""
+        bloc = ["<p class=\"note note--attention\"><b>Aucun PFAS n'a été recherché sur "
+                "ce prélèvement.</b> Ce n'est pas un résultat&nbsp;: c'est une "
+                "absence de recherche. Rien ici ne dit qu'il y en a, rien ne "
+                "dit qu'il n'y en a pas.</p>"]
+        # Le laboratoire a rendu l'addition sans les termes : un total qu'on
+        # ne peut pas décomposer n'est pas un total détaillé.
+        if pfas.get("agregat_sans_detail"):
+            lignes = "".join(
+                f'<li><b>{h(x.get("libelle", ""))}</b>'
+                f'<span class="val">{h(x.get("texte", ""))}</span></li>'
+                for x in (pfas.get("agregats") or []))
+            bloc.append("<p>Le laboratoire a en revanche rendu un <b>total</b>, "
+                        "sans le détail des substances qui le composent. La valeur "
+                        "ci-dessous ne peut donc pas être décomposée&nbsp;: on ne "
+                        "sait pas de quelles molécules elle est faite.</p>")
+            bloc.append(f'<ul class="substances">{lignes}</ul>')
+        # `_section` et non un div nu : ce bloc doit ressembler aux autres
+        # sections de la fiche. Présenté autrement, il se lirait comme une
+        # note de bas de page alors qu'il porte le fait le plus important.
+        return _section(
+            "Le périmètre de la somme",
+            "Sur ce prélèvement, la question n'a pas été posée.",
+            "La recherche des PFAS est une obligation récente&nbsp;: beaucoup de "
+            "bulletins n'en portent aucun. Ceux-là ne doivent pas ressembler à "
+            "une eau propre — <b>ne pas avoir cherché n'est pas un "
+            "résultat</b>.",
+            "".join(bloc))
     blocs = []
     for cle, mod, titre, sous in (
             ("longue", "vise", "Chaînes longues",
