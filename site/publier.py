@@ -400,6 +400,23 @@ def publier(session, racine_distante, simulation=False, forcer=False,
     if not locales:
         sys.exit(f"{PUBLIC} est vide — rien à publier.")
 
+    # LA CONNEXION EST ROUVERTE ICI, ET C'EST UN CORRECTIF, PAS UNE PRÉCAUTION.
+    #
+    # `empreintes_locales` vient de hacher tout `site/public` — 54 000 fichiers
+    # et 6,5 Go au 19 août 2026 — pendant que la session FTPS ouverte plus haut
+    # restait inactive. L'hébergeur ferme une session oisive, et la lecture du
+    # manifeste tombait alors sur un tuyau mort : `EOFError` levée dans
+    # `voidcmd('TYPE I')`, avant même le premier octet transféré.
+    #
+    # Le défaut a mangé les trois publications de la Bretagne dans la nuit du
+    # 18 au 19 août — neuf tentatives, toutes au même endroit — et il est
+    # apparu avec la taille : plus le site grossit, plus le hachage dure, et
+    # plus la session a le temps de mourir. D'où son air d'intermittence.
+    #
+    # Rouvrir coûte une seconde et vaut mieux qu'un keepalive : on ne sait pas
+    # combien de temps le hachage durera au prochain département.
+    session.rouvrir()
+
     publiees = {} if forcer else lire_manifeste(session.ftp, racine_distante)
 
     import fnmatch
