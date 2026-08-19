@@ -162,12 +162,12 @@ def resultats(insee, depuis):
 # ---------------------------------------------------------------------------
 # 1. Les candidats
 # ---------------------------------------------------------------------------
-def candidats(mois_min, aujourd_hui):
+def candidats(mois_min, aujourd_hui, corpus=None):
     """
     La dernière analyse complète de chaque commune, quand elle est ancienne
     ET qu'elle portait au moins un dépassement.
     """
-    lignes, source = _corpus()
+    lignes, source = _corpus(corpus)
     par_commune = {}
     for r in lignes:
         if r["est_complet"] not in ("1", "True", "true", 1, True):
@@ -202,6 +202,8 @@ def candidats(mois_min, aujourd_hui):
         out.append({
             "code_insee": r["code_insee"], "commune": r["commune"],
             "dept": r["dept"], "date": d.isoformat(), "age_mois": age,
+            # L'UNITÉ EST LE code_prelevement, JAMAIS LA DATE (CLAUDE.md §2.3).
+            "code_prelevement": r.get("code_prelevement") or "",
             "nb_parametres": r.get("nb_parametres"),
             "nb_depasse": dep,
             "conclusion": (r.get("conclusion_conformite") or "")[:400],
@@ -215,17 +217,45 @@ def candidats(mois_min, aujourd_hui):
                 key=lambda x: x["date"]),
         })
     out.sort(key=lambda x: (-x["age_mois"], -x["nb_depasse"]))
-    return out, source
+    # LE PÉRIMÈTRE SE PREND DANS LE CORPUS QU'ON VIENT DE LIRE, jamais ailleurs.
+    # `departements_publies()` lit le CSV du dépôt, c'est-à-dire ce qui est
+    # COLLECTÉ ; le corpus, lui, ne porte que ce qui est FIGÉ. Au 19 août 2026
+    # l'écart est de douze départements — le dépôt en déclare 42, l'export figé
+    # en contient 30. Écrire 42 ferait dire au dossier qu'il a balayé un
+    # territoire qu'il n'a pas lu.
+    perimetre = {
+        "departements": sorted({r["dept"] for r in lignes if r.get("dept")}),
+        "communes_corpus": len({r["code_insee"] for r in lignes}),
+        "bulletins_corpus": len(lignes),
+    }
+    return out, source, perimetre
 
 
-def _corpus():
-    """La base si elle est libre, sinon l'export publié. Dit laquelle."""
+def _corpus(corpus=None):
+    """La base si elle est libre, sinon l'export publié. Dit laquelle.
+
+    `corpus` — chemin d'un `bulletins.csv` — court-circuite la base ET l'export
+    local. Ajouté le 19 août 2026, et ce n'est pas un confort.
+
+    « La base si elle est LIBRE » suppose que DuckDB refuse de l'ouvrir quand
+    un autre processus l'écrit. Pendant une campagne départementale, cette
+    supposition ne suffit pas : la copie locale peut être libre et **périmée**
+    au même moment, l'autorité étant sur le VPS (CLAUDE.md §0). Le script
+    rendrait alors des candidates calculées sur un corpus plus petit que celui
+    qui est publié, sans que rien ne le dise. Passer l'export rapatrié est la
+    façon de nommer explicitement le corpus sur lequel on balaie.
+    """
+    if corpus:
+        if not os.path.exists(corpus):
+            raise SystemExit("corpus introuvable : %s" % corpus)
+        with open(corpus, encoding="utf-8-sig") as f:
+            return list(csv.DictReader(f, delimiter=";")),                    "export rapatrié %s" % corpus
     try:
         import duckdb
         con = duckdb.connect(DB_PATH, read_only=True)
-        cols = ["code_insee", "commune", "dept", "date_prelevement",
-                "nb_parametres", "est_complet", "nb_depasse_applicable",
-                "conclusion_conformite"]
+        cols = ["code_prelevement", "code_insee", "commune", "dept",
+                "date_prelevement", "nb_parametres", "est_complet",
+                "nb_depasse_applicable", "conclusion_conformite"]
         v = con.execute(
             "SELECT version_referentiel FROM figeage_moteur LIMIT 1").fetchone()[0]
         rows = con.execute(f"""
@@ -259,7 +289,28 @@ def instruire(c):
     if not prels:
         return None
     ordre = sorted(prels)
-    ref, suivants = ordre[0], ordre[1:]
+
+    # LE PRÉLÈVEMENT DE RÉFÉRENCE SE DÉSIGNE PAR SON CODE, PAS PAR SA DATE.
+    #
+    # Défaut trouvé le 19 août 2026, et c'est le §2.3 qui le nomme : « une
+    # commune a souvent plusieurs prélèvements le même jour sur des points
+    # d'eau différents ». `ordre[0]` prenait le premier par ordre alphabétique
+    # de code — à Fislis (68092) le 29 mai 2017, c'était le contrôle de routine
+    # à 17 lignes, pas l'analyse complète à 238 lignes qui porte le dépassement
+    # d'atrazine déséthyl (0,135 pour 0,1). L'étude relisait donc le mauvais
+    # bulletin, n'y trouvait aucun dépassement, et n'écrivait rien.
+    #
+    # L'erreur allait dans le sens qui EFFACE le constat : 131 des 242
+    # candidates du 19 août rendaient « 0 dépassement ». Le repli sur le
+    # prélèvement le plus fourni du jour n'est qu'un filet — le corpus donne
+    # le code, et c'est lui qui fait foi.
+    vise = c.get("code_prelevement")
+    cle_ref = next((k for k in ordre if k[1] == vise), None)
+    if cle_ref is None:
+        premier_jour = [k for k in ordre if k[0] == ordre[0][0]]
+        cle_ref = max(premier_jour, key=lambda k: len(prels[k]))
+    ref = cle_ref
+    suivants = [k for k in ordre if k != ref]
 
     # Les dépassements de la référence, lus sur la limite déclarée par la source.
     cibles = {}
@@ -374,6 +425,7 @@ def rapport(res):
 
 
 def main():
+    global PAUSE
     p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     p.add_argument("--mois", type=int, default=24,
                    help="ancienneté minimale de la dernière analyse complète")
@@ -384,14 +436,30 @@ def main():
     p.add_argument("--tous", action="store_true", help="toutes les candidates")
     p.add_argument("--insee", help="instruire ces communes-là, séparées par des "
                                    "virgules — passe outre --limite et --mois")
+    p.add_argument("--pause", type=float, default=PAUSE,
+                   help="secondes entre deux appels Hub'Eau (défaut %.1f). "
+                        "À relever quand le service coupe : le 19 août 2026, "
+                        "242 communes à 0,4 s ont fini par 59 connexions "
+                        "fermées par l'hôte, en bloc à partir de la 173e."
+                        % PAUSE)
+    p.add_argument("--corpus",
+                   help="chemin d'un bulletins.csv rapatrié — n'ouvre alors "
+                        "NI data/eau.duckdb NI l'export local")
     p.add_argument("--sans-fiche", action="store_true",
                    help="ne pas écrire un fichier par commune")
     a = p.parse_args()
+    PAUSE = a.pause
 
     aujourd_hui = datetime.date.today()
     # Une demande nominative passe outre les deux filtres : on instruit ce
     # qu'on veut regarder, pas seulement ce qui tombe dans le critère.
-    cands, source = candidats(0 if a.insee else a.mois, aujourd_hui)
+    cands, source, perimetre = candidats(0 if a.insee else a.mois, aujourd_hui,
+                                         a.corpus)
+    # `--insee` met mois_min à 0 pour pouvoir instruire ce qu'on veut regarder.
+    # Le PÉRIMÈTRE du dossier, lui, reste celui du critère : compter les 719
+    # communes à dépassement au lieu des 242 qui ont plus de 24 mois donnerait
+    # au CSV un dénominateur qui n'est pas le sien.
+    total_candidates = sum(1 for c in cands if c["age_mois"] >= a.mois)
     if a.insee:
         vise = {c.strip() for c in a.insee.split(",")}
         cands = [c for c in cands if c["code_insee"] in vise]
@@ -414,7 +482,7 @@ def main():
     lot = cands if a.tous else cands[:a.limite]
     print("\ninstruction de %d commune(s) — appels Hub'Eau, cache actif\n" % len(lot))
     os.makedirs(SORTIE, exist_ok=True)
-    synthese = []
+    synthese, echecs = [], []
     for i, c in enumerate(lot, 1):
         print("  [%d/%d] %s (%s)…" % (i, len(lot), c["commune"], c["code_insee"]),
               flush=True)
@@ -422,9 +490,11 @@ def main():
             res = instruire(c)
         except Exception as e:
             print("      ÉCHEC : %s" % str(e)[:120])
+            echecs.append((c["code_insee"], str(e)[:120]))
             continue
         if not res:
             print("      aucun résultat rendu par l'API")
+            echecs.append((c["code_insee"], "aucun résultat rendu par l'API"))
             continue
         n_cib = len(res["cibles"])
         n_jam, n_ab = len(res["jamais"]), len(res["abandonnes"])
@@ -479,9 +549,24 @@ def main():
             "date_etude": aujourd_hui.isoformat(),
             "date_consultation": aujourd_hui.isoformat(),
             "mois_min": a.mois,
-            "candidates": len(cands),
+            # `candidates` = ce que le CRITÈRE retient sur tout le corpus, pas
+            # ce que --insee ou --limite a fait instruire. Confondre les deux
+            # donnerait « 3 candidates, 3 instruites » sur un balayage qui en
+            # retient 242 : un taux de 100 % qui ne veut rien dire.
+            "candidates": total_candidates,
             "instruites": len(synthese),
-            "departements_publies": len(departements_publies()),
+            # LE COMPTE DES ÉCHECS EST DANS LA SYNTHÈSE, pas seulement dans le
+            # journal. Le 19 août 2026 un balayage a rendu « 15 communes sur
+            # 179 » sur 242 candidates : le 179 était le seul indice que 63
+            # manquaient, et il fallait le rapprocher du 242 pour s en douter.
+            # Un lot partiel qui ne se déclare pas partiel est un lot qu on
+            # cite comme complet (§5 du mode opératoire).
+            "echecs": len(echecs),
+            "echecs_insee": ",".join(i for i, _ in echecs),
+            "corpus": source,
+            "departements_balayes": len(perimetre["departements"]),
+            "departements": ",".join(perimetre["departements"]),
+            "communes_corpus": perimetre["communes_corpus"],
             "source": "Hub'Eau, qualite_eau_potable/resultats_dis",
             "script": "src/etude_panel_reduit.py",
         }
@@ -493,6 +578,16 @@ def main():
         avec = [s for s in synthese if s["nb_jamais_recherches"]]
         print("%d commune(s) sur %d portent au moins un dépassement jamais "
               "recherché depuis." % (len(avec), len(synthese)))
+
+    if echecs:
+        print("\n!! LOT PARTIEL — %d candidate(s) sur %d n'ont PAS été "
+              "instruites." % (len(echecs), len(lot)))
+        motifs = collections.Counter(m for _, m in echecs)
+        for m, n in motifs.most_common():
+            print("   %3d x %s" % (n, m))
+        print("   Relancer le MÊME balayage : ce qui a abouti est en cache et "
+              "ne repart pas sur le réseau.\n   Si l'hôte a coupé, relever "
+              "--pause avant de relancer.")
 
 
 if __name__ == "__main__":

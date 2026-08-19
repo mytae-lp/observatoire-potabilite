@@ -1,0 +1,15 @@
+{
+  "date_etude": "2026-08-19",
+  "date_consultation": "2026-08-19",
+  "mois_min": 24,
+  "candidates": 242,
+  "instruites": 242,
+  "echecs": 0,
+  "echecs_insee": "",
+  "corpus": "export rapatrié ../../exports-a-rapatrier/bulletins.csv",
+  "departements_balayes": 30,
+  "departements": "01,02,04,05,06,07,09,12,13,22,26,28,29,31,32,35,38,42,47,48,56,65,67,68,69,71,81,82,83,84",
+  "communes_corpus": 4261,
+  "source": "Hub'Eau, qualite_eau_potable/resultats_dis",
+  "script": "src/etude_panel_reduit.py"
+}
