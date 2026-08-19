@@ -86,11 +86,20 @@ REF_CSV = os.path.join(RACINE, "referentiel", "referentiel_seuils.csv")
 # l'avertissement et les licences : c'est là qu'un lecteur les cherche, et une
 # entrée de menu de plus pour un texte consulté deux fois l'an se paierait sur
 # tous les autres.
+# « Carte » et non « Collecte » depuis le 19 août 2026, demande de Yannick :
+# c'est la page la plus manipulable du site, et son intitulé doit le dire. La
+# maquette l'appelait déjà ainsi — le code avait dérivé, pas la charte.
+#
+# CE QUI NE CHANGE PAS, ET NE DOIT PAS : le titre de la page reste « Où en est
+# la collecte » et son chapô continue d'annoncer que ce qu'elle montre « n'est
+# pas l'état de l'eau, c'est l'avancement d'un travail ». Sous le seul mot
+# « Carte », un lecteur croirait à une carte de la qualité de l'eau — ce que le
+# projet refuse d'être. Le menu nomme l'outil, la page dit ce qu'elle montre.
 PAGES = [
     ("index.html", "Accueil", None),
     ("dossiers.html", "Dossiers", None),
     (None, "Explorer", [("communes.html", "Communes"),
-                        ("carte.html", "Collecte"),
+                        ("carte.html", "Carte"),
                         ("substances.html", "Substances"),
                         ("reclassements.html", "Reclassements")]),
     (None, "Méthode", [("methode.html", "Méthode"),
