@@ -303,7 +303,23 @@ def faits():
         # Le périmètre du BALAYAGE, figé — cf. le piège n° 2 en tête de fichier.
         "candidates": meta.get("candidates"),
         "instruites": meta.get("instruites", len(lignes)),
-        "departements_balayes": meta.get("departements_publies"),
+        # DEUX NOMS POUR LA MÊME CHOSE, et le plus ancien est le moins juste.
+        #
+        # Les synthèses jusqu'au 12 août 2026 écrivaient `departements_publies`,
+        # pris dans `referentiel/departements_publies.csv` — c'est-à-dire les
+        # départements COLLECTÉS. Or ce qu'il faut afficher est le nombre de
+        # départements que le balayage a réellement LUS, c'est-à-dire les
+        # départements FIGÉS du corpus. Les deux ont divergé de douze le
+        # 19 août 2026 (42 déclarés, 30 figés), et l'écart allait dans le sens
+        # qui grossit le constat — le piège n° 2 en tête de ce fichier, à la
+        # source cette fois plutôt qu'ici.
+        #
+        # `etude_panel_reduit.py` écrit donc `departements_balayes` depuis le
+        # 19 août. On lit le nouveau nom d'abord et l'ancien ensuite : une
+        # synthèse archivée doit continuer de s'afficher telle qu'elle a été
+        # produite, sans être réinterprétée.
+        "departements_balayes": meta.get("departements_balayes",
+                                         meta.get("departements_publies")),
         "date_consultation": meta.get("date_consultation", date_etude.isoformat()),
         "script": meta.get("script", "src/etude_panel_reduit.py"),
         # Les quatre nombres de tête.
