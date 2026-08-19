@@ -55,19 +55,22 @@ prouve aucun cas particulier, et elle est postérieure à la rupture qu'on lui
 attribuait.
 
 **Ce que ça implique pour ce dossier.** Les arrêts de mesure observés se
-groupent en 2018, 2020 et 2023 — deux à trois ans d'écart, la signature d'un
-cycle et non d'un arbitrage local. **Un exploitant n'a pas la main sur ce qu'on
-mesure chez lui.** Chercher la responsabilité du côté de la commune ou du
-distributeur serait donc doublement faux : contraire au §2.1, et contraire au
-mécanisme.
+groupent en 2018, 2020, 2023 **et 2024** — deux à trois ans d'écart, la
+signature d'un cycle et non d'un arbitrage local. **Un exploitant n'a pas la
+main sur ce qu'on mesure chez lui.** Chercher la responsabilité du côté de la
+commune ou du distributeur serait donc doublement faux : contraire au §2.1, et
+contraire au mécanisme.
+
+*La vague de 2024 est apparue avec l'élargissement du corpus, le 19 août 2026,
+et elle est portée pour l'essentiel par l'Aisne.*
 
 **Chantier ouvert, et il est documentaire, pas informatique** : retrouver les
-marchés d'analyses de l'ARS Centre-Val de Loire — date de notification, durée,
-liste de paramètres annexée. Ces pièces sont publiques. Elles transformeraient
-« compatible avec un renouvellement de marché » en fait établi, ou
-l'infirmeraient. Tant qu'on ne les a pas, la formulation reste **« arrêts
-groupés en 2018, 2020 et 2023, compatibles avec des renouvellements de
-marché »**, jamais « causés par ».
+marchés d'analyses de l'ARS Centre-Val de Loire **et de l'ARS Hauts-de-France**
+— date de notification, durée, liste de paramètres annexée. Ces pièces sont
+publiques. Elles transformeraient « compatible avec un renouvellement de
+marché » en fait établi, ou l'infirmeraient. Tant qu'on ne les a pas, la
+formulation reste **« arrêts groupés en 2018, 2020, 2023 et 2024, compatibles
+avec des renouvellements de marché »**, jamais « causés par ».
 
 ## Le critère de sélection
 
@@ -75,6 +78,17 @@ Une commune entre dans ce dossier si :
 
 - sa **dernière analyse complète** date de **plus de 24 mois** ;
 - **et** cette analyse portait au moins un dépassement.
+
+**L'unité est le `code_prelevement`, jamais la date** (CLAUDE.md §2.3). Une
+commune a souvent plusieurs prélèvements le même jour sur des points d'eau
+différents ; désigner le bulletin de référence par sa date faisait relire le
+contrôle de routine au lieu de l'analyse complète. Corrigé le 19 août 2026 —
+détail et effet chiffré dans `ANALYSE_2026-08-19.md` §0.
+
+**Un résultat sans son périmètre est une demi-vérité** (§2.8). Chaque synthèse
+est donc accompagnée d'un `.meta.json` qui fige, à la date de l'étude, les
+départements réellement **figés** — et non ceux que le dépôt déclare collectés,
+les deux ayant divergé de douze départements au 19 août 2026.
 
 ## L'alerte que ces cas justifient
 
@@ -85,11 +99,41 @@ Accompagnée de deux compléments sans lesquels elle se lit de travers : le
 suivie ; et le **nom des paramètres** qui étaient en dépassement et qui n'ont
 plus été mesurés, qui est l'information réellement neuve.
 
-## Les cas instruits
+## Où en est le dossier
+
+| | 12 août 2026 | **19 août 2026** |
+|---|---:|---:|
+| départements figés balayés | 11 | **30** |
+| communes à bulletin complet au corpus | — | 4 261 |
+| candidates au critère | 39 | **242** |
+| instruites | 37 | **242** |
+| **communes portant un paramètre abandonné** | 18 | **45** |
+| dont un paramètre jamais recontrôlé | — | 21 |
+| paramètres abandonnés | 49 | **93** |
+| contrôles de routine cumulés depuis | 555 | **1 136** |
+
+Aucune des 18 communes du 12 août n'est sortie du critère : aucune n'a reçu
+d'analyse complète depuis.
+
+**Les analyses d'ensemble, la plus récente fait foi :**
+
+- `ANALYSE_2026-08-19.md` — 30 départements. Porte en §0 la correction de
+  méthode qui rend les deux séries non comparables terme à terme ;
+- `ANALYSE_2026-08-12.md` — 11 départements, conservée telle quelle.
+
+**Les cas instruits à la main**, seuls textes du dossier qui ne sont pas
+générés :
 
 | commune | dernière analyse complète | ancienneté | fichier |
 |---|---|---:|---|
 | Thiville (28389) | 20/09/2023, 256 paramètres | 35 mois | `thiville-28389_2026-08-12.md` |
 
-*Premier cas, instruit à la main le 12 août 2026. Le balayage systématique est
-outillé par `src/etude_panel_reduit.py`.*
+**Les cas instruits par le balayage** portent le préfixe `auto_` et sont
+refabriqués à chaque passage — `auto_<commune>-<insee>_<date>.md`. Ce préfixe
+n'est pas cosmétique : le 12 août 2026, une relance a écrasé l'étude rédigée à
+la main sur Thiville, six kilo-octets de rédaction remplacés par un tableau
+généré. **Un script ne doit jamais pouvoir détruire ce qu'une main a écrit.**
+
+*Piège voisin, non corrigé : le nom de la synthèse ne dépend que de la date, et
+une relance ciblée `--insee` écrase donc la synthèse complète du même jour.
+Relancer `--tous` — le cache rend l'opération gratuite.*
