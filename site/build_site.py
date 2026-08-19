@@ -371,6 +371,11 @@ BANDEAUX = {
     # `bandeau()` sait ne rien afficher. À compléter le jour où l'EXIF revient.
     "dossiers.html":      ("bandeau-toile-perlee", "Toile perlée", ""),
     "dossier":            ("bandeau-branche-toile", "Branche et toile", ""),
+    # « Pourquoi ce site existe » est une page de navigation comme les autres :
+    # elle avait été émise avec `cle_bandeau=""`, qui supprime le bandeau au
+    # lieu de le choisir. Sans date, comme les deux précédentes — l'EXIF a été
+    # retiré des copies du dépôt et une date approchée serait une source fausse.
+    "a-propos.html":      ("bandeau-rosee-feuille", "Rosée sur une feuille", ""),
 }
 
 
@@ -3686,7 +3691,7 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
             page_a_propos(con, version, calcule_le), "a-propos.html",
             "Qui porte l'Observatoire de la potabilité réglementaire, ce qu'il "
             "cherche à rendre visible, et ce qu'il s'interdit.",
-            version, calcule_le, formule=False, cle_bandeau="",
+            version, calcule_le, formule=False,
             sous_titre="Ce que «&nbsp;conforme&nbsp;» veut dire, et depuis quand.",
             fil=[("Accueil", "index.html"), ("À propos", None)]))
 
