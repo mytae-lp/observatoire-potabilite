@@ -1113,6 +1113,12 @@ def chiffres_dossiers(con, version):
     return {"bascules": bascules, "sans_seuil": sans_seuil,
             "parametres_sans_seuil": n_param,
             "panel_communes": panel["n_communes"],
+            # Le nombre de PARAMÈTRES abandonnés était écrit en dur dans la
+            # carte du dossier — « 49 substances » — à côté du nombre de
+            # communes qui, lui, se calculait. Au balayage du 19 août 2026 la
+            # carte annonçait donc 45 communes et 49 substances quand la page
+            # en montrait 93 : deux chiffres voisins, l'un vivant, l'autre mort.
+            "panel_parametres": panel["n_parametres"],
             "panel_instruites": panel["instruites"],
             "panel_departements": panel["departements_balayes"],
             "panel_controles": panel["n_controles"]}
@@ -1137,27 +1143,53 @@ def _n(x):
 # `etat` commande la balise : « publie » rend un <a>, tout le reste un <div>.
 # Une carte « en préparation » qui serait un lien mènerait à une page absente,
 # et c'est le coût le plus élevé qu'un index puisse faire payer (consigne §11.1).
+# LES QUATRE NOMBRES QUE LA SYNTHÈSE NE PORTE PAS.
+#
+# Ils viennent du corpus figé — l'historique des analyses complètes de chaque
+# commune — et non du balayage Hub'Eau. `dossier_panel_reduit` ne peut donc pas
+# les calculer : il ne lit que le CSV de synthèse. Ils vivent dans l'argument
+# versionné, `data/etudes/conformite_sur_panel_reduit/ANALYSE_<date>.md` §1.
+#
+# ILS BOUGENT AVEC `n_communes`, ET C'EST LE PIÈGE. Le 19 août 2026 la phrase
+# qui les portait était restée à « 61 analyses, 55 non conformes, 90 %, 15
+# communes » — chiffres du 12 août — pendant que `{f["n_communes"]}` passait de
+# 18 à 45 dans la MÊME phrase. Elle ne devenait pas seulement périmée : elle
+# devenait arithmétiquement fausse, et sur le taux le plus frappant du dossier.
+#
+# D'où ces constantes nommées plutôt que des nombres noyés dans le HTML : à
+# chaque nouveau balayage, les relire dans le §1 de l'ANALYSE du jour et les
+# mettre à jour ICI, en même temps que la synthèse. Les quatre, ou aucun.
+ANALYSE_COMPLETES = 189       # analyses complètes détenues pour ces communes
+ANALYSE_NON_CONFORMES = 140   # dont non conformes
+ANALYSE_PCT = 74              # soit 74 %
+ANALYSE_TOUTES = 35           # communes dont TOUTES les complètes sont non conformes
+
+
 DOSSIERS = [
     {"cl": "dossier--phare dossier--rouge", "num": "01", "etat": "publie",
      "lien": "dossier-panel-reduit.html",
      "chiffre": lambda c: (_n(c["panel_communes"]), "communes", ""),
      "titre": "Une conformité peut s'obtenir en cessant de mesurer",
-     "corps":
-         "49 substances étaient en dépassement à la dernière analyse complète, et "
+     "corps": lambda c:
+         f"{c['panel_parametres']} substances étaient en dépassement à la dernière "
+         "analyse complète, et "
          "n'ont plus été mesurées depuis au moins deux ans. Le « total des "
          "pesticides » est une limite opposable, et c'est une somme : cesser d'en "
          "mesurer les termes rend l'agrégat incalculable.",
-     "corps_index":
-         "49 paramètres étaient en dépassement à la dernière analyse complète, et "
+     "corps_index": lambda c:
+         f"{c['panel_parametres']} paramètres étaient en dépassement à la dernière "
+         "analyse complète, et "
          "n'ont plus été mesurés depuis deux à dix ans. Le «&nbsp;total des "
          "pesticides&nbsp;» est une limite opposable, et c'est une <b>somme</b>&nbsp;: "
          "cesser d'en mesurer les termes rend l'agrégat incalculable.",
-     # 61 et 55 viennent de `ANALYSE_2026-08-12.md`, qui les tire du corpus figé
-     # et non de la synthèse : ils restent dans l'argument versionné. 555 est
-     # dans la synthèse, donc il se calcule. La frontière est là, et nulle part
-     # ailleurs.
+     # Les deux premiers viennent de l'ANALYSE versionnée, qui les tire du corpus
+     # figé et non de la synthèse : d'où les constantes nommées ci-dessus. Le
+     # nombre de contrôles est dans la synthèse, donc il se calcule. La frontière
+     # est là, et nulle part ailleurs — mais un nombre figé se relit à chaque
+     # balayage, sans quoi il vieillit à côté de ceux qui se calculent.
      "precision": lambda c:
-         "Sur 61 analyses complètes de ces communes, 55 sont non conformes. "
+         f"Sur {ANALYSE_COMPLETES} analyses complètes de ces communes, "
+         f"{ANALYSE_NON_CONFORMES} sont non conformes. "
          f"<b>{_n(c['panel_controles'])} contrôles de routine</b> ont eu lieu "
          "depuis&nbsp;: ce n'est jamais un abandon de surveillance.",
      "pied": 'Lire le dossier <span aria-hidden="true">→</span>',
@@ -1350,6 +1382,7 @@ def page_a_propos(con, version, calcule_le):
     return corps
 
 
+
 def page_dossier_panel_reduit(version):
     """
     Le premier dossier — « une conformité peut s'obtenir en cessant de mesurer ».
@@ -1460,8 +1493,9 @@ def page_dossier_panel_reduit(version):
       <div class="chiffre gris"><span class="n">{f["plus_ancien_mois"]}</span>
         <span class="l">mois pour le plus ancien abandon<br>dix ans</span></div>
     </div>
-    <p class="bnote"><b>Sur les 61 analyses complètes que le corpus détient pour ces
-      {f["n_communes"]} communes, 55 sont non conformes — 90&nbsp;%. Et pour 15 communes sur
+    <p class="bnote"><b>Sur les {ANALYSE_COMPLETES} analyses complètes que le corpus détient
+      pour ces {f["n_communes"]} communes, {ANALYSE_NON_CONFORMES} sont non conformes —
+      {ANALYSE_PCT}&nbsp;%. Et pour {ANALYSE_TOUTES} communes sur
       {f["n_communes"]}, elles le sont toutes.</b> Ce ne sont pas des accidents ponctuels&nbsp;:
       c'est un état.</p>
     <p class="bnote"><b>{_n(f["n_controles"])} contrôles, ce n'est pas un abandon de
@@ -1792,7 +1826,8 @@ def page_dossiers(con, version, publies):
                          f'<span>{h(milieu)}</span>'
                          + (f' {h(queue)}' if queue else "") + '</span>')
         bouts.append(f'<h3>{h(d["titre"])}</h3>')
-        bouts.append(f'<p>{d.get("corps_index") or d["corps"]}</p>')
+        bouts.append(
+            f'<p>{_valeur(d.get("corps_index") or d["corps"], ctx)}</p>')
         if d.get("precision"):
             bouts.append('<p class="dossier-precision">'
                          f'{_valeur(d["precision"], ctx)}</p>')
@@ -1939,7 +1974,7 @@ def page_accueil(lignes, these, version, calcule_le, con):
         + (f'<div class="dossier-chiffre">'
            f'{h(" ".join(x for x in _valeur(d["chiffre"], ctx) if x))}</div>'
            if d.get("chiffre") else "")
-        + f'<h3>{h(d["titre"])}</h3><p>{d["corps"]}</p>'
+        + f'<h3>{h(d["titre"])}</h3><p>{_valeur(d["corps"], ctx)}</p>'
         f'<p class="dossier-tag">{h(d["tag_accueil"])}</p></article>'
         for d in DOSSIERS)
 
@@ -3265,6 +3300,21 @@ def page_sources(con, version, calcule_le, exports):
       journal daté et attribué de chaque modification de seuil.</p>
     <p>Le fond de carte reprend les contours départementaux publiés par l'IGN via
       Etalab, sous Licence Ouverte.</p>
+
+    <h4>Le code, en entier</h4>
+    <p>Tout ce qui fabrique ce site est public&nbsp;: la collecte, le référentiel daté, le
+      calcul des verdicts, la construction des pages et les contrôles qui bloquent une
+      publication fautive.</p>
+    <p class="note note--attention"><b>C'est ce qui rend vérifiable la promesse de la page
+      <a href="a-propos.html">À propos</a></b> — «&nbsp;vous n'avez pas à me croire, vous
+      pouvez refaire le calcul&nbsp;». Un chiffre de ce site se remonte jusqu'à la ligne qui
+      l'a produit.<br>
+      <a class="lien-fort" href="https://github.com/mytae-lp/observatoire-potabilite/"
+         rel="noopener" target="_blank">github.com/mytae-lp/observatoire-potabilite</a></p>
+    <p class="bnote">Le dépôt porte aussi <b>l'historique daté de chaque modification de
+      seuil</b>&nbsp;: qui l'a changée, quand, de quelle valeur à quelle valeur, et sur quelle
+      source. Le sujet du projet étant la dérive des seuils dans le temps, git fournit ici ce
+      qui manque partout ailleurs — un journal que personne ne peut réécrire après coup.</p>
 
     <h4>Télécharger</h4>
     <ul>{liste_exports}</ul>
