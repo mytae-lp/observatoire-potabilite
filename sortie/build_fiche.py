@@ -1345,14 +1345,49 @@ def barres_html(d, slugs=None):
                   "</details>")
     total = _nb(round(danger["total"], 2))
     n = danger.get("n") or len(parts)
+
+    # LE MÊME INDICE CONTRE LA GRILLE DE 2016 — la thèse du projet appliquée à
+    # l'indicateur le plus agrégé. Mêmes mesures, mêmes substances, deux
+    # dénominateurs : ce n'est pas l'eau qui a changé, ce sont les limites.
+    #
+    # La précaution du §2.12 est OBLIGATOIRE et elle est chiffrée : le seuil de
+    # 2016 des métabolites est extrapolé d'une instruction de DÉCEMBRE 2020.
+    # Quand ce sont eux qui portent l'écart — et c'est presque toujours le cas
+    # — l'indice 2016 repose sur un raisonnement, pas sur la lecture d'un
+    # texte de 2016. Le taire serait publier un chiffre sans sa source.
+    d16 = danger.get("d2016") or {}
+    bloc16 = ""
+    if d16.get("total"):
+        t16 = _nb(round(d16["total"], 2))
+        rapport = d16["total"] / danger["total"] if danger["total"] else None
+        combien = (f" — <b>{_nb(round(rapport, 1))} fois</b> l'indice "
+                   "à la date" if rapport and rapport >= 1.2 else "")
+        nm = d16.get("n_metabolites") or 0
+        bloc16 = (
+            '<p class="note note--attention">Contre la <b>grille de 2016</b>, '
+            f'les mêmes mesures donnent un indice de <b>{t16}</b> sur '
+            f'{d16["n"]} substances{combien}. '
+            "L'eau n'a pas changé&nbsp;: "
+            "les limites, si.</p>")
+        if nm:
+            bloc16 += (
+                f'<p class="bnote"><b>À lire avec sa réserve.</b> {nm} des '
+                f'{d16["n"]} substances qui composent cet indice 2016 sont des '
+                "<b>métabolites</b>, dont la limite de 2016 est "
+                "<b>extrapolée</b> d'une instruction de décembre 2020. "
+                "L'appliquer à un prélèvement d'avant cette date est un "
+                "raisonnement défendable, pas la lecture d'un texte de "
+                "l'époque.</p>")
+
     return _section(
         "Le cumul",
         f"{total} — et voici les {_en_lettres(min(len(tete), 6))} mesures qui "
         "y pèsent le plus",
         f"Indice de danger calculé sur <b>{n} substances de synthèse</b>. "
         "Ce n'est pas une estimation de risque sanitaire et il ne vaut pas "
-        "verdict de potabilité : il sert à classer des bulletins entre eux.",
-        liste)
+        "verdict de potabilité&nbsp;: il sert à classer des bulletins entre "
+        "eux. Les deux indices ci-dessous obéissent à la même règle.",
+        liste + bloc16)
 
 
 # ---------------------------------------------------------------------------
@@ -1778,7 +1813,11 @@ def bloc_commune(con, ligne, cols, redaction, version, rattachement=None,
         # (chantier C4). Absent quand le bulletin n'a aucun paramètre aveugle.
         "plafond": IND.plafond_analytique(con, a, version),
         "danger": {"total": a["indice_danger"], "n": a["indice_danger_n"],
-                   "parts": IND.decomposition_danger(con, a, version)},
+                   "parts": IND.decomposition_danger(con, a, version),
+                   # Le même indice contre la grille de 2016. Calculé ici et
+                   # non figé : tout vient de `verdicts_figes`, donc aucun
+                   # refigeage (cf. `IND.indice_2016`).
+                   "d2016": IND.indice_2016(con, a, version)},
         # Le bandeau de tête : les mesures qui portent la thèse.
         "hero": {
             "niveau": niv,

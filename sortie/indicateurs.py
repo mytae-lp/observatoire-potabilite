@@ -792,6 +792,45 @@ def plafond_analytique(con, a, version):
     }
 
 
+def indice_2016(con, a, version):
+    """
+    Le MÊME indice de danger, contre la grille de 2016.
+
+    Demandé par Yannick le 20 août 2026, et c'est la thèse du projet appliquée
+    à l'indicateur le plus agrégé : mêmes mesures, mêmes substances, deux
+    dénominateurs. Le chlorothalonil R471811 divisé par 0,9 µg/L ne pèse pas
+    ce qu'il pesait divisé par 0,1.
+
+    L'écart n'est pas une variation, c'est un ordre de grandeur : mesuré sur
+    l'Eure-et-Loir avant d'écrire cette fonction, jusqu'à SIX FOIS l'indice à
+    la date sur un même bulletin.
+
+    **AUCUN REFIGEAGE.** Tout vient de `verdicts_figes`, déjà figé :
+    `seuil_2016` y est à côté de `seuil_applicable`. Rien de neuf n'est
+    calculé, c'est la même division avec l'autre diviseur — d'où le choix de
+    le faire ici et non dans `figer.py`, qui aurait imposé de tout refiger.
+
+    `n_metabolites` sert la précaution du §2.12 : le seuil de 2016 des
+    métabolites est EXTRAPOLÉ de l'instruction de décembre 2020. Un indice
+    2016 porté par des métabolites repose sur un raisonnement, pas sur la
+    lecture d'un texte de 2016 — et la fiche doit pouvoir le dire avec le
+    nombre en main.
+    """
+    r = con.execute("""
+        SELECT SUM(resultat_num / NULLIF(seuil_2016, 0)),
+               COUNT(*),
+               COUNT(*) FILTER (WHERE famille = 'metabolite')
+        FROM verdicts_figes
+        WHERE code_prelevement = ? AND version_referentiel = ?
+          AND est_quantifie AND NOT COALESCE(est_agregat, FALSE)
+          AND famille IN ('pesticide','metabolite','PFAS','organique')
+          AND seuil_2016 IS NOT NULL AND seuil_2016 > 0
+    """, [a["code_prelevement"], version]).fetchone()
+    if not r or r[0] is None or not r[1]:
+        return None
+    return {"total": r[0], "n": r[1], "n_metabolites": r[2] or 0}
+
+
 def decomposition_danger(con, a, version, maxi=None):
     """
     De quoi l'indice de danger est fait.
