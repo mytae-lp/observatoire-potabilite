@@ -1251,25 +1251,59 @@ def pfas_html(d):
         subs = f.get("substances") or []
         if not subs:
             continue
+        # LA VALEUR DE CHAQUE MOLÉCULE, et pas seulement le fait qu'elle soit
+        # là. Le portage n'émettait que le sigle et la longueur de chaîne : une
+        # substance quantifiée se lisait « présente » sans qu'on sache combien,
+        # ce qui est précisément l'information qu'on vient chercher.
+        # Signalé par Yannick le 20 août 2026.
+        #
+        # `texte` porte les trois écritures de `_texte_valeur` — la valeur, le
+        # « < LQ », ou le seuil non communiqué — et jamais « 0 » : un
+        # laboratoire qui ne trouve rien ne mesure pas zéro (§2.4).
         items = "".join(
             f'<li class="pf{" pf--quant" if s.get("quantifie") else ""}">'
             f'<b>{h(s.get("sigle") or s.get("libelle"))}</b>'
-            f'<span>C{s.get("carbones")} · {h(s.get("type") or "")}</span></li>'
+            f'<span>C{s.get("carbones")} · {h(s.get("type") or "")}</span>'
+            f'<span>{h(s.get("texte") or "")}</span></li>'
             for s in subs)
+        # AUCUNE QUANTIFIÉE N'EST PAS AUCUNE PRÉSENTE. Sans cette phrase, une
+        # famille entièrement sous la limite de quantification se lit comme une
+        # eau sans PFAS, alors qu'elle dit seulement que l'instrument n'a rien
+        # vu au-dessus de ce qu'il distingue.
+        vide = ("" if any(s.get("quantifie") for s in subs) else
+                '<p class="bnote">Aucune quantifiée — ce qui ne veut pas dire '
+                "aucune présente&nbsp;: sous la limite de quantification du "
+                "laboratoire, on ne sait pas.</p>")
         blocs.append(
             f'<div class="pfas-fam pfas-fam--{mod}"><h4>{titre}</h4>'
             f'<p>{sous} · <b>{f.get("quantifiees", 0)} quantifiée(s) sur '
             f'{f.get("cherchees", 0)} recherchées</b></p>'
-            f'<ul class="pf-liste">{items}</ul></div>')
+            f'<ul class="pf-liste">{items}</ul>{vide}</div>')
     if not blocs:
         return ""
+    # CE QUI N'A PAS ÉTÉ CHERCHÉ, NOMMÉ. Chercher et ne rien trouver est une
+    # bonne nouvelle ; ne pas chercher est un fait d'une autre nature, et les
+    # deux ne doivent jamais se confondre à l'œil. Ce paragraphe existait dans
+    # `gabarits/fiche.js` et n'avait pas suivi le portage non plus.
+    nc = pfas.get("non_cherchees") or []
+    attendues = pfas.get("attendues_total") or 0
+    if nc:
+        reste = ('<p class="note note--attention"><b>' + str(len(nc)) + " des "
+                 + str(attendues) + " PFAS de la somme réglementaire n'ont pas "
+                 "été recherchés</b> sur ce prélèvement&nbsp;: "
+                 + h(", ".join(nc)) + ". Sur ceux-là, l'analyse ne dit rien — "
+                 "ni présence, ni absence.</p>")
+    else:
+        reste = ('<p class="bnote"><b>Les ' + str(attendues) + " PFAS de la somme "
+                 "réglementaire ont tous été recherchés</b> sur ce prélèvement.</p>")
+
     return _section(
         "Le périmètre de la somme",
         "La mesure existe. La norme ne la regarde pas.",
         "La somme réglementaire de 4 ne porte que sur les chaînes longues. "
         "Les courtes sont cherchées, parfois trouvées, et ne comptent dans "
         "aucun total opposable — <b>même valeur, assiette différente</b>.",
-        f'<div class="pfas-familles">{"".join(blocs)}</div>')
+        f'<div class="pfas-familles">{"".join(blocs)}</div>' + reste)
 
 
 def barres_html(d, slugs=None):
