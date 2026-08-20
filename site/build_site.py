@@ -1388,31 +1388,40 @@ def page_dossier_panel_reduit(version):
     Le premier dossier — « une conformité peut s'obtenir en cessant de mesurer ».
 
     Les douze sections du §11.2 de la consigne, dans leur ordre, et cet ordre
-    porte l'argument : le mécanisme AVANT tout chiffre, les 555 contrôles AVANT
-    la liste des abandons, l'hypothèse écartée AVANT celle retenue, et
+    porte l'argument : le mécanisme AVANT tout chiffre, le nombre de contrôles
+    AVANT la liste des abandons, l'hypothèse écartée AVANT celle retenue, et
     « établi / non établi » côte à côte avant la conclusion.
 
-    **Le partage entre ce qui se calcule et ce qui s'écrit.** Tout ce que la
-    synthèse figée porte vient de `dossier_panel_reduit` — les quatre nombres,
-    les dix-huit communes, les douze paramètres, la chronologie, la géographie,
-    et jusqu'aux deux mesures du contraste, lues dans le dossier commune de
-    Nottonville. Ce qui reste en dur ici vient de `ANALYSE_2026-08-12.md`, le
-    fichier d'argument versionné : les 61 analyses complètes dont 55 non
-    conformes, et la série de nitrates 60 → 38,7 → 11,1, que l'étude d'ensemble
-    ne porte pas sous forme datée (consigne §11.5).
+    **AUCUN CHIFFRE DE CETTE FONCTION N'EST ÉCRIT ICI, et c'est ce qui l'a
+    sauvée.** Le balayage a été refait le 19 août 2026 sur 30 départements au
+    lieu de 11 : les 18 communes sont devenues 45, les 49 paramètres 93, les
+    555 contrôles 1 136, et la chronologie a gagné une barre. Tout cela a suivi
+    sans qu'une ligne de code change, parce que tout vient de
+    `dossier_panel_reduit`, qui lit la synthèse datée.
 
-    **Deux écarts à la maquette, tranchés par Yannick le 17 août 2026** :
-    le tableau des paramètres rend ses **douze lignes réelles** là où la
-    maquette en fond deux paires et n'en montre que dix — réunir deux
+    Cette docstring, elle, avait gardé les anciens nombres jusqu'au 20 août —
+    aucun effet à l'écran, mais elle trompait quiconque lisait le code. Un
+    commentaire périmé est une source fausse, et le §2.7 ne s'arrête pas à la
+    prose publiée.
+
+    **Ce qui reste en dur** vient du fichier d'argument versionné, `ANALYSE`,
+    et de lui seul : le décompte des analyses complètes non conformes, et la
+    série de nitrates 60 → 38,7 → 11,1 que l'étude d'ensemble ne porte pas sous
+    forme datée (consigne §11.5). Les deux mesures du contraste, elles, sont
+    lues dans le dossier commune de Nottonville — donc calculées.
+
+    **Deux écarts à la maquette, tranchés par Yannick le 17 août 2026**, et ils
+    tiennent quel que soit le périmètre du balayage : le tableau des paramètres
+    rend ses lignes RÉELLES là où la maquette en fond deux paires — réunir deux
     métabolites distincts ferait disparaître un abandon du décompte ; et la
-    chronologie rend **huit barres** au lieu de sept, 2017 compris bien qu'il
-    vaille zéro — une année sautée fait lire un cycle là où il y a un trou.
+    chronologie montre les années à zéro — une année sautée fait lire un cycle
+    là où il y a un trou.
     """
     f = DPR.faits()
     NITRATE, PESTICIDE = "Nitrates (en NO3)", "Atrazine déséthyl"
     ctr = DPR.contraste("28283", [NITRATE, PESTICIDE])
 
-    # --- 3. les dix-huit communes ---------------------------------------
+    # --- 3. les communes retenues ---------------------------------------
     lignes_c = "".join(
         f'<tr><td data-v="{h(c["commune"])}"><b class="commune">{h(c["commune"])}</b> '
         f'<span style="color:var(--ink-faint)">({h(c["dept"])})</span></td>'
