@@ -25,6 +25,10 @@ data/etudes/*
 # sortent du projet et elles engagent sa signature. Un document remis a un
 # tiers doit etre date, retrouvable et opposable a ce qu'on en fera ensuite.
 !data/etudes/demandes/
+# ...mais pas les PDF qui en sortent : ils se regenerent du Markdown, qui reste
+# le document de reference (sortie/topo_pdf.py). Ne jamais corriger dans le PDF.
+data/etudes/demandes/*.pdf
+data/etudes/demandes/_apercu.html
 # Les PDF se regenerent depuis le Markdown (src/md_en_pdf.py).
 data/etudes/conformite_sur_panel_reduit/pdf/
 
