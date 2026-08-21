@@ -21,6 +21,10 @@ data/etudes/*
 # etaient exclus avec le reste, donc jamais versionnes.
 !data/etudes/sourcage_C/
 !data/etudes/conformite_sur_panel_reduit/
+# Les REPONSES aux demandes exterieures : elles nomment une commune, elles
+# sortent du projet et elles engagent sa signature. Un document remis a un
+# tiers doit etre date, retrouvable et opposable a ce qu'on en fera ensuite.
+!data/etudes/demandes/
 # Les PDF se regenerent depuis le Markdown (src/md_en_pdf.py).
 data/etudes/conformite_sur_panel_reduit/pdf/
 
