@@ -3442,12 +3442,25 @@ def exporter(con, version, dossier):
 
     produits = []
 
+    # PAR LOTS, ET JAMAIS `fetchall()`. Corrigé le 22 août 2026, après que le
+    # noyau a tué la construction de la Côte-d'Or : `Out of memory, killed
+    # process (python)`, 6,7 Go de résident sur une machine qui en offrait 7,8.
+    #
+    # La cause était ici. `fetchall()` matérialisait tout l'export en tuples
+    # Python AVANT d'écrire la première ligne du CSV — et le seul détail du 21
+    # pèse 3 545 598 lignes de 39 colonnes, sur 37 416 043 au total. À une
+    # poignée de centaines d'octets par tuple, l'export d'un gros département
+    # dépassait à lui seul la mémoire de la machine.
+    #
+    # Le lot de 50 000 borne la consommation à quelques dizaines de Mo, quel
+    # que soit le département — et ce plafond ne bouge plus quand le corpus
+    # grossit, ce qui est le point : la campagne ajoute encore 40 départements.
+    LOT = 50_000
+
     def dump(nom, requete, description, params=None):
-        rows = con.execute(requete, params if params is not None
-                           else [version]).fetchall()
-        cols = [d[0] for d in con.description]
+        curseur = con.execute(requete, params if params is not None else [version])
+        cols = [d[0] for d in curseur.description]
         chemin = os.path.join(dossier, nom)
-        lignes = ([_cellule(v) for v in r] for r in rows)
         if nom.endswith(".gz"):
             ouvrir = lambda: gzip.open(chemin, "wt", encoding="utf-8-sig",  # noqa: E731
                                        newline="", compresslevel=9)
@@ -3457,7 +3470,11 @@ def exporter(con, version, dossier):
         with ouvrir() as fh:
             w = csv.writer(fh, delimiter=";")
             w.writerow(cols)
-            w.writerows(lignes)
+            while True:
+                lot = curseur.fetchmany(LOT)
+                if not lot:
+                    break
+                w.writerows([_cellule(v) for v in r] for r in lot)
         produits.append((nom, description, os.path.getsize(chemin)))
 
     dump("bulletins.csv",
