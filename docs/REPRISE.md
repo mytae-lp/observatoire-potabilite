@@ -1,5 +1,49 @@
 # Reprise — état au 8 août 2026
 
+> **26 août 2026 — LE CORPUS EST COMPLET À 96 DÉPARTEMENTS. La Corse ferme la
+> liste, et elle la ferme à zéro.**
+>
+> 2A et 2B avaient été moissonnés le 17 août — 360 communes sur 360, réseaux
+> compris, 1 473 appels Hub'Eau, `--termine` à 0 — et **aucun bulletin
+> au-dessus de `SEUIL_COMPLET`** n'en était sorti. Le cache ne portait donc que
+> les `_communes.json`, et les deux départements étaient restés hors de
+> `departements_publies.csv`. Ce n'est pas un trou de collecte, c'est un
+> **plafond de panel** : mesuré le 26 août sur quatre communes, 180 paramètres
+> au plus à Bastia et à l'Île-Rousse, 184 à Porto-Vecchio, 135 à Albitreccia,
+> quand le continent tourne entre 300 et 700. Le « zéro au-dessus de 200 »
+> porte, lui, sur les 360 communes.
+>
+> Décision de Yannick, 26 août : **publier en « non documentée » avec le motif
+> dit**. Les 360 communes sont sur la carte, grises, et la page du département
+> porte désormais un bloc « Pourquoi ce département est entièrement gris »
+> (`page_departement`, déclenché quand un département déclaré n'a aucune commune
+> documentée). Sans lui la page disait l'inverse de la vérité : le rappel
+> générique de la carte proposait « pas encore collectée ou aucun bulletin
+> complet », et c'est la première cause qu'on retient. Commit `47b0e6a`.
+>
+> **Le seuil de 200 ne bouge pas** — le déplacer redéfinirait les 175 511
+> bulletins déjà figés (§2.3). Mais 180 contre 200, c'est 10 % : un seuil que
+> nous avons choisi rend 360 communes invisibles. À instruire dans
+> `docs/CHANTIERS.md`, pas à trancher en passant.
+>
+> **État de la production au 26 août, 09h48** — 96 départements publiés,
+> 175 511 bulletins figés sous `982f3e6ea21d`, 14 467 communes analysées,
+> 17 908 rattachées à un réseau, **1 208 non documentées** (848 + les 360 corses),
+> 193 318 fiches en place. Publication : 208 fichiers, 0 retiré.
+>
+> **Sauvegarde du 26 août rapatriée sur le PC de Yannick** —
+> `brut-2026-08-26_07h43.tar.gz` (3 297 014 418 o) et
+> `base-2026-08-26_07h43.duckdb.gz` (3 591 606 471 o), dans
+> `Documents\EDITIONS MYTAE\sauvegardes-observatoire`. Tailles identiques au
+> serveur, `gzip -t` OK sur les deux. Les archives du 18 août restent sur le VPS.
+>
+> **Purge des versions figées : rien à faire.** Deux versions seulement
+> (`982f3e6ea21d` publiée, `d0fb678dcbe2` antérieure) et la règle du 10 août en
+> conserve deux. `--garder 1` libérerait 2 à 3 G — l'ancienne version porte
+> 34 823 bulletins et 14,0 M de lignes de détail — mais Yannick a choisi de
+> garder le filet de retour arrière. Disque : 26 G libres sur 99, dont 33 G
+> pour `site/public`, qui est le vrai poste.
+
 > **17 août 2026, fin de journée — LA FICHE COMMUNALE EST EN LIGNE SUR LA
 > CHARTE v2**, une page par prélèvement, 45 617 pages. Recouvrement avec la
 > maquette : 21 % le matin, **88 / 85 / 82 %** le soir. Lisible sans
