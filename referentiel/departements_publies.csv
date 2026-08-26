@@ -125,3 +125,22 @@ code;nom;collecte_terminee_le;communes
 93;Seine-Saint-Denis;2026-08-17;39
 94;Val-de-Marne;2026-08-17;47
 95;Val-d'Oise;2026-08-17;183
+#
+# LA CORSE — collectée en entier, et documentée à zéro. Ce n'est pas une
+# contradiction, c'est le §2.11 pris au mot.
+# Moisson du 17 août 2026 : 360 communes sur 360 interrogées, réseaux compris,
+# 1 473 appels Hub'Eau, `--termine` à 0. Résultat : AUCUN bulletin au-dessus de
+# SEUIL_COMPLET = 200. La donnée existe pourtant — Bastia porte 1 445
+# prélèvements de 2016 à 2026 — mais le panel de l'ARS de Corse plafonne :
+# 180 paramètres à Bastia et à l'Île-Rousse, 184 à Porto-Vecchio, 135 à
+# Albitreccia (mesuré le 26 août 2026 sur ces quatre communes ; le « zéro
+# au-dessus de 200 », lui, porte sur les 360).
+# Les 360 communes entrent donc en `non_documentee`. On les déclare ICI plutôt
+# que de les laisser hors du fichier, parce qu'un trou muet se lit comme un
+# fait sur l'eau, alors qu'il est un fait sur ce qu'on y cherche. La page du
+# département doit porter ce motif — sans lui, le gris ment.
+# Ce que le seuil de 200 rend invisible se discute dans docs/CHANTIERS.md ;
+# il ne se déplace pas ici, sous peine de redéfinir les 175 511 bulletins
+# déjà figés (§2.3).
+2A;Corse-du-Sud;2026-08-17;124
+2B;Haute-Corse;2026-08-17;236

@@ -2748,6 +2748,53 @@ def page_departement(dept, communes, version, calcule_le):
                                   ancre=i if neuve else None))
     index = "".join(f'<a href="#l-{h(i)}">{h(i)}</a>' for i in vues)
 
+    # UN DÉPARTEMENT DÉCLARÉ COLLECTÉ, ET PAS UNE COMMUNE DOCUMENTÉE.
+    #
+    # Le cas existe : la Corse, moissonnée intégralement le 17 août 2026 — 360
+    # communes sur 360, réseaux compris — n'a pas un seul bulletin au-dessus de
+    # SEUIL_COMPLET. Sans ce bloc, la page dit au lecteur corse l'inverse de la
+    # vérité : le rappel générique de la carte propose deux causes au gris,
+    # « pas encore collectée » ou « aucun bulletin complet », et c'est la
+    # première qu'on retient — la seule des deux qui promette une suite. Ici
+    # elle est fausse.
+    #
+    # C'est le §2.11 appliqué à nous-mêmes : l'effort de recherche est un
+    # indicateur, et il se déclare. Le seuil de 200 est NOTRE choix ; quand il
+    # écarte un département entier, la page le dit, au lieu de laisser le gris
+    # se lire comme un fait sur l'eau.
+    entierement_gris = bool(n_nd) and not (n_ana + n_rat)
+    bloc_vide = f"""
+  <section class="section"><h2>Pourquoi ce département est entièrement gris</h2>
+    <div class="rappel"><b>Ce n'est pas un département qui reste à collecter.</b>
+      Ses {n_nd} communes ont toutes été interrogées, leurs réseaux compris, et la
+      collecte est déclarée terminée dans
+      <code>referentiel/departements_publies.csv</code>. Aucune n'est documentée ici
+      parce qu'aucun bulletin d'au moins {SEUIL_COMPLET} paramètres n'y a été
+      trouvé, ni pour une commune, ni pour le réseau qui l'alimente.</div>
+    <div class="rappel"><b>Des analyses existent pourtant, et en nombre.</b> Elles
+      portent moins de paramètres que le seuil que l'Observatoire s'est fixé pour
+      juger une eau. Ce seuil est le nôtre : il écarte les analyses de routine, trop
+      peu détaillées pour qu'un « rien à signaler » veuille dire quelque chose. Le
+      tenir ici revient à dire que <b>nous ne savons pas</b>, jamais que cette eau
+      serait mauvaise.</div>
+    <div class="rappel"><b>Ce qui manque ici, c'est l'effort de recherche, pas la
+      qualité de l'eau.</b> Une eau correcte sur 200 paramètres est une information
+      plus faible qu'une eau moyenne sur 700 : c'est pourquoi le nombre de paramètres
+      cherchés accompagne chaque comparaison de ce site. Dans ce département il
+      n'atteint pas le seuil, et il n'y a donc rien à comparer — ni en bien, ni en
+      mal. Pour savoir ce qui est mesuré sur votre commune, l'agence régionale de
+      santé et votre mairie tiennent les résultats à disposition.</div>
+  </section>
+""" if entierement_gris else ""
+
+    # Le rappel de la carte propose deux causes au gris. Quand la collecte EST
+    # faite, en laisser une qui dit le contraire serait un faux.
+    gris_pourquoi = (
+        "aucun bulletin complet n'existe pour elle ni pour son réseau — la "
+        "collecte, elle, est faite." if entierement_gris else
+        "elle n'a pas encore été collectée, ou aucun bulletin complet n'existe "
+        "pour elle ni pour son réseau.")
+
     return f"""
   <div class="fiche-tete fiche-tete--seule">
     <div class="verdict-bloc verdict-bloc--indetermine">
@@ -2769,14 +2816,14 @@ def page_departement(dept, communes, version, calcule_le):
     </div>
   </div>
 
+{bloc_vide}
   <section class="section"><h2>Où se concentre ce que l'on sait</h2>
     <div class="carte-bloc">{svg}
       {legende_carte(n)}
     </div>
     <div class="rappel"><b>Ce que la carte colorie n'est pas la qualité de l'eau</b>, mais
       ce que l'on sait de l'eau de chaque commune, et contre quelle grille on l'a noté.
-      Une commune grise n'est ni conforme ni non conforme : elle n'a pas encore été
-      collectée, ou aucun bulletin complet n'existe pour elle ni pour son réseau.</div>
+      Une commune grise n'est ni conforme ni non conforme : {gris_pourquoi}</div>
     <div class="rappel">Les communes se pressent autour des chefs-lieux : à cette
       densité, des points voisins se touchent. <b>Pour retrouver une commune précise,
       la recherche ci-dessous est exacte</b> — la carte sert à voir où porte l'effort
