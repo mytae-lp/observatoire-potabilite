@@ -812,12 +812,30 @@ def classe_couverture(n, bornes=BORNES_REPLI):
     return "c5"
 
 
-def libelles_paliers(bornes):
+def libelles_paliers(bornes, gris_tous_collectes=False):
     """« moins de 750 », « 750 à 1 199 »… — la légende dit ses bornes.
 
     Une carte qui colorie sans afficher ses seuils demande d'être crue, et
     surtout : sans eux, personne ne peut voir qu'une échelle a cessé de
     discriminer.
+
+    LE GRIS A DEUX CAUSES, ET LA LEGENDE DOIT DIRE LA BONNE (29/08/2026).
+
+    Elle annoncait « pas encore collecte », sans condition. C'est devenu faux le
+    jour ou la Corse est entree : elle est moissonnee en entier depuis le 17 aout
+    2026, 360 communes sur 360, et elle est grise parce qu'aucun de ses bulletins
+    n'atteint SEUIL_COMPLET. La page du departement le dit deja, mot pour mot :
+    « Ce n'est pas un departement qui reste a collecter. » La legende de la carte
+    disait l'inverse, et c'est elle qu'on lit en premier.
+
+    Des deux causes possibles au gris, « pas encore collecte » est la seule qui
+    promette une suite : c'est celle qu'on retient. L'annoncer a tort revient a
+    faire passer NOTRE seuil pour un retard de collecte, exactement le contraire
+    du §2.11, qui veut que l'effort de recherche se declare.
+
+    `gris_tous_collectes` se lit sur le referentiel de collecte, jamais sur un
+    volume d'analyses : quand tous les departements gris y figurent, le gris ne
+    peut plus vouloir dire « pas encore collecte ».
     """
     def n(x):
         return f"{x:,}".replace(",", " ")
@@ -825,7 +843,8 @@ def libelles_paliers(bornes):
     for i in range(len(bornes) - 1):
         out.append((f"c{i + 2}", f"{n(bornes[i])} à {n(bornes[i + 1] - 1)}"))
     out.append((f"c{len(bornes) + 1}", f"{n(bornes[-1])} et plus"))
-    out.append(("c0", "pas encore collecté"))
+    out.append(("c0", f"collecté, aucun bulletin de {SEUIL_COMPLET} paramètres"
+                      if gris_tous_collectes else "pas encore collecté"))
     return out
 
 
@@ -2182,11 +2201,46 @@ def page_carte(lignes, version, calcule_le, comptes):
     # cas, jamais une collecte. Les faire entrer dans « X départements
     # collectés en entier » serait une affirmation fausse — du même ordre que
     # présenter une commune non documentée comme conforme.
+    #
+    # 🔴 CORRIGE LE 29/08/2026 — LA JAUGE NE POUVAIT PAS DEPASSER 80 %.
+    #
+    # Elle comptait `d["bulletins"] >= bornes[0]`, et `bornes[0]` est le PREMIER
+    # QUINTILE du corpus lui-meme. Un quintile contient toujours un cinquieme :
+    # la jauge rangeait donc mecaniquement ~20 % des departements documentes en
+    # « pas collectes », quoi qu'on collecte, et ne pouvait jamais monter plus
+    # haut. Mesure du 29/08 sur la page en ligne : 94 departements documentes,
+    # borne a 900 analyses, 20 en dessous, d'ou les « 74 departements collectes,
+    # 77 % » affiches. Parmi les vingt ecartes a tort, le 47 Lot-et-Garonne
+    # (445 analyses), le 32 Gers et le 63 Puy-de-Dome, tous passes par un cycle
+    # complet.
+    #
+    # L'intention d'origine etait juste, et elle est gardee plus bas : ne pas
+    # confondre « documente » et « collecte ». Neuf departements portaient une a
+    # trois analyses, une commune rapatriee seule pour eprouver un cas. Mais ces
+    # neuf-la ont ete collectes depuis, le corpus a grossi, et la borne est
+    # montee avec lui. Le plus bas des 94 porte aujourd'hui 233 analyses (Paris,
+    # qui est une commune et qui est complet) ; aucun n'est sous 50.
+    #
+    # LA COLLECTE SE LIT, ELLE NE SE DEDUIT PAS D'UN VOLUME. Elle est declaree
+    # dans `referentiel/departements_publies.csv`, deja source unique du reste du
+    # site : 96 departements au 29/08/2026, toute la metropole, Corse comprise
+    # (moissonnee le 17 aout, 360 communes sur 360). Les quintiles restent
+    # parfaits pour colorer la carte ; ils ne valent rien pour compter une
+    # collecte.
     n_metropole = 96
-    n_collectes = sum(1 for d in comptes.values()
-                      if d["bulletins"] >= bornes[0])
-    n_effleures = n_dept - n_collectes
-    n_reste = n_metropole - n_collectes
+    publies = set(departements_publies())
+    # Repli sur le corpus si le referentiel manque : `departements_publies()`
+    # rend une liste vide plutot que d'echouer, et une jauge a zero serait une
+    # affirmation fausse de plus.
+    n_collectes = len(publies) if publies else n_dept
+    n_reste = max(0, n_metropole - n_collectes)
+    # Collectes, mais sans un seul bulletin complet : le gris de la carte parle
+    # alors de NOTRE seuil, pas d'un retard de collecte. C'est le cas de la
+    # Corse, et sa page de departement le dit deja en toutes lettres.
+    sans_complet = sorted(c for c in publies
+                          if not comptes.get(c, {}).get("bulletins"))
+    gris = [c for c, d in comptes.items() if not d.get("bulletins")]
+    gris_tous_collectes = bool(gris) and all(c in publies for c in gris)
 
     lig = "".join(
         f"<tr><td><a href='departement/{h(code)}.html'>{h(_nom_dept(code))}</a>"
@@ -2198,13 +2252,20 @@ def page_carte(lignes, version, calcule_le, comptes):
     paliers = "".join(
         f'<span><i class="pal {classe}"></i> {libelle} — '
         f'<b>{len(par_classe.get(classe, []))}</b> département(s)</span>'
-        for classe, libelle in libelles_paliers(bornes))
+        for classe, libelle in libelles_paliers(bornes, gris_tous_collectes))
 
     part = 100 * n_collectes / n_metropole
-    effleures = (f" S'y ajoutent <b>{n_effleures}</b> départements où une ou "
-                 f"quelques communes seulement ont été rapatriées : ils "
-                 f"apparaissent sur la carte, mais ils ne sont pas collectés."
-                 if n_effleures else "")
+    reste = (f" Il reste <b>{n_reste}</b> département(s) à collecter."
+             if n_reste else " La collecte de la métropole est terminée.")
+    if sans_complet:
+        noms = ", ".join(_nom_dept(c) for c in sans_complet)
+        effleures = (
+            f" <b>{len(sans_complet)}</b> de ces départements sont collectés sans "
+            f"qu'aucun bulletin n'y atteigne {SEUIL_COMPLET} paramètres — "
+            f"{noms}. Ils restent gris sur la carte, et c'est notre seuil qui "
+            f"l'explique, pas leur eau.")
+    else:
+        effleures = ""
     return f"""
   <section style="margin-top:0">
     <div class="jauges">
@@ -2215,7 +2276,7 @@ def page_carte(lignes, version, calcule_le, comptes):
       </div>
     </div>
     <p class="chapo"><b>{total_b}</b> analyses complètes, <b>{total_c}</b> communes
-      documentées. Il reste <b>{n_reste}</b> départements à collecter.{effleures}</p>
+      documentées.{reste}{effleures}</p>
     <div class="rappel"><b>Cette jauge n'est pas une jauge de seuil.</b> Une couverture
       qui progresse n'est pas une limite dont on s'approche : elle n'a ni zone
       d'approche à 85 %, ni repère plus strict, et elle n'est ni bonne ni mauvaise.
