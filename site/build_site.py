@@ -904,6 +904,7 @@ def carte_departements_svg(comptes, largeur=920, prefixe="", bornes=None):
         x, y = projeter(lon, lat)
         return (x - minx) * ech + marge, (y - miny) * ech + marge
 
+    publies = set(departements_publies())
     zones = []
     for code, d in sorted(geo.items()):
         n = comptes.get(code, {}).get("bulletins", 0)
@@ -927,9 +928,21 @@ def carte_departements_svg(comptes, largeur=920, prefixe="", bornes=None):
         if not traces:
             continue
 
-        titre = (f"{d['nom']} ({code}) — {n} analyse(s) complète(s), "
-                 f"{nc} commune(s) documentée(s)" if n else
-                 f"{d['nom']} ({code}) — pas encore collecté")
+        # L'INFOBULLE EST LE TROISIÈME ENDROIT OÙ LE GRIS SE DIT, et elle a
+        # survécu à la correction du 29/08/2026 : la légende et la jauge ont été
+        # reprises, pas elle. Elle annonçait « pas encore collecté » sur la
+        # Corse-du-Sud, moissonnée en entier depuis le 17 août — trouvé le
+        # 30/08 en relisant la page construite, pas le code. Le gris a deux
+        # causes ; celle-ci se lit dans le référentiel de collecte, jamais dans
+        # un volume d'analyses (§2.11).
+        if n:
+            titre = (f"{d['nom']} ({code}) — {n} analyse(s) complète(s), "
+                     f"{nc} commune(s) documentée(s)")
+        elif code in publies:
+            titre = (f"{d['nom']} ({code}) — collecté, aucun bulletin de "
+                     f"{SEUIL_COMPLET} paramètres")
+        else:
+            titre = f"{d['nom']} ({code}) — pas encore collecté"
         forme = (f'<path class="dept {classe_couverture(n, bornes)}" '
                  f'd="{"".join(traces)}"/>')
 
