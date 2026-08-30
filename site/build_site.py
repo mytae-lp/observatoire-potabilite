@@ -1416,11 +1416,30 @@ def page_a_propos(con, version, calcule_le):
 
     refus = "".join(f"<li><b>{h(fort)}</b> {suite}</li>" for fort, suite in REFUS)
 
+    # DEUX NOMBRES DE DÉPARTEMENTS, ET ILS NE DISENT PAS LA MÊME CHOSE.
+    #
+    # `n_depts` compte ceux qui portent au moins un bulletin complet ; il vaut 94
+    # au 30/08/2026. `n_publies` compte ceux dont la COLLECTE est déclarée
+    # terminée dans `referentiel/departements_publies.csv` ; il vaut 96. Les deux
+    # corses font l'écart : moissonnées en entier, aucun bulletin au-dessus de
+    # SEUIL_COMPLET.
+    #
+    # La réécriture du 30/08 écrivait « le corpus couvre {n_depts} départements de
+    # métropole, tous collectés en entier » — soit « 94 […] tous collectés », qui
+    # est faux deux fois : la métropole en compte 96, et ils sont tous collectés.
+    # C'est la confusion documenté / collecté que `page_carte` a dû lever la
+    # veille (b571091), reparue dans la prose parce que le gabarit n'avait qu'un
+    # seul nombre à sa disposition. Il en a deux désormais, et §2.8 veut de toute
+    # façon qu'un compte sorte avec son dénominateur.
+    n_publies = len(departements_publies()) or N_METROPOLE
+
     corps = lire("a-propos-corps.html")
     for cle, val in (("n_bulletins", _n(n_bulletins)),
                      ("n_bascules", _n(n_bascules)),
                      ("n_these", _n(n_these)),
                      ("n_depts", str(n_depts)),
+                     ("n_publies", str(n_publies)),
+                     ("seuil_complet", str(SEUIL_COMPLET)),
                      ("calcule_le", BF._date_fr(calcule_le)),
                      ("version", version),
                      ("refus", refus)):
