@@ -750,6 +750,20 @@ def _centroide(anneau):
 BORNES_REPLI = (750, 1200, 1700, 2500)
 BORNES_REPLI_DATE = "16 août 2026"
 
+# Le dénominateur de la couverture : les départements de la France
+# métropolitaine, Corse comprise. Il était écrit en dur dans `page_carte` ;
+# l'accueil en a besoin depuis le 30/08/2026, et un nombre écrit deux fois est
+# un nombre qui divergera. Le NUMÉRATEUR, lui, ne s'écrit jamais à la main :
+# il se lit dans `referentiel/departements_publies.csv` (`departements_publies()`).
+#
+# L'outre-mer n'entre pas dans ce compte, et ce n'est pas un oubli : le fond de
+# carte s'arrête à la métropole (`docs/ARCHITECTURE.md` §4), et la question de
+# savoir quelles limites réglementaires y sont applicables n'a pas été lue dans
+# un texte. Tant qu'elle ne l'est pas, aucun verdict ultramarin ne se prononce
+# (§2.5, §2.7) — l'y faire entrer comme « reste à collecter » laisserait croire
+# que seule la collecte manque.
+N_METROPOLE = 96
+
 
 def bornes_couverture(comptes):
     """
@@ -1950,6 +1964,21 @@ def page_accueil(lignes, these, version, calcule_le, con):
     n_rattachees = sum(1 for c in lignes if c["statut"] == "rattachee_reseau")
     n_nondoc = sum(1 for c in lignes if c["statut"] == "non_documentee")
     n_documentees = sum(1 for c in lignes if c["statut"] != "non_documentee")
+    # La couverture se LIT dans le référentiel de collecte, elle ne se déduit
+    # pas d'un volume d'analyses — c'est la leçon du correctif de la jauge du
+    # 29/08/2026 (`page_carte`). Repli sur `N_METROPOLE` si le fichier manque :
+    # `departements_publies()` rend une liste vide plutôt que d'échouer, et un
+    # « 0 département » sur l'accueil serait une affirmation fausse.
+    n_publies = len(departements_publies()) or N_METROPOLE
+    # La phrase suit le chiffre, elle ne le précède pas : annoncer « collectée en
+    # entier » sur un référentiel incomplet serait exactement l'erreur que la
+    # jauge commettait à l'envers.
+    etat_collecte = (
+        f"<b>La métropole est collectée en entier — ses {n_publies} départements, "
+        f"Corse comprise.</b>" if n_publies >= N_METROPOLE else
+        f"<b>Le corpus ne couvre pas encore la France entière, et il n'y a aucun "
+        f"mystère à cela :</b> {n_publies} départements de métropole sur "
+        f"{N_METROPOLE} sont collectés.")
 
     # Les totaux du CORPUS, pas de la dernière ligne de chaque commune. La
     # version d'avant sommait `lignes`, qui ne porte qu'un bulletin par
@@ -2033,17 +2062,19 @@ def page_accueil(lignes, these, version, calcule_le, con):
       envoyée, et ce que vous cherchez ne nous est pas transmis.</p>
   </div>
   <div class="deux-notes">
-    <p class="note note--gris"><b>Le corpus ne couvre pas encore la France entière, et
-      il n'y a aucun mystère à cela.</b> Cet observatoire est fait par une seule
-      personne, un citoyen concerné par la qualité de son eau, sur son temps, ses
-      ressources et son matériel — sans financement, public ou privé. Collecter un
-      département entier demande cinq à sept heures ; la collecte se poursuit,
-      département par département.</p>
-    <p class="note note--gris"><b>Ce qui est délibéré, en revanche, c'est de ne rien
-      publier à moitié.</b> Tant qu'un département n'est pas collecté en entier, il
-      n'apparaît pas ici : un département à moitié collecté ment davantage qu'un
-      département absent. Une commune absente n'est donc pas une commune dont l'eau
-      serait bonne — c'est une commune dont le tour n'est pas encore venu.</p>
+    <p class="note note--gris">{etat_collecte} Cet observatoire est fait par une
+      seule personne, un citoyen concerné par la qualité de son eau, sur son temps, ses
+      ressources et son matériel — sans financement, public ou privé ; collecter un
+      département entier demande cinq à sept heures. <b>Le prochain chantier est
+      l'outre-mer</b>, et ce n'est pas la suite de la même collecte : nous n'avons pas
+      lu quelles limites réglementaires y sont applicables, et tant que ce texte n'est
+      pas lu, aucun verdict ne sera prononcé sur un bulletin ultramarin.</p>
+    <p class="note note--gris"><b>Ce qui est délibéré, c'est de ne rien publier à
+      moitié.</b> Un département n'apparaît ici qu'une fois collecté en entier : à
+      moitié collecté, il mentirait davantage qu'absent. Et une commune sans verdict
+      n'est jamais une commune dont l'eau serait bonne — c'est une commune dont aucun
+      bulletin n'atteint {SEUIL_COMPLET} paramètres, ou dont le tour n'est pas encore
+      venu. La carte les montre en gris et dit laquelle des deux.</p>
   </div>
 
   <section class="section"><h2>Le corpus au {h(BF._date_fr(calcule_le))}</h2>
@@ -2227,7 +2258,7 @@ def page_carte(lignes, version, calcule_le, comptes):
     # (moissonnee le 17 aout, 360 communes sur 360). Les quintiles restent
     # parfaits pour colorer la carte ; ils ne valent rien pour compter une
     # collecte.
-    n_metropole = 96
+    n_metropole = N_METROPOLE
     publies = set(departements_publies())
     # Repli sur le corpus si le referentiel manque : `departements_publies()`
     # rend une liste vide plutot que d'echouer, et une jauge a zero serait une
@@ -2255,8 +2286,14 @@ def page_carte(lignes, version, calcule_le, comptes):
         for classe, libelle in libelles_paliers(bornes, gris_tous_collectes))
 
     part = 100 * n_collectes / n_metropole
+    # Quand il ne reste rien, la phrase ne peut pas s'arrêter à « terminée » :
+    # le lecteur en conclurait que la France est faite. Elle dit donc ce qui
+    # vient ensuite, et pourquoi ce n'est pas la suite de la même collecte.
     reste = (f" Il reste <b>{n_reste}</b> département(s) à collecter."
-             if n_reste else " La collecte de la métropole est terminée.")
+             if n_reste else
+             " La collecte de la métropole est terminée. <b>Le prochain chantier est "
+             "l'outre-mer</b> — il n'y figure pas encore, et il ne se ramène pas à "
+             "quelques départements de plus.")
     if sans_complet:
         noms = ", ".join(_nom_dept(c) for c in sans_complet)
         effleures = (
@@ -2342,6 +2379,13 @@ def page_carte(lignes, version, calcule_le, comptes):
       incorporé à la page : aucune requête n'est adressée à un serveur de tuiles, donc
       aucune adresse IP de visiteur n'est transmise à un tiers. Les départements et
       collectivités d'outre-mer ne figurent pas encore sur ce fond.</div>
+    <div class="rappel"><b>L'outre-mer est le prochain chantier, et il est annoncé
+      comme un chantier, pas comme une file d'attente.</b> Deux choses lui manquent, et
+      aucune n'est de la collecte : ce fond de carte s'arrête à la métropole, et
+      surtout <b>nous n'avons pas lu quelles limites réglementaires y sont
+      applicables</b>. Tant que ce texte n'est pas lu, aucun verdict ne sera prononcé
+      sur un bulletin ultramarin : le noter contre la grille de la métropole, sans
+      l'avoir vérifié, produirait un verdict faux plutôt qu'un verdict absent.</div>
   </section>
 """
 
