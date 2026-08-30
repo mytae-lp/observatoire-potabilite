@@ -1,5 +1,89 @@
 # Reprise — état au 8 août 2026
 
+> **30 août 2026 — TROIS PAGES PUBLIÉES : L'ACCUEIL, LA CARTE, L'« À PROPOS ».
+> Le site en ligne annonçait 74 départements sur 96 depuis la fin de la
+> collecte ; il annonce 96 sur 96 depuis 12 h 10.**
+>
+> **Ce que le site disait de faux, et depuis quand.** La jauge de couverture
+> comptait les départements au-dessus de `bornes[0]`, qui est le PREMIER
+> QUINTILE du corpus lui-même : un quintile contient toujours un cinquième,
+> donc elle rangeait mécaniquement ~20 % des départements documentés en « pas
+> collectés », quoi qu'on collecte, et **ne pouvait structurellement pas
+> dépasser 80 %**. Elle affichait « 74 départements collectés, 77 % » sur 94
+> documentés. Correctif `b571091` (écrit le 29 au soir, non déployé faute de
+> base) : la collecte SE LIT dans `referentiel/departements_publies.csv`, elle
+> ne se déduit pas d'un volume d'analyses.
+>
+> **La même confusion documenté / collecté est réapparue deux fois dans la même
+> journée, et c'est le fait à retenir.** Une fois dans l'infobulle de la carte
+> (`7a331b7`), qui annonçait encore « Corse-du-Sud (2A) — pas encore collecté »
+> sur un département moissonné en entier le 17 août ; une fois dans la
+> réécriture de l'« À propos » (`b378ae7`), qui écrivait « le corpus couvre 94
+> départements de métropole, tous collectés en entier » — faux deux fois, la
+> métropole en compte 96 et les 96 sont collectés. **Deux nombres existent et
+> ils ne disent pas la même chose** : `n_depts` = ceux qui portent au moins un
+> bulletin complet (94), `n_publies` = ceux dont la collecte est déclarée
+> terminée (96). Les deux corses font l'écart, et c'est SEUIL_COMPLET qui
+> l'explique, pas leur eau. Les deux sortent désormais ensemble, avec le motif
+> de leur écart (§2.8).
+>
+> **L'infobulle a été trouvée en relisant la page CONSTRUITE, pas le code.**
+> `grep "pas encore collecté"` rendait trois lignes le 29 au soir ; deux avaient
+> été corrigées, la troisième non, et le diff ne le montrait pas. **Une même
+> affirmation écrite à trois endroits n'est pas corrigée parce que deux l'ont
+> été.** À faire systématiquement : relire le rendu, pas seulement le diff.
+>
+> **L'OUTRE-MER EST DÉSORMAIS NOMMÉ EN PUBLIC COMME LE PROCHAIN CHANTIER**, à
+> trois endroits (accueil, phrase de la jauge quand il ne reste rien, rappel
+> sous la carte) et dans l'« À propos ». Aucun ne promet de date. Ce qui lui
+> manque n'est pas de la collecte : le fond de carte s'arrête à la métropole
+> (`docs/ARCHITECTURE.md` §4) et **la question des seuils applicables outre-mer
+> n'a pas été lue dans un texte**. Tant qu'elle ne l'est pas, aucun verdict ne
+> se prononce sur un bulletin ultramarin (§2.5, §2.7). `N_METROPOLE = 96` est
+> devenu une constante de module au lieu d'être écrit en dur deux fois.
+>
+> **`page_accueil` disait encore « la collecte se poursuit, département par
+> département »** (`de0d1e5`), vrai jusqu'au 17 août. La phrase SUIT maintenant
+> le chiffre : au-dessous de `N_METROPOLE` elle reprend « le corpus ne couvre
+> pas encore la France entière » avec le compte réel.
+>
+> **La page « À propos » réécrite en entier par Yannick (AIOS MYTAE)**, au
+> profil de voix `PROFIL-EAU.md`. Le podcast passe de « premier épisode le
+> 2 septembre » à « il est en ligne », avec six adresses d'écoute vérifiées une
+> par une (Apple, Spotify, Deezer, YouTube, flux Ausha, page podcast). Le livre
+> porte sa parution du 15 septembre 2026, ses 376 pages, son ISBN. **Elle a
+> attendu en local une demi-journée parce qu'elle n'était pas commitée** — le
+> dépôt est le seul canal de l'atelier vers la production (§0), et un fichier
+> modifié sur le PC n'atteint rien.
+>
+> **DEUX ENSEIGNEMENTS D'EXPLOITATION, tous deux mesurés aujourd'hui.**
+>
+> 1. **Une reconstruction `--sans-fiches` coûte ~2 h sur la base de
+>    production**, pas les 2 min 45 s de `docs/EXPLOITATION.md` (mesurés le
+>    16 août sur un corpus trois fois plus petit). Répartition : ~40 min pour
+>    les 100 exports, ~70 min pour les pages. **Les exports sont réécrits à
+>    chaque construction et `gzip` y inscrit l'heure** : 1,4 Go d'octets
+>    différents pour un contenu identique. Les tenir hors de la copie vers
+>    `site/public` évite un envoi de 1,4 Go pour rien.
+> 2. **Régénérer UNE page sans refaire la construction est admissible à une
+>    condition : que le raccourci se vérifie.** Deux scripts jetables ont refait
+>    `carte.html` et `a-propos.html` en reprenant le câblage de `construire()` ;
+>    chacun a d'abord été lancé sur le code DÉJÀ en production et comparé par
+>    `cmp` au fichier de la construction complète — **identique octet pour
+>    octet** dans les deux cas — avant d'être relancé sur le code corrigé. Un
+>    script de contournement qui ne se compare à rien est une seconde
+>    implémentation qui divergera. Ceux-là n'ont pas été conservés.
+>
+> **Publications du jour** : 15 fichiers (accueil, carte, 13 pages de substance
+> qui portaient une précision d'unité `µg(Se)/L` jamais arrivée en production),
+> puis 1 fichier (« À propos »). 0 retiré dans les deux cas. Dépôt local,
+> `origin` et VPS tous sur `b378ae7`, arbres propres.
+>
+> **Signalé, non corrigé** : le contrôle mécanique du §2.11 relève « ailleurs »
+> dans « Le reste de mon activité d'auteur vit ailleurs ». Faux positif — la
+> règle vise les comparaisons de territoire, et la phrase suivante nomme
+> `yannick-mytae.fr`. Le texte de Yannick n'a pas été retouché.
+
 > **26 août 2026 — LE CORPUS EST COMPLET À 96 DÉPARTEMENTS. La Corse ferme la
 > liste, et elle la ferme à zéro.**
 >
