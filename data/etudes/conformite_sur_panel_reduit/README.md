@@ -55,22 +55,27 @@ prouve aucun cas particulier, et elle est postérieure à la rupture qu'on lui
 attribuait.
 
 **Ce que ça implique pour ce dossier.** Les arrêts de mesure observés se
-groupent en 2018, 2020, 2023 **et 2024** — deux à trois ans d'écart, la
-signature d'un cycle et non d'un arbitrage local. **Un exploitant n'a pas la
-main sur ce qu'on mesure chez lui.** Chercher la responsabilité du côté de la
-commune ou du distributeur serait donc doublement faux : contraire au §2.1, et
-contraire au mécanisme.
+groupent en 2018, 2020, puis massivement **en 2021, 2022, 2023 et 2024** —
+2022 à 2024 portent à eux seuls 287 des 374 abandons du corpus complet —
+la signature d'un cycle et non d'un arbitrage local. **Un exploitant n'a pas
+la main sur ce qu'on mesure chez lui.** Chercher la responsabilité du côté de
+la commune ou du distributeur serait donc doublement faux : contraire au
+§2.1, et contraire au mécanisme.
 
-*La vague de 2024 est apparue avec l'élargissement du corpus, le 19 août 2026,
-et elle est portée pour l'essentiel par l'Aisne.*
+*La vague de 2024 était apparue avec l'élargissement du corpus, le 19 août
+2026, portée pour l'essentiel par l'Aisne. Sur le corpus complet (8 septembre
+2026), le phénomène se concentre sur 2021-2024 et le resserrement sur
+2022-2024 — avec la censure qui s'impose : rien de postérieur à septembre
+2024 ne peut apparaître, le critère exigeant 24 mois sans mesure.*
 
 **Chantier ouvert, et il est documentaire, pas informatique** : retrouver les
-marchés d'analyses de l'ARS Centre-Val de Loire **et de l'ARS Hauts-de-France**
-— date de notification, durée, liste de paramètres annexée. Ces pièces sont
-publiques. Elles transformeraient « compatible avec un renouvellement de
-marché » en fait établi, ou l'infirmeraient. Tant qu'on ne les a pas, la
-formulation reste **« arrêts groupés en 2018, 2020, 2023 et 2024, compatibles
-avec des renouvellements de marché »**, jamais « causés par ».
+marchés d'analyses des ARS **Centre-Val de Loire, Bourgogne-Franche-Comté,
+Grand Est et Hauts-de-France** — date de notification, durée, liste de
+paramètres annexée. Ces pièces sont publiques. Elles transformeraient
+« compatible avec un renouvellement de marché » en fait établi, ou
+l'infirmeraient. Tant qu'on ne les a pas, la formulation reste
+**« arrêts groupés en 2018, 2020 et 2021-2024, compatibles avec des
+renouvellements de marché »**, jamais « causés par ».
 
 ## Le critère de sélection
 
@@ -101,24 +106,31 @@ plus été mesurés, qui est l'information réellement neuve.
 
 ## Où en est le dossier
 
-| | 12 août 2026 | **19 août 2026** |
-|---|---:|---:|
-| départements figés balayés | 11 | **30** |
-| communes à bulletin complet au corpus | — | 4 261 |
-| candidates au critère | 39 | **242** |
-| instruites | 37 | **242** |
-| **communes portant un paramètre abandonné** | 18 | **45** |
-| dont un paramètre jamais recontrôlé | — | 21 |
-| paramètres abandonnés | 49 | **93** |
-| contrôles de routine cumulés depuis | 555 | **1 136** |
+| | 12 août 2026 | 19 août 2026 | **8 septembre 2026** |
+|---|---:|---:|---:|
+| départements balayés | 11 | 30 | **94** |
+| communes à bulletin complet au corpus | — | 4 261 | **14 466** |
+| candidates au critère | 39 | 242 | **822** |
+| instruites | 37 | 242 | **822** |
+| **communes portant un paramètre abandonné** | 18 | 45 | **222** |
+| dont un paramètre jamais recontrôlé | — | 21 | 136 |
+| paramètres abandonnés | 49 | 93 | **374** |
+| contrôles de routine cumulés depuis | 555 | 1 136 | **4 333** |
 
-Aucune des 18 communes du 12 août n'est sortie du critère : aucune n'a reçu
-d'analyse complète depuis.
+Aucune des 18 communes du 12 août, ni des 45 du 19 août, n'est sortie du
+critère : aucune n'a reçu d'analyse complète depuis. Le 8 septembre 2026, le
+balayage porte sur le corpus complet — 94 départements de métropole porteurs
+d'au moins un bulletin complet (2A et 2B n'en ont aucun), version de
+référentiel `982f3e6ea21d`.
 
 **Les analyses d'ensemble, la plus récente fait foi :**
 
+- `ANALYSE_2026-09-08.md` — corpus complet, 94 départements. Première analyse
+  sur le corpus entier ; la méthode n'a pas changé depuis le 19 août, seul le
+  territoire balayé a triplé ;
 - `ANALYSE_2026-08-19.md` — 30 départements. Porte en §0 la correction de
-  méthode qui rend les deux séries non comparables terme à terme ;
+  méthode qui rend les séries du 12 et du 19 août non comparables terme à
+  terme ;
 - `ANALYSE_2026-08-12.md` — 11 départements, conservée telle quelle.
 
 **Les cas instruits à la main**, seuls textes du dossier qui ne sont pas
@@ -134,6 +146,8 @@ n'est pas cosmétique : le 12 août 2026, une relance a écrasé l'étude rédig
 la main sur Thiville, six kilo-octets de rédaction remplacés par un tableau
 généré. **Un script ne doit jamais pouvoir détruire ce qu'une main a écrit.**
 
-*Piège voisin, non corrigé : le nom de la synthèse ne dépend que de la date, et
-une relance ciblée `--insee` écrase donc la synthèse complète du même jour.
-Relancer `--tous` — le cache rend l'opération gratuite.*
+*Piège, vécu en vrai le 8 septembre 2026 : le nom de la synthèse ne dépend que
+de la date, et une relance ciblée `--insee` (pour instruire une seule commune
+après coup) a écrasé la synthèse complète du jour, ne laissant que la commune
+visée. Le remède est le même que celui du README : relancer `--tous` — le
+cache rend l'opération gratuite.*

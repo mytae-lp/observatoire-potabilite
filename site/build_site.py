@@ -1201,14 +1201,16 @@ def _n(x):
 # communes » — chiffres du 12 août — pendant que `{f["n_communes"]}` passait de
 # 18 à 45 dans la MÊME phrase. Elle ne devenait pas seulement périmée : elle
 # devenait arithmétiquement fausse, et sur le taux le plus frappant du dossier.
+# Même piège au balayage du 8 septembre 2026 : les constantes dataient du
+# 19 août (189, 140, 74, 35) pendant que `n_communes` passait de 45 à 222.
 #
 # D'où ces constantes nommées plutôt que des nombres noyés dans le HTML : à
 # chaque nouveau balayage, les relire dans le §1 de l'ANALYSE du jour et les
 # mettre à jour ICI, en même temps que la synthèse. Les quatre, ou aucun.
-ANALYSE_COMPLETES = 189       # analyses complètes détenues pour ces communes
-ANALYSE_NON_CONFORMES = 140   # dont non conformes
-ANALYSE_PCT = 74              # soit 74 %
-ANALYSE_TOUTES = 35           # communes dont TOUTES les complètes sont non conformes
+ANALYSE_COMPLETES = 1257      # analyses complètes détenues pour ces communes
+ANALYSE_NON_CONFORMES = 830   # dont non conformes
+ANALYSE_PCT = 66              # soit 66 %
+ANALYSE_TOUTES = 103          # communes dont TOUTES les complètes sont non conformes
 
 
 DOSSIERS = [
@@ -1225,7 +1227,8 @@ DOSSIERS = [
      "corps_index": lambda c:
          f"{c['panel_parametres']} paramètres étaient en dépassement à la dernière "
          "analyse complète, et "
-         "n'ont plus été mesurés depuis deux à dix ans. Le «&nbsp;total des "
+         "n'ont plus été mesurés depuis au moins deux ans, parfois plus de dix. "
+         "Le «&nbsp;total des "
          "pesticides&nbsp;» est une limite opposable, et c'est une <b>somme</b>&nbsp;: "
          "cesser d'en mesurer les termes rend l'agrégat incalculable.",
      # Les deux premiers viennent de l'ANALYSE versionnée, qui les tire du corpus
@@ -1527,9 +1530,23 @@ def page_dossier_panel_reduit(version):
         f'<td class="num">{d["instruites"]}</td>'
         f'<td class="num">{f"<b>{d["avec_abandon"]}</b>" if d["avec_abandon"] else 0}</td></tr>'
         for d in f["departements"])
-    tete = f["departements"][0]
-    n_tete = next((d["avec_abandon"] for d in f["departements"]
-                   if d["code"] == tete["code"]), 0)
+    # La géographie se lit par le nombre de CAS, pas par le nombre
+    # d'instruites : « le département le plus fourni » est un artefact de
+    # collecte, le département où le constat tombe le plus souvent est un
+    # résultat. La prose ci-dessous nomme la tête du jour sans la graver —
+    # elle change à chaque balayage, et une phrase qui nomme un département
+    # périmé est une phrase fausse publiée.
+    tete = max(f["departements"], key=lambda d: d["avec_abandon"])
+    n_tete = tete["avec_abandon"]
+    n_depts_touches = len(f["departements_touches"])
+
+    # « Total des pesticides analysés » — le paramètre le plus abandonné du
+    # dossier, et le seul dont le compte soit écrit à la main avant le
+    # 8 septembre 2026 (« 12 communes » pendant que la synthèse en portait
+    # davantage). Il se lit dans la liste des paramètres, comme les autres.
+    _total_pesticides = next(
+        (p["communes"] for p in f["parametres"]
+         if p["libelle"] == "Total des pesticides analysés"), 0)
 
     return f"""
 <section class="section">
@@ -1633,7 +1650,8 @@ def page_dossier_panel_reduit(version):
 
     <h3 class="sec" style="margin-top:var(--e-8)">Le mécanisme qui mérite d'être vu</h3>
     <p class="chapo" style="margin-bottom:var(--e-5)">Le «&nbsp;total des pesticides
-      analysés&nbsp;» est laissé de côté dans <b>12 communes sur {f["n_communes"]}</b>. Ce n'est
+      analysés&nbsp;» est laissé de côté dans <b>{_total_pesticides} communes sur
+      {f["n_communes"]}</b>. Ce n'est
       pas un paramètre comme les autres&nbsp;: c'est une <b>limite de qualité opposable</b> —
       0,5 µg/L — et c'est une <b>somme</b>.</p>
     <p class="note note--attention"><b>Une somme ne se mesure pas&nbsp;: elle se calcule à partir
@@ -1678,9 +1696,10 @@ def page_dossier_panel_reduit(version):
   <div class="zone zone-large">
     <h2 class="sec">Le contraste, commune par commune</h2>
     <p class="chapo" style="margin-bottom:var(--e-5)">Partout le même partage, et il est
-      net&nbsp;: <b>les nitrates continuent d'être mesurés</b>, 27 à 37 fois selon les communes, la
-      dernière il y a trois ou quatre mois. <b>Les pesticides ne le sont plus</b>&nbsp;: zéro à deux
-      fois, la dernière il y a trois à dix ans.</p>
+      net&nbsp;: <b>les nitrates continuent d'être mesurés</b>, à chaque contrôle de routine,
+      jusqu'au dernier. <b>Les pesticides ne le sont plus</b>&nbsp;: une fois, parfois deux,
+      puis plus jamais, depuis deux ans et jusqu'à dix ans et plus. Le cas de Nottonville le
+      montre sur deux lignes de tableau.</p>
 
     <p class="surtitre" style="margin-bottom:var(--e-2)">Nottonville (28283) — même commune, même eau, même robinet</p>
     <div class="contraste">
@@ -1714,8 +1733,10 @@ def page_dossier_panel_reduit(version):
   <div class="zone zone-large">
     <h2 class="sec">La géographie — et la prudence qu'elle impose</h2>
     <p class="chapo" style="margin-bottom:var(--e-5)"><b>{n_tete} des {f["n_communes"]} communes
-      sont en {h(tete["nom"])}</b>, la Beauce. Les autres sont en Tarn-et-Garonne et dans le
-      Gers.</p>
+      sont en {h(tete["nom"])} ({h(tete["code"])})</b>, et le constat tombe dans
+      {n_depts_touches} départements sur {f["departements_balayes"]} balayés. Le tableau rend
+      chaque département avec son effort de recherche, parce qu'un résultat sans son dénominateur
+      est une demi-vérité.</p>
     <div class="tableau" style="max-width:var(--l-standard)">
       <div class="tableau-defile">
         <table>
@@ -1726,19 +1747,22 @@ def page_dossier_panel_reduit(version):
       </div>
     </div>
     <p class="note note--attention" style="margin-top:var(--e-5)"><b>Ce tableau ne se lit pas comme
-      une carte de France.</b> Deux réserves, et elles sont dirimantes.</p>
-    <p class="bnote"><b>L'{h(tete["nom"])} pèse {tete["instruites"]} des {f["instruites"]} communes
-      instruites</b>, parce que c'est le département le plus profondément collecté du corpus —
-      plusieurs analyses complètes par commune, là où d'autres n'en ont qu'une. <b>Un département
-      mieux documenté produit mécaniquement plus de candidats.</b> On ne trouve que ce qu'on
-      cherche, et aucune comparaison de territoires ne se fait sans afficher l'effort de chaque
-      terme.</p>
-    <p class="bnote"><b>Le corpus couvrait {f["departements_balayes"]} départements au moment de
-      l'étude, pas la France.</b> Rien ici ne dit ce qu'il en est ailleurs.</p>
-    <p class="bnote">Ce qui reste vrai malgré ces réserves&nbsp;: <b>la Beauce est une zone de
-      grande culture céréalière, et les paramètres laissés de côté sont ceux des herbicides de
-      maïs.</b> La cohérence entre le territoire et les molécules n'est pas un artefact de
-      collecte.</p>
+      une carte de France.</b> Trois réserves, et elles sont dirimantes.</p>
+    <p class="bnote"><b>Le balayage couvre {f["departements_balayes"]} départements porteurs de
+      bulletins complets sur les 96 de métropole</b> (2A et 2B n'en ont aucun), et il les couvre
+      inégalement. Un département mieux documenté produit mécaniquement plus de candidats — on ne
+      trouve que ce qu'on cherche (§2.11). Le tableau affiche l'effort de chaque terme pour cette
+      raison.</p>
+    <p class="bnote"><b>Les deux lectures du tableau ne disent pas la même chose.</b> Le
+      département le plus fourni en communes instruites n'est pas celui où le constat tombe le
+      plus souvent : le premier mesure l'effort de collecte, le second le résultat. C'est le
+      second qui nomme la tête du dossier — et la tête change à chaque balayage, la phrase qui la
+      dirait par avance serait fausse publiée.</p>
+    <p class="bnote">Ce qui reste vrai malgré ces réserves&nbsp;: <b>les abandons se concentrent
+      sur des territoires de grande culture céréalière, et les paramètres laissés de côté sont
+      ceux des herbicides</b> de maïs, de betterave et de céréales — les métabolites de
+      l'atrazine en tête, avec le chlorothalonil et les chloridazones. La cohérence entre le
+      territoire et les molécules n'est pas un artefact de collecte.</p>
   </div>
 </section>
 
@@ -1755,10 +1779,10 @@ def page_dossier_panel_reduit(version):
       doublement faux&nbsp;: contraire à la règle du projet — interroger la norme, jamais les
       acteurs — et contraire au mécanisme.</p>
     <p class="bnote"><b>Chantier ouvert, et il est documentaire, pas informatique&nbsp;:</b>
-      retrouver les marchés d'analyses de l'ARS Centre-Val de Loire — date de notification, durée,
-      liste de paramètres annexée. Ces pièces sont publiques. Elles transformeraient
-      «&nbsp;compatible avec un renouvellement de marché&nbsp;» en fait établi, <b>ou
-      l'infirmeraient</b>.</p>
+      retrouver les marchés d'analyses des ARS dont les zones portent les arrêts — date de
+      notification, durée, liste de paramètres annexée. Ces pièces sont publiques. Elles
+      transformeraient «&nbsp;compatible avec un renouvellement de marché&nbsp;» en fait établi,
+      <b>ou l'infirmeraient</b>.</p>
   </div>
 </section>
 
@@ -3929,12 +3953,19 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
         # LE PREMIER DOSSIER. Écrit AVANT l'index, et l'ordre compte : c'est
         # cet ensemble qui décide si la carte 01 sera un lien ou un `<div>`.
         # Rien à basculer à la main le jour où le deuxième arrivera.
+        #
+        # La description porte le nombre de communes du dossier. Il a été écrit
+        # en dur (« Dans 18 communes ») jusqu'au 8 septembre 2026, et il a menti
+        # deux fois : le corps affichait 45 quand la meta disait 18. Même règle
+        # que la carte : un nombre qui vit se calcule, il ne s'écrit pas.
+        _panel = DPR.faits()
         ecrire(os.path.join(public, "dossier-panel-reduit.html"), page(
             "Une conformité peut s'obtenir en cessant de mesurer",
             page_dossier_panel_reduit(version), "dossiers.html",
-            "Dans 18 communes, des paramètres en dépassement à la dernière "
-            "analyse complète n'ont plus été mesurés depuis deux à dix ans. "
-            "La conformité affichée dit alors ce qu'on a regardé.",
+            f"Dans {_n(_panel['n_communes'])} communes, des paramètres en "
+            "dépassement à la dernière analyse complète n'ont plus été mesurés "
+            "depuis au moins deux ans, parfois plus de dix. La conformité "
+            "affichée dit alors ce qu'on a regardé.",
             version, calcule_le, formule=False, largeur="large",
             cle_bandeau="dossier",
             sous_titre="Un bulletin peut être déclaré conforme sur un panel qui ne "
