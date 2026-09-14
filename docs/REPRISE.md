@@ -1,5 +1,30 @@
 # Reprise — état au 8 août 2026
 
+> **14 septembre 2026 — CORRECTIF DES COMPTEURS « ANALYSES COMPLÈTES »,
+> DÉPLOIEMENT EN COURS.** Quatre agrégats de `site/build_site.py`
+> (`page_accueil` l.2043, `comptes_departements` l.2256, `chiffres_dossiers`
+> l.1140, bloc « à propos » l.1412) sommaient `analyses_figees` sans filtrer
+> `est_complet` : ils comptaient des bulletins de routine avec les complets
+> (175 511 au lieu de 175 311). Corrigé, commité, poussé — commit `3b43d77` sur
+> `chantier-interface`.
+>
+> **Le dépôt du VPS avait divergé de GitHub depuis le 08/09** : un commit local
+> `89ade44` jamais poussé (clé GitHub du VPS en lecture seule), jumeau du
+> commit origin `7eb5844` (même message, même parent, même horodatage à la
+> seconde ; seul `synthese_2026-09-08.csv` différait, 823 lignes sur ~1646 —
+> vraisemblablement un recalcul non déterministe du panel réduit).
+> `git pull --ff-only` y échouait. **Résolu le 14/09** : `git reset --hard
+> origin/chantier-interface` sur le VPS (accord de Yannick, contenu
+> équivalent, working tree propre vérifié avant), puis
+> `~/reconstruire_sans_fiches.sh` relancé en tâche détachée (nohup, ~1h15).
+>
+> **À vérifier une fois la reconstruction terminée** (le script publie tout
+> seul) : `eau.yannick-mytae.fr` doit annoncer **175 311** analyses complètes
+> (pas 175 511) sur l'accueil et la carte, et les compteurs de bascules /
+> dépassements de l'accueil doivent avoir baissé en cohérence. Ensuite, mettre
+> à jour `context/projets.md` du cockpit AIOS (§1 Observatoire) — c'est là
+> qu'est le registre, pas ici.
+
 > **30 août 2026 — TROIS PAGES PUBLIÉES : L'ACCUEIL, LA CARTE, L'« À PROPOS ».
 > Le site en ligne annonçait 74 départements sur 96 depuis la fin de la
 > collecte ; il annonce 96 sur 96 depuis 12 h 10.**
