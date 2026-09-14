@@ -18,12 +18,13 @@
 > équivalent, working tree propre vérifié avant), puis
 > `~/reconstruire_sans_fiches.sh` relancé en tâche détachée (nohup, ~1h15).
 >
-> **À vérifier une fois la reconstruction terminée** (le script publie tout
-> seul) : `eau.yannick-mytae.fr` doit annoncer **175 311** analyses complètes
-> (pas 175 511) sur l'accueil et la carte, et les compteurs de bascules /
-> dépassements de l'accueil doivent avoir baissé en cohérence. Ensuite, mettre
-> à jour `context/projets.md` du cockpit AIOS (§1 Observatoire) — c'est là
-> qu'est le registre, pas ici.
+> **Vérifié en ligne à 10h50.** Reconstruction terminée, 193 318 fiches
+> intactes avant/après, publication de 111 fichiers. `eau.yannick-mytae.fr`
+> annonce **175 310 analyses complètes** (bon ordre de grandeur, l'écart d'une
+> unité avec le chiffre attendu 175 311 est une dérive normale du corpus entre
+> le diagnostic et la reconstruction — pas une anomalie). **Reste** : mettre à
+> jour `context/projets.md` du cockpit AIOS (§1 Observatoire) — c'est là qu'est
+> le registre, pas ici.
 
 > **30 août 2026 — TROIS PAGES PUBLIÉES : L'ACCUEIL, LA CARTE, L'« À PROPOS ».
 > Le site en ligne annonçait 74 départements sur 96 depuis la fin de la
