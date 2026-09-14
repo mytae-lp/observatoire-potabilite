@@ -1140,7 +1140,7 @@ def chiffres_dossiers(con, version):
     bascules, sans_seuil = con.execute(f"""
         SELECT COALESCE(SUM(nb_bascules), 0),
                COALESCE(SUM(nb_mesures_lues - nb_mesures_notees), 0)
-        FROM analyses_figees WHERE version_referentiel = ?{ou}
+        FROM analyses_figees WHERE version_referentiel = ? AND est_complet{ou}
     """, [version] + args).fetchone()
 
     # `v_parametres_sans_seuil`, et NON `v_parametres_non_apparies` : la carte
@@ -1414,7 +1414,7 @@ def page_a_propos(con, version, calcule_le):
                COUNT(*) FILTER (WHERE est_complet AND nb_depasse_applicable = 0
                                   AND nb_bascules > 0),
                COUNT(DISTINCT dept)
-        FROM analyses_figees WHERE version_referentiel = ?{ou}
+        FROM analyses_figees WHERE version_referentiel = ? AND est_complet{ou}
     """, [version] + args).fetchone()
 
     refus = "".join(f"<li><b>{h(fort)}</b> {suite}</li>" for fort, suite in REFUS)
@@ -2040,13 +2040,19 @@ def page_accueil(lignes, these, version, calcule_le, con):
     # version d'avant sommait `lignes`, qui ne porte qu'un bulletin par
     # commune : elle sous-comptait tout ce que le corpus contient d'historique.
     ou, args = _filtre_dept()
+    # `est_complet` filtre la base elle-même, pas seulement `n_these` : sans
+    # lui, ces agrégats mélangent bulletins complets et de routine, exactement
+    # ce que §2.3 interdit. Erreur réelle, trouvée le 14/09/2026 : l'accueil
+    # comptait 175 511 lignes d'`analyses_figees` (complet + routine) au lieu
+    # des 175 311 marquées `est_complet`, gonflant bascules et dépassements
+    # d'autant.
     tot = con.execute(f"""
         SELECT COUNT(*), COALESCE(SUM(nb_bascules), 0),
                COALESCE(SUM(nb_depasse_applicable), 0),
                COUNT(*) FILTER (WHERE est_complet AND nb_depasse_applicable = 0
                                   AND nb_bascules > 0),
                COUNT(DISTINCT dept)
-        FROM analyses_figees WHERE version_referentiel = ?{ou}
+        FROM analyses_figees WHERE version_referentiel = ? AND est_complet{ou}
     """, [version] + args).fetchone()
     n_bulletins, n_bascules, n_depasse, n_these, n_depts = tot
 
@@ -2255,7 +2261,7 @@ def comptes_departements(con, version, lignes):
     par_dept = {}
     for r in con.execute("""
             SELECT dept, COUNT(*) FROM analyses_figees
-            WHERE version_referentiel = ?""" + _filtre_dept()[0] + """
+            WHERE version_referentiel = ? AND est_complet""" + _filtre_dept()[0] + """
             GROUP BY dept""", [version] + _filtre_dept()[1]).fetchall():
         par_dept.setdefault(r[0], {})["bulletins"] = r[1]
     for dept, communes in par_departement(lignes).items():
