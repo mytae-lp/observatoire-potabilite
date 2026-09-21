@@ -271,6 +271,14 @@ THEME_AVANT_RENDU = (
     "<script>try{var t=localStorage.getItem('theme');"
     "if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>")
 
+# Mesure d'audience, GoatCounter — compte à part de mytae.goatcounter.com
+# (site distinct dans le même compte, jamais le même code : mélanger les deux
+# mélangerait les statistiques de deux sites différents). `async`, en fin de
+# page : la seule contrainte de blocage du rendu est THEME_AVANT_RENDU.
+GOATCOUNTER = (
+    '<script data-goatcounter="https://mytae-eau.goatcounter.com/count" '
+    'async src="//gc.zgo.at/count.js"></script>')
+
 
 def barre(page_courante, prefixe):
     """
@@ -567,6 +575,7 @@ def page(titre, corps, page_courante, description, version, calcule_le,
 {pied(version, calcule_le, corpus, prefixe)}
 <script src="{prefixe}assets/{empreinte('barre.js')}"></script>
 {scripts}
+{GOATCOUNTER}
 </body>
 </html>
 """
