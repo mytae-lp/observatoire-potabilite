@@ -3952,6 +3952,40 @@ def construire(destination=None, db=DB_PATH, depts=None, communes=None,
                        "à collecter, une demande de la presse : <b>tout ce qui "
                        "rend le travail plus juste est bienvenu.</b>"))
 
+        # LA PAGE 404, À L'INTÉRIEUR DE LA CHARTE — décidé le 18 septembre 2026.
+        # Hostinger sert par défaut sa propre page d'erreur, hors du site : un
+        # visiteur qui atterrit sur un lien mort en sort sans aucun moyen de
+        # rebondir vers le corpus. Le fichier est produit ici comme n'importe
+        # quelle autre page (même squelette, même barre, même pied), et
+        # `.htaccess` (copié depuis `gabarits/`, voir plus bas) dit à Apache de
+        # le servir en réponse à un 404 plutôt que sa page générique.
+        # `prefixe="/"` — PAS "" — et c'est le point de toute cette page.
+        # Apache sert ce fichier en réponse à un 404 SANS changer l'adresse de
+        # la barre : une visite sur `commune/92040.html` qui échoue affiche ce
+        # contenu tout en restant, pour le navigateur, sous `commune/`. Un
+        # chemin relatif ("assets/…", "communes.html") s'y résout alors en
+        # `commune/assets/…` et `commune/communes.html` — feuille de style
+        # absente, liens morts. Le préfixe racine absolu est la seule forme
+        # qui reste valable quelle que soit la profondeur du lien mort.
+        ecrire(os.path.join(public, "404.html"), page(
+            "Page introuvable",
+            lire("404-corps.html"),
+            "404.html",
+            "Cette adresse ne correspond à aucune page publiée de "
+            "l'Observatoire. Recherche par commune, carte de couverture et "
+            "retour à l'accueil.", version, calcule_le,
+            formule=False, cle_bandeau="communes.html", prefixe="/",
+            og_titre="Page introuvable — Observatoire de la potabilité réglementaire",
+            sous_titre="Cette adresse ne correspond à aucune page publiée. "
+                       "<b>Le reste du corpus reste accessible</b> — voici "
+                       "trois façons d'y revenir."))
+        # Apache/LiteSpeed (Hostinger) : ErrorDocument 404 en chemin ABSOLU
+        # depuis la racine du site, valable à toutes les profondeurs
+        # (commune/, departement/, substance/). `publier.py` doit envoyer ce
+        # fichier caché explicitement (voir son option de filtrage).
+        shutil.copyfile(os.path.join(GABARITS, ".htaccess"),
+                        os.path.join(public, ".htaccess"))
+
         ecrire(os.path.join(public, "index.html"), page(
             "Quelle eau buvez-vous ?",
             page_accueil(lignes, these, version, calcule_le, con),
